@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "be/api/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "fe/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "be/api/index.ts"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "fe/assets/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "fe/index.html"
+    }
+  ]
+}
