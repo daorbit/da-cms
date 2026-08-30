@@ -1,0 +1,21 @@
+{
+  "name": "da-cms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm --prefix be run dev\" \"npm --prefix fe run dev\"",
+    "dev:be": "npm --prefix be run dev",
+    "dev:fe": "npm --prefix fe run dev",
+    "install:all": "npm install && cd be && npm install && cd ../fe && npm install",
+    "build": "npm --prefix be run build && npm --prefix fe run build",
+    "start": "npm --prefix be run start",
+    "typecheck": "npm --prefix be run typecheck && npm --prefix fe run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
