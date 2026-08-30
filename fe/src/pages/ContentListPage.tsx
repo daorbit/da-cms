@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge, Button, Container, Group, Skeleton, Stack, Table, Text, Title } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { api } from '@/lib/api';
@@ -8,6 +8,7 @@ import type { Collection, Content } from '@/types';
 
 export function ContentListPage() {
   const { collectionId } = useParams();
+  const navigate = useNavigate();
   const workspace = useWorkspace();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<Content[] | null>(null);
@@ -67,8 +68,7 @@ export function ContentListPage() {
             {items.map((item) => (
               <Table.Tr
                 key={item.id}
-                component={Link}
-                to={`/${workspace.slug}/collections/${collectionId}/content/${item.id}/edit`}
+                onClick={() => navigate(`/${workspace.slug}/collections/${collectionId}/content/${item.id}/edit`)}
                 style={{ cursor: 'pointer' }}
               >
                 <Table.Td>{titleField ? String(item.data[titleField] ?? '(untitled)') : item.id}</Table.Td>
