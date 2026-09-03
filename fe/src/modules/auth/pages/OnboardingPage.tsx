@@ -230,7 +230,7 @@ export function OnboardingPage() {
                     size="md"
                     radius="md"
                     leftSection={<IconFileText size={16} />}
-                    onClick={() => navigate(`/${workspace.slug}/content/pages/new`)}
+                    onClick={() => navigate(`/${workspace.slug}/content/pages?new=1`)}
                   >
                     Create your first page
                   </Button>

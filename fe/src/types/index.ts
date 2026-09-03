@@ -77,6 +77,10 @@ export interface Author {
 
 export type PageStatus = 'draft' | 'published' | 'archived';
 
+/** Which editor authored a page's body. Picked once, at creation, since the
+ *  two store content in incompatible shapes and switching would lose it. */
+export type PageEditorType = 'rich' | 'block';
+
 export interface Page {
   id: string;
   title: string;
@@ -84,8 +88,11 @@ export interface Page {
   description: string;
   heroImage: PageImage;
   thumbnailImage: PageImage;
-  /** Rich text HTML produced by the TipTap editor. */
+  editorType: PageEditorType;
+  /** HTML — from TipTap when `editorType` is 'rich', exported from BlockNote when 'block'. */
   body: string;
+  /** BlockNote's native block JSON. Empty when `editorType` is 'rich'. */
+  bodyBlocks: unknown[];
   sections: PageSection[];
   seo: PageSeo;
   status: PageStatus;

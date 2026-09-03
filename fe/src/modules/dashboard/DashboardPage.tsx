@@ -73,7 +73,7 @@ export function DashboardPage() {
         </div>
         <Button
           leftSection={<IconPlus size={16} />}
-          onClick={() => navigate(`/${workspace?.slug}/content/pages/new`)}
+          onClick={() => navigate(`/${workspace?.slug}/content/pages?new=1`)}
         >
           New page
         </Button>

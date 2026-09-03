@@ -45,8 +45,9 @@ export function App() {
                 <Route path="content">
                   <Route index element={<Navigate to="pages" replace />} />
 
+                  {/* No "new" route: a page is created through a dialog on the
+                      list, so the editor always has a real page to open. */}
                   <Route path="pages" element={<PageListPage />} />
-                  <Route path="pages/new" element={<PageEditorPage />} />
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
 
                   <Route path="collections" element={<CollectionListPage />} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ActionIcon, Alert, Badge, Button, Card, Group, Menu, Stack, Table, Text, TextInput,
   Title, SegmentedControl, Center, Loader, Modal,
@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
+import { CreatePageModal } from '@/modules/content/pages/CreatePageModal';
 import { ApiError } from '@/lib/api';
 import type { PageSummary, PageStatus } from '@/types';
 
@@ -31,6 +32,18 @@ export function PageListPage() {
   const [search, setSearch] = useState('');
   const [pendingDelete, setPendingDelete] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // `?new=1` lets other screens — the dashboard, onboarding — open the create
+  // dialog without owning a copy of it.
+  const [params, setParams] = useSearchParams();
+  const [creating, setCreating] = useState(params.get('new') === '1');
+
+  const closeCreate = () => {
+    setCreating(false);
+    if (params.has('new')) {
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+  };
 
   // Debounced so typing in the search box does not fire a request per keystroke.
   const [query, setQuery] = useState('');
@@ -85,10 +98,7 @@ export function PageListPage() {
             Every page in this workspace.
           </Text>
         </div>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={() => navigate(`/${workspace?.slug}/content/pages/new`)}
-        >
+        <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
           New page
         </Button>
       </Group>
@@ -134,6 +144,17 @@ export function PageListPage() {
                   ? 'Nothing matches that filter.'
                   : 'Create your first page to get started.'}
               </Text>
+              {!query && status === 'all' && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  mt="xs"
+                  leftSection={<IconPlus size={14} />}
+                  onClick={() => setCreating(true)}
+                >
+                  New page
+                </Button>
+              )}
             </Stack>
           </Center>
         ) : (
@@ -211,6 +232,15 @@ export function PageListPage() {
           </Table>
         )}
       </Card>
+
+      <CreatePageModal
+        opened={creating}
+        onClose={closeCreate}
+        onCreated={(page) => {
+          closeCreate();
+          navigate(`/${workspace?.slug}/content/pages/${page.id}/edit`);
+        }}
+      />
 
       <Modal
         opened={pendingDelete !== null}

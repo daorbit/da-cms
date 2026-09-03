@@ -48,8 +48,13 @@ const pageSchema = new Schema(
     /** Square-ish card image used in listings and social previews. */
     thumbnailImage: { type: imageSchema, default: () => ({}) },
 
-    /** TipTap HTML from the rich text editor. */
+    /** Which editor authored `body`/`bodyBlocks` — picked once, at creation. */
+    editorType: { type: String, enum: ['rich', 'block'], default: 'rich' },
+
+    /** TipTap HTML from the rich text editor, or BlockNote's exported HTML. */
     body: { type: String, default: '' },
+    /** BlockNote's native block JSON, kept alongside `body` for a lossless round-trip. Empty when `editorType` is `rich`. */
+    bodyBlocks: { type: Schema.Types.Mixed, default: [] },
 
     sections: { type: [sectionSchema], default: [] },
     seo: { type: seoSchema, default: () => ({}) },

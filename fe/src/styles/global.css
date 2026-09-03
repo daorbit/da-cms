@@ -52,6 +52,84 @@ body {
   border-color: rgba(255, 255, 255, 0.09);
 }
 
+/* -------------------------------------------------------- rich text editor */
+
+/* The Placeholder extension marks the first empty node; without this rule it
+   ships no visible text and the editor looks broken rather than empty. */
+.mantine-RichTextEditor-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--mantine-color-placeholder);
+}
+
+.mantine-RichTextEditor-root {
+  background: var(--mantine-color-body);
+}
+[data-mantine-color-scheme='dark'] .mantine-RichTextEditor-root {
+  background: #141416;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+[data-mantine-color-scheme='dark'] .mantine-RichTextEditor-toolbar {
+  background: #141416;
+  border-bottom-color: rgba(255, 255, 255, 0.09);
+}
+
+/* The typing surface fills its box, so clicking anywhere in the editor lands
+   the caret rather than only the line of text itself. */
+.mantine-RichTextEditor-content .tiptap {
+  min-height: inherit;
+  padding: var(--mantine-spacing-md);
+}
+.mantine-RichTextEditor-content .tiptap:focus {
+  outline: none;
+}
+
+/* --------------------------------------------------------- page preview */
+
+/* The editor emits bare HTML with no classes, so the preview styles it by tag.
+   Scoped to this container so nothing here reaches the app's own markup. */
+.page-preview-body {
+  line-height: 1.7;
+}
+.page-preview-body > :first-child { margin-top: 0; }
+.page-preview-body > :last-child { margin-bottom: 0; }
+.page-preview-body h1,
+.page-preview-body h2,
+.page-preview-body h3,
+.page-preview-body h4 {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 1.6em 0 0.5em;
+}
+.page-preview-body p { margin: 0 0 1em; }
+.page-preview-body ul,
+.page-preview-body ol { margin: 0 0 1em; padding-left: 1.4em; }
+.page-preview-body li { margin-bottom: 0.35em; }
+.page-preview-body a { color: var(--mantine-color-brand-6); }
+.page-preview-body img { max-width: 100%; border-radius: 8px; }
+.page-preview-body blockquote {
+  margin: 1.2em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+}
+.page-preview-body pre {
+  padding: 0.9em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  background: var(--mantine-color-default);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.85em;
+}
+.page-preview-body hr {
+  margin: 1.6em 0;
+  border: 0;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
 /* ------------------------------------------------------------- app shell */
 
 /* The sidebar is an inset panel floating on the page ground rather than a rail

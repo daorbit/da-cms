@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { RichTextEditor, Link } from '@mantine/tiptap';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -17,18 +16,27 @@ interface Props {
   minHeight?: number;
 }
 
+/** What TipTap reports for a document with nothing in it. */
+const EMPTY_HTML = '<p></p>';
+
 export function RichTextField({
   label,
   description,
   value,
   onChange,
   placeholder = 'Write something…',
-  minHeight = 320,
+  minHeight = 360,
 }: Props) {
   const editor = useEditor({
+    // Without this the toolbar never re-renders, so the active states on Bold,
+    // the headings and the alignment controls stay stuck at their initial value.
+    shouldRerenderOnTransaction: true,
     extensions: [
-      StarterKit,
-      Underline,
+      // StarterKit v3 bundles Link and Underline. Its Link is disabled so the
+      // Mantine one — which the toolbar's Link control drives — owns the mark;
+      // registering both throws a duplicate-extension warning and the controls
+      // then act on the wrong instance.
+      StarterKit.configure({ link: false }),
       Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Image,
@@ -38,12 +46,19 @@ export function RichTextField({
     onUpdate: ({ editor: instance }) => onChange(instance.getHTML()),
   });
 
-  // The editor is created before the page has loaded, so its initial content is
-  // empty. Push the fetched HTML in once it arrives — but only when it differs,
-  // since setContent on every render would reset the cursor mid-typing.
+  // Push externally-loaded content in once — when the page finishes fetching.
+  //
+  // The comparison has to treat "" and "<p></p>" as the same thing: an empty
+  // editor reports the latter, so a plain inequality check fires setContent on
+  // every keystroke of the first word and wipes what was just typed.
   useEffect(() => {
     if (!editor) return;
-    if (value !== editor.getHTML()) editor.commands.setContent(value, { emitUpdate: false });
+
+    const incoming = value || EMPTY_HTML;
+    const current = editor.getHTML();
+    if (incoming === current) return;
+
+    editor.commands.setContent(value, { emitUpdate: false });
     // `editor.getHTML()` is deliberately not a dependency: it changes on every
     // keystroke and would make this run against the user's own typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,7 +66,7 @@ export function RichTextField({
 
   const body = (
     <RichTextEditor editor={editor}>
-      <RichTextEditor.Toolbar sticky stickyOffset={56}>
+      <RichTextEditor.Toolbar sticky stickyOffset={0}>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />
           <RichTextEditor.Italic />
@@ -94,7 +109,13 @@ export function RichTextField({
         </RichTextEditor.ControlsGroup>
       </RichTextEditor.Toolbar>
 
-      <RichTextEditor.Content style={{ minHeight }} />
+      {/* The click target is the whole area, not just the text: clicking the
+          empty space below a short paragraph should put the caret at the end,
+          which is what every other editor does. */}
+      <RichTextEditor.Content
+        style={{ minHeight }}
+        onClick={() => editor?.commands.focus('end')}
+      />
     </RichTextEditor>
   );
 
