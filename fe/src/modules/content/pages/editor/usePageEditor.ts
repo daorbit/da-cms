@@ -21,7 +21,7 @@ export function usePageEditor(id: string | undefined) {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [group, setGroup] = useState('general');
+  const [group, setGroup] = useState('General');
   const [tags, setTags] = useState<string[]>([]);
   const [heroImage, setHeroImage] = useState<PageImage>(EMPTY_IMAGE);
   const [thumbnailImage, setThumbnailImage] = useState<PageImage>(EMPTY_IMAGE);
@@ -47,7 +47,7 @@ export function usePageEditor(id: string | undefined) {
         setTitle(page.title);
         setSlug(page.slug);
         setDescription(page.description ?? '');
-        setGroup(page.group ?? 'general');
+        setGroup(page.group ?? 'General');
         setTags(page.tags ?? []);
         setHeroImage(page.heroImage ?? EMPTY_IMAGE);
         setThumbnailImage(page.thumbnailImage ?? EMPTY_IMAGE);
