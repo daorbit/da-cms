@@ -1,5 +1,5 @@
 import { Card, Divider, Stack, Text, Title } from '@mantine/core';
-import { SectionPreview } from '@/modules/content/sections/SectionPreview';
+import { LegacySectionPreview } from '@/modules/content/sections/LegacySectionPreview';
 import type { PageImage, PageSection } from '@/types';
 
 interface Props {
@@ -7,15 +7,12 @@ interface Props {
   description: string;
   heroImage: PageImage;
   body: string;
-  sections: PageSection[];
+  /** From pages saved before sections moved into the body editor. */
+  legacySections?: PageSection[];
 }
 
-/**
- * Read-only render of the page as it would appear published. Works from
- * `body` HTML regardless of which editor produced it — BlockNote exports
- * HTML on every change for exactly this purpose.
- */
-export function PagePreview({ title, description, heroImage, body, sections }: Props) {
+/** Read-only render of the page as it would appear published. */
+export function PagePreview({ title, description, heroImage, body, legacySections = [] }: Props) {
   return (
     // The preview keeps a measure cap: it is prose to be read, and a line of
     // body copy running the full width of a monitor is unreadable.
@@ -37,21 +34,20 @@ export function PagePreview({ title, description, heroImage, body, sections }: P
             <>
               <Divider my="lg" />
               {/* The editor's own HTML, rendered as it was authored. It comes
-                  from this app's own TipTap/BlockNote instance, not from
-                  user-supplied markup, so there is nothing here to sanitise
-                  against. */}
+                  from this app's own TipTap instance, not from user-supplied
+                  markup, so there is nothing here to sanitise against. */}
               <div className="page-preview-body" dangerouslySetInnerHTML={{ __html: body }} />
             </>
           )}
 
-          {sections.map((section) => (
+          {legacySections.map((section) => (
             <div key={section.key}>
               <Divider my="lg" />
-              <SectionPreview section={section} />
+              <LegacySectionPreview section={section} />
             </div>
           ))}
 
-          {!body && sections.length === 0 && (
+          {!body && legacySections.length === 0 && (
             <Text c="dimmed" ta="center" py={40}>
               Nothing to preview yet.
             </Text>

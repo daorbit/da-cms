@@ -14,10 +14,7 @@ export type PagePayload = Partial<
     | 'description'
     | 'heroImage'
     | 'thumbnailImage'
-    | 'editorType'
     | 'body'
-    | 'bodyBlocks'
-    | 'sections'
     | 'seo'
     | 'status'
   >

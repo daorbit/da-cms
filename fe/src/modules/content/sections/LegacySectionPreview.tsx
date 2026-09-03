@@ -5,13 +5,14 @@ import type { PageSection } from '@/types';
 const str = (data: Record<string, unknown>, key: string) => String(data[key] ?? '');
 
 /**
- * Renders one block roughly as it will publish.
+ * Read-only render of a block from the old, now-removed sections panel.
  *
- * Approximate on purpose: this is a composition check — does the order read,
- * is anything empty — not a pixel-accurate render of the public site, which
- * this app does not own the templates for.
+ * New pages never write `sections` any more — hero/CTA/features are TipTap
+ * blocks inside `body` instead — but pages saved before that switch still
+ * have this data, so the preview keeps rendering it rather than silently
+ * dropping content someone already wrote.
  */
-export function SectionPreview({ section }: { section: PageSection }) {
+export function LegacySectionPreview({ section }: { section: PageSection }) {
   const { data } = section;
 
   switch (section.type) {
@@ -33,9 +34,7 @@ export function SectionPreview({ section }: { section: PageSection }) {
         <Text py="md" style={{ whiteSpace: 'pre-wrap' }}>
           {str(data, 'body')}
         </Text>
-      ) : (
-        <Empty label="Empty rich text block" />
-      );
+      ) : null;
 
     case 'image':
       return str(data, 'src') ? (
@@ -47,9 +46,7 @@ export function SectionPreview({ section }: { section: PageSection }) {
             </Text>
           )}
         </Stack>
-      ) : (
-        <Empty label="No image set" />
-      );
+      ) : null;
 
     case 'cta':
       return (
@@ -60,29 +57,25 @@ export function SectionPreview({ section }: { section: PageSection }) {
       );
 
     case 'features': {
-      // One feature per line, which is how the inspector collects them.
       const items = str(data, 'items')
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean);
+      if (items.length === 0 && !str(data, 'heading')) return null;
 
       return (
         <Stack gap="md" py="lg">
           {str(data, 'heading') && <Title order={3}>{str(data, 'heading')}</Title>}
-          {items.length === 0 ? (
-            <Empty label="No features listed" />
-          ) : (
-            <Stack gap="xs">
-              {items.map((item) => (
-                <Group key={item} gap="sm" wrap="nowrap">
-                  <ThemeIcon size="sm" radius="xl" variant="light">
-                    <IconCheck size={12} />
-                  </ThemeIcon>
-                  <Text size="sm">{item}</Text>
-                </Group>
-              ))}
-            </Stack>
-          )}
+          <Stack gap="xs">
+            {items.map((item) => (
+              <Group key={item} gap="sm" wrap="nowrap">
+                <ThemeIcon size="sm" radius="xl" variant="light">
+                  <IconCheck size={12} />
+                </ThemeIcon>
+                <Text size="sm">{item}</Text>
+              </Group>
+            ))}
+          </Stack>
         </Stack>
       );
     }
@@ -90,12 +83,4 @@ export function SectionPreview({ section }: { section: PageSection }) {
     default:
       return null;
   }
-}
-
-function Empty({ label }: { label: string }) {
-  return (
-    <Text c="dimmed" size="sm" fs="italic" ta="center" py="lg">
-      {label}
-    </Text>
-  );
 }

@@ -77,10 +77,6 @@ export interface Author {
 
 export type PageStatus = 'draft' | 'published' | 'archived';
 
-/** Which editor authored a page's body. Picked once, at creation, since the
- *  two store content in incompatible shapes and switching would lose it. */
-export type PageEditorType = 'rich' | 'block';
-
 export interface Page {
   id: string;
   title: string;
@@ -88,11 +84,9 @@ export interface Page {
   description: string;
   heroImage: PageImage;
   thumbnailImage: PageImage;
-  editorType: PageEditorType;
-  /** HTML — from TipTap when `editorType` is 'rich', exported from BlockNote when 'block'. */
+  /** HTML from the page editor. Hero/CTA/features render as blocks inline here. */
   body: string;
-  /** BlockNote's native block JSON. Empty when `editorType` is 'rich'. */
-  bodyBlocks: unknown[];
+  /** Read-only: sections from pages saved before those blocks moved into `body`. */
   sections: PageSection[];
   seo: PageSeo;
   status: PageStatus;

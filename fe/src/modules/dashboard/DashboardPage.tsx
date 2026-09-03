@@ -85,7 +85,7 @@ export function DashboardPage() {
         </Alert>
       )}
 
-      <Grid gutter="md">
+      <Grid gap="md">
         {TILES.map((tile) => (
           <Grid.Col key={tile.key} span={{ base: 12, xs: 4 }}>
             <Card withBorder radius="md" p="lg">

@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
-import { createSection } from '@/modules/content/sections/registry';
 import { ApiError } from '@/lib/api';
-import type {
-  PageSection, PageSeo, PageImage, PageStatus, PageEditorType, SectionType,
-} from '@/types';
+import type { PageSeo, PageImage, PageStatus, PageSection } from '@/types';
 
 export const slugify = (input: string) =>
   input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -26,10 +23,10 @@ export function usePageEditor(id: string | undefined) {
   const [description, setDescription] = useState('');
   const [heroImage, setHeroImage] = useState<PageImage>(EMPTY_IMAGE);
   const [thumbnailImage, setThumbnailImage] = useState<PageImage>(EMPTY_IMAGE);
-  const [editorType, setEditorType] = useState<PageEditorType>('rich');
   const [body, setBody] = useState('');
-  const [bodyBlocks, setBodyBlocks] = useState<unknown[]>([]);
-  const [sections, setSections] = useState<PageSection[]>([]);
+  // Read-only: pages saved before sections moved into the body editor still
+  // carry this, so the preview keeps showing it. Never written back.
+  const [legacySections, setLegacySections] = useState<PageSection[]>([]);
   const [seo, setSeo] = useState<PageSeo>(EMPTY_SEO);
   const [status, setStatus] = useState<PageStatus>('draft');
 
@@ -50,10 +47,8 @@ export function usePageEditor(id: string | undefined) {
         setDescription(page.description ?? '');
         setHeroImage(page.heroImage ?? EMPTY_IMAGE);
         setThumbnailImage(page.thumbnailImage ?? EMPTY_IMAGE);
-        setEditorType(page.editorType ?? 'rich');
         setBody(page.body ?? '');
-        setBodyBlocks(page.bodyBlocks ?? []);
-        setSections(page.sections ?? []);
+        setLegacySections(page.sections ?? []);
         setSeo(page.seo ?? EMPTY_SEO);
         setStatus(page.status);
       } catch (err) {
@@ -67,21 +62,6 @@ export function usePageEditor(id: string | undefined) {
       cancelled = true;
     };
   }, [workspace, id]);
-
-  const addSection = (type: SectionType) => setSections((s) => [...s, createSection(type)]);
-
-  const updateSection = (index: number, data: Record<string, unknown>) =>
-    setSections((s) => s.map((section, i) => (i === index ? { ...section, data } : section)));
-
-  const moveSection = (index: number, direction: -1 | 1) =>
-    setSections((s) => {
-      const next = [...s];
-      const target = index + direction;
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-
-  const removeSection = (index: number) => setSections((s) => s.filter((_, i) => i !== index));
 
   const save = async (nextStatus: PageStatus) => {
     if (!workspace || !id) return;
@@ -99,10 +79,7 @@ export function usePageEditor(id: string | undefined) {
         description,
         heroImage,
         thumbnailImage,
-        editorType,
         body,
-        bodyBlocks,
-        sections,
         seo,
         status: nextStatus,
       });
@@ -121,10 +98,8 @@ export function usePageEditor(id: string | undefined) {
     description, setDescription,
     heroImage, setHeroImage,
     thumbnailImage, setThumbnailImage,
-    editorType,
     body, setBody,
-    bodyBlocks, setBodyBlocks,
-    sections, addSection, updateSection, moveSection, removeSection,
+    legacySections,
     seo, setSeo,
     status,
     loading, saving, error,

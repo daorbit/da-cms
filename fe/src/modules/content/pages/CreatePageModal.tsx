@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import {
-  Alert, Button, Divider, Group, Modal, SegmentedControl, Stack, Stepper, Switch, Text,
-  TextInput, Textarea,
+  Alert, Button, Divider, Group, Modal, Stack, Stepper, Switch, Text, TextInput, Textarea,
 } from '@mantine/core';
-import { IconLayoutList, IconTextCaption } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { ImageField } from '@/modules/content/components/ImageField';
 import { ApiError } from '@/lib/api';
-import type { Page, PageEditorType, PageImage, PageSeo } from '@/types';
+import type { Page, PageImage, PageSeo } from '@/types';
 
 const slugify = (input: string) =>
   input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -47,9 +45,6 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
   const [heroImage, setHeroImage] = useState<PageImage>(EMPTY_IMAGE);
   const [thumbnailImage, setThumbnailImage] = useState<PageImage>(EMPTY_IMAGE);
   const [seo, setSeo] = useState<PageSeo>(EMPTY_SEO);
-  // Picked once, up front: the two editors store content in incompatible
-  // shapes, so there's no clean way to switch after the first save.
-  const [editorType, setEditorType] = useState<PageEditorType>('rich');
 
   const titleError = title.trim() ? null : 'A title is required';
 
@@ -64,7 +59,6 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
     setHeroImage(EMPTY_IMAGE);
     setThumbnailImage(EMPTY_IMAGE);
     setSeo(EMPTY_SEO);
-    setEditorType('rich');
   };
 
   const close = () => {
@@ -98,10 +92,7 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
         heroImage,
         thumbnailImage,
         seo,
-        editorType,
-        sections: [],
         body: '',
-        bodyBlocks: [],
         status: 'draft',
       });
       reset();
@@ -129,31 +120,6 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
 
         {step === 0 && (
           <Stack gap="sm">
-            <Stack gap={4}>
-              <Text size="sm" fw={500}>
-                Editor
-              </Text>
-              <SegmentedControl
-                value={editorType}
-                onChange={(value) => setEditorType(value as PageEditorType)}
-                data={[
-                  {
-                    value: 'rich',
-                    label: <EditorTypeLabel icon={<IconTextCaption size={14} />} text="Rich text" />,
-                  },
-                  {
-                    value: 'block',
-                    label: <EditorTypeLabel icon={<IconLayoutList size={14} />} text="Blocks" />,
-                  },
-                ]}
-              />
-              <Text size="xs" c="dimmed">
-                {editorType === 'block'
-                  ? 'Notion-style: drag blocks, use / to insert.'
-                  : 'A single formatted document, like a word processor.'}
-              </Text>
-            </Stack>
-
             <TextInput
               label="Title"
               placeholder="About us"
@@ -265,14 +231,5 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
         )}
       </Stack>
     </Modal>
-  );
-}
-
-function EditorTypeLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <Group gap={6} wrap="nowrap">
-      {icon}
-      <span>{text}</span>
-    </Group>
   );
 }

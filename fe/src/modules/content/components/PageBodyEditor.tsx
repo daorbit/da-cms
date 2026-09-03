@@ -5,11 +5,15 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Input } from '@mantine/core';
+import { DragHandle } from '@tiptap/extension-drag-handle-react';
+import { IconGripVertical, IconPlus } from '@tabler/icons-react';
+import { ActionIcon, Group } from '@mantine/core';
+import { SlashCommand } from '@/modules/content/editor/SlashCommand';
+import { HeroBlock } from '@/modules/content/editor/blocks/HeroBlock';
+import { CtaBlock } from '@/modules/content/editor/blocks/CtaBlock';
+import { FeaturesBlock } from '@/modules/content/editor/blocks/FeaturesBlock';
 
 interface Props {
-  label?: string;
-  description?: string;
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
@@ -19,52 +23,43 @@ interface Props {
 /** What TipTap reports for a document with nothing in it. */
 const EMPTY_HTML = '<p></p>';
 
-export function RichTextField({
-  label,
-  description,
-  value,
-  onChange,
-  placeholder = 'Write something…',
-  minHeight = 360,
-}: Props) {
+/**
+ * The one editor every page uses — Notion-flavoured: hover a block for a
+ * drag handle, type "/" for a block picker, and hero/CTA/features insert as
+ * blocks inline rather than living in a separate sections panel.
+ *
+ * This replaced two editors (a plain TipTap rich-text field and a BlockNote
+ * block editor) and the sections rail — one surface, one content shape
+ * (HTML), nothing for the user to choose up front.
+ */
+export function PageBodyEditor({ value, onChange, placeholder = 'Start writing…', minHeight = 480 }: Props) {
   const editor = useEditor({
-    // Without this the toolbar never re-renders, so the active states on Bold,
-    // the headings and the alignment controls stay stuck at their initial value.
     shouldRerenderOnTransaction: true,
     extensions: [
-      // StarterKit v3 bundles Link and Underline. Its Link is disabled so the
-      // Mantine one — which the toolbar's Link control drives — owns the mark;
-      // registering both throws a duplicate-extension warning and the controls
-      // then act on the wrong instance.
       StarterKit.configure({ link: false }),
       Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Image,
       Placeholder.configure({ placeholder }),
+      SlashCommand,
+      HeroBlock,
+      CtaBlock,
+      FeaturesBlock,
     ],
     content: value,
     onUpdate: ({ editor: instance }) => onChange(instance.getHTML()),
   });
 
-  // Push externally-loaded content in once — when the page finishes fetching.
-  //
-  // The comparison has to treat "" and "<p></p>" as the same thing: an empty
-  // editor reports the latter, so a plain inequality check fires setContent on
-  // every keystroke of the first word and wipes what was just typed.
   useEffect(() => {
     if (!editor) return;
-
     const incoming = value || EMPTY_HTML;
     const current = editor.getHTML();
     if (incoming === current) return;
-
     editor.commands.setContent(value, { emitUpdate: false });
-    // `editor.getHTML()` is deliberately not a dependency: it changes on every
-    // keystroke and would make this run against the user's own typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor]);
 
-  const body = (
+  return (
     <RichTextEditor editor={editor}>
       <RichTextEditor.Toolbar sticky stickyOffset={0}>
         <RichTextEditor.ControlsGroup>
@@ -109,21 +104,32 @@ export function RichTextField({
         </RichTextEditor.ControlsGroup>
       </RichTextEditor.Toolbar>
 
-      {/* The click target is the whole area, not just the text: clicking the
-          empty space below a short paragraph should put the caret at the end,
-          which is what every other editor does. */}
+      {editor && (
+        <DragHandle editor={editor}>
+          <Group gap={2} wrap="nowrap">
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label="Insert block"
+              onClick={() => {
+                // Opens the same picker "/" does, without making the user type it.
+                editor.chain().focus().insertContent('/').run();
+              }}
+            >
+              <IconPlus size={14} />
+            </ActionIcon>
+            <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Drag to reorder" style={{ cursor: 'grab' }}>
+              <IconGripVertical size={14} />
+            </ActionIcon>
+          </Group>
+        </DragHandle>
+      )}
+
       <RichTextEditor.Content
         style={{ minHeight }}
         onClick={() => editor?.commands.focus('end')}
       />
     </RichTextEditor>
-  );
-
-  if (!label) return body;
-
-  return (
-    <Input.Wrapper label={label} description={description}>
-      {body}
-    </Input.Wrapper>
   );
 }

@@ -51,28 +51,14 @@ export function PageEditorPage() {
       )}
 
       {mode === 'edit' ? (
-        <EditorSurface
-          editorType={editor.editorType}
-          body={editor.body}
-          onBodyChange={editor.setBody}
-          bodyBlocks={editor.bodyBlocks}
-          onBodyBlocksChange={(blocks, html) => {
-            editor.setBodyBlocks(blocks);
-            editor.setBody(html);
-          }}
-          sections={editor.sections}
-          onAddSection={editor.addSection}
-          onUpdateSection={editor.updateSection}
-          onMoveSection={editor.moveSection}
-          onRemoveSection={editor.removeSection}
-        />
+        <EditorSurface body={editor.body} onBodyChange={editor.setBody} />
       ) : (
         <PagePreview
           title={editor.title}
           description={editor.description}
           heroImage={editor.heroImage}
           body={editor.body}
-          sections={editor.sections}
+          legacySections={editor.legacySections}
         />
       )}
 

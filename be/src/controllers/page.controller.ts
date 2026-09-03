@@ -22,9 +22,7 @@ const pageSchema = z.object({
   description: z.string().max(500).default(''),
   heroImage: imageSchema.default({ url: '', alt: '' }),
   thumbnailImage: imageSchema.default({ url: '', alt: '' }),
-  editorType: z.enum(['rich', 'block']).default('rich'),
   body: z.string().default(''),
-  bodyBlocks: z.array(z.unknown()).default([]),
   sections: z.array(sectionSchema).default([]),
   seo: z
     .object({
@@ -55,9 +53,7 @@ interface PageDoc {
   description?: string;
   heroImage?: unknown;
   thumbnailImage?: unknown;
-  editorType?: string;
   body?: string;
-  bodyBlocks?: unknown;
   sections: unknown;
   seo: unknown;
   status: string;
@@ -76,9 +72,7 @@ function toResponse(page: PageDoc) {
     description: page.description ?? '',
     heroImage: page.heroImage ?? { url: '', alt: '' },
     thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },
-    editorType: page.editorType ?? 'rich',
     body: page.body ?? '',
-    bodyBlocks: page.bodyBlocks ?? [],
     sections: page.sections,
     seo: page.seo,
     status: page.status,
@@ -151,7 +145,7 @@ export const listPages: RequestHandler = async (req, res) => {
   const pages = await PageModel.find(filter)
     // The list shows neither the body nor the blocks, and a page full of rich
     // text is by far the heaviest field — excluded so the table stays cheap.
-    .select('-body -bodyBlocks -sections')
+    .select('-body -sections')
     .populate('createdBy', AUTHOR_FIELDS)
     .populate('updatedBy', AUTHOR_FIELDS)
     .sort({ updatedAt: -1 });
@@ -233,7 +227,7 @@ export const workspaceStats: RequestHandler = async (req, res) => {
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
     PageModel.find({ workspaceId })
-      .select('-body -bodyBlocks -sections')
+      .select('-body -sections')
       .populate('updatedBy', AUTHOR_FIELDS)
       .sort({ updatedAt: -1 })
       .limit(5),
