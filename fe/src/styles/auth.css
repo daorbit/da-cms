@@ -175,10 +175,11 @@
 .auth-form { width: 100%; max-width: 380px; }
 
 /* A serif title against the sans-serif form is the one typographic flourish on
-   this screen — it stops the page reading as a bare settings dialog. */
+   this screen — it stops the page reading as a bare settings dialog. The face
+   comes from the theme, so app headings and auth headings stay in step. */
 .auth-title {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--mantine-font-family-headings);
   font-size: 2.1rem;
   font-weight: 400;
   letter-spacing: -0.015em;

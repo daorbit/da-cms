@@ -5,3 +5,90 @@ html, body, #root {
 body {
   margin: 0;
 }
+
+/* Mantine's heading font is the serif, which suits page titles but reads as
+   decorative on the small headings that are really labels — a card's "SEO" or
+   "Details". Those go back to the UI face. */
+h4.mantine-Title-root,
+h5.mantine-Title-root,
+h6.mantine-Title-root {
+  font-family: var(--mantine-font-family);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Large titles are set tighter than a serif's defaults, which are drawn for
+   body copy rather than display sizes. */
+h1.mantine-Title-root,
+h2.mantine-Title-root {
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------- app shell */
+
+/* The sidebar sits on a slightly recessed surface so the content area reads as
+   the page and the nav as chrome. Both schemes get an explicit value — leaving
+   one to the default made the divide vanish in dark mode. */
+.app-nav {
+  background: var(--mantine-color-gray-0);
+}
+[data-mantine-color-scheme='dark'] .app-nav {
+  background: var(--mantine-color-dark-8);
+}
+
+/* Workspace switcher and account button share a shape: full-width rows that
+   only reveal a surface on hover, so the sidebar stays quiet at rest. */
+.ws-switcher,
+.ws-account {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--mantine-radius-md);
+  transition: background-color 120ms ease;
+}
+.ws-switcher:hover,
+.ws-account:hover {
+  background: var(--mantine-color-gray-1);
+}
+[data-mantine-color-scheme='dark'] .ws-switcher:hover,
+[data-mantine-color-scheme='dark'] .ws-account:hover {
+  background: var(--mantine-color-dark-6);
+}
+
+/* `min-width: 0` is what lets the Text children truncate — without it the flex
+   item refuses to shrink below its content and the name overflows the rail. */
+.ws-switcher-text {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.ws-mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--mantine-color-brand-6);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Nav items: a filled pill when active rather than Mantine's default tint,
+   which was too faint to find at a glance on the recessed sidebar. */
+.app-nav .mantine-NavLink-root {
+  border-radius: var(--mantine-radius-md);
+  padding: 8px 10px;
+}
+.app-nav .mantine-NavLink-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.app-nav .mantine-NavLink-root[data-active] {
+  background: var(--mantine-color-brand-6);
+  color: #fff;
+}
+.app-nav .mantine-NavLink-root[data-active]:hover {
+  background: var(--mantine-color-brand-7);
+}
