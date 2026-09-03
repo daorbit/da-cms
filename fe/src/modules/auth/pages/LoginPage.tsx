@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TextInput, PasswordInput, Button, Text, Alert, Stack, Anchor, Group } from '@mantine/core';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,10 @@ import type { User } from '@/types';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Where to land after a successful sign-in — set by the invite-accept screen
+  // so an invited user comes straight back to the invite.
+  const next = params.get('next');
   const { setSession, refresh } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -44,7 +48,7 @@ export function LoginPage() {
       });
       setSession(res.user);
       await refresh();
-      navigate('/');
+      navigate(next && next.startsWith('/') ? next : '/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed. Check your email and password.');
     } finally {

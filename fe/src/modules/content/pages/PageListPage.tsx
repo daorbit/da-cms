@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ActionIcon, Alert, Badge, Button, Card, Group, Menu, Stack, Table, Text, TextInput,
-  Title, SegmentedControl, Center, Loader, Modal,
+  Title, SegmentedControl, Center, Loader, Modal, Select,
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconFileText,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
+import { workspaceService } from '@/modules/workspace/workspaceService';
 import { CreatePageModal } from '@/modules/content/pages/CreatePageModal';
 import { ApiError } from '@/lib/api';
 import type { PageSummary, PageStatus } from '@/types';
@@ -29,6 +30,8 @@ export function PageListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>('all');
+  const [group, setGroup] = useState<string | null>(null);
+  const [groups, setGroups] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [pendingDelete, setPendingDelete] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -52,6 +55,14 @@ export function PageListPage() {
     return () => clearTimeout(id);
   }, [search]);
 
+  useEffect(() => {
+    if (!workspace) return;
+    workspaceService
+      .settings(workspace.id)
+      .then((s) => setGroups(s.configuration.groups.map((g) => g.name)))
+      .catch(() => {});
+  }, [workspace]);
+
   const load = useCallback(async () => {
     if (!workspace) return;
     setLoading(true);
@@ -59,6 +70,7 @@ export function PageListPage() {
     try {
       const result = await pageService.list(workspace.id, {
         ...(status !== 'all' ? { status } : {}),
+        ...(group ? { group } : {}),
         ...(query ? { q: query } : {}),
       });
       setPages(result);
@@ -67,7 +79,7 @@ export function PageListPage() {
     } finally {
       setLoading(false);
     }
-  }, [workspace, status, query]);
+  }, [workspace, status, group, query]);
 
   useEffect(() => {
     load();
@@ -117,6 +129,16 @@ export function PageListPage() {
           onChange={(e) => setSearch(e.currentTarget.value)}
           style={{ flex: 1, maxWidth: 320 }}
         />
+        {groups.length > 0 && (
+          <Select
+            placeholder="All groups"
+            clearable
+            value={group}
+            onChange={setGroup}
+            data={groups}
+            w={160}
+          />
+        )}
         <SegmentedControl
           value={status}
           onChange={(v) => setStatus(v as StatusFilter)}
@@ -163,6 +185,7 @@ export function PageListPage() {
               <Table.Tr>
                 <Table.Th>Title</Table.Th>
                 <Table.Th>Slug</Table.Th>
+                <Table.Th>Group</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Updated</Table.Th>
                 <Table.Th>Updated by</Table.Th>
@@ -186,6 +209,9 @@ export function PageListPage() {
                     <Text c="dimmed" size="sm" ff="monospace">
                       /{page.slug}
                     </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{page.group}</Text>
                   </Table.Td>
                   <Table.Td>
                     <Badge size="sm" variant="light" color={STATUS_COLOR[page.status]}>

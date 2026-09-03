@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TextInput, PasswordInput, Button, Text, Alert, Stack, Anchor, Group } from '@mantine/core';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,10 @@ import type { User } from '@/types';
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // An invited user signs up, then goes straight to the invite to accept it
+  // rather than through onboarding (they're joining an existing workspace).
+  const next = params.get('next');
   const { setSession, refresh } = useAuth();
 
   const [firstName, setFirstName] = useState('');
@@ -50,7 +54,7 @@ export function SignupPage() {
       });
       setSession(res.user);
       await refresh();
-      navigate('/onboarding');
+      navigate(next && next.startsWith('/') ? next : '/onboarding');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Signup failed. Please try again.');
     } finally {
