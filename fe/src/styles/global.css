@@ -67,6 +67,30 @@ body {
   padding: 2rem;
 }
 
+/* The vendored Tiptap components set z-index: 50 on their portalled popups
+   (dropdown menus, popovers, the floating toolbar) — below Mantine's
+   AppShell navbar, which sits at z-index: 100. Without this override the
+   Improve dropdown, link popover, etc. render underneath the sidebar. */
+.tiptap-dropdown-menu-content,
+.tiptap-dropdown-menu-sub-content,
+.tiptap-popover {
+  z-index: 401 !important;
+}
+/* The slash-command menu is a tippy popup, not a Tiptap component — same
+   stacking problem, different selector. */
+.tippy-box {
+  z-index: 401 !important;
+}
+/* BubbleMenu's own wrapper div (appended to <body>, positioned absolute) has
+   no z-index by default, so it can lose to Mantine's navbar the same way. */
+.selection-toolbar-portal {
+  z-index: 401 !important;
+}
+/* Same story for the drag handle's own portal wrapper. */
+.drag-handle {
+  z-index: 401 !important;
+}
+
 /* -------------------------------------------------------- rich text editor */
 
 /* The Placeholder extension marks the first empty node; without this rule it

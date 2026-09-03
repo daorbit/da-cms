@@ -1,17 +1,17 @@
+import { useState } from 'react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { Editor } from '@tiptap/react';
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar';
-import { Button } from '@/components/tiptap-ui-primitive/button';
 import { HeadingDropdownMenu } from '@/components/tiptap-ui/heading-dropdown-menu';
 import { MarkButton } from '@/components/tiptap-ui/mark-button';
 import { LinkPopover } from '@/components/tiptap-ui/link-popover';
 import { ColorHighlightPopover } from '@/components/tiptap-ui/color-highlight-popover';
-import { IconSparkles } from '@tabler/icons-react';
+import { AiImproveMenu, type AiAction } from '@/modules/content/editor/AiImproveMenu';
 
 interface Props {
   editor: Editor;
-  /** Opens the AI panel for the current selection. Wired to a stub until the AI feature ships. */
-  onImprove: (editor: Editor) => void;
+  /** Every "Improve" menu item routes here. Wired to a stub until this app's own AI backend exists. */
+  onAiAction: (action: AiAction, detail: { editor: Editor; option?: string }) => void;
 }
 
 /**
@@ -19,23 +19,24 @@ interface Props {
  * the fixed toolbar, reused rather than rebuilt, plus an "Improve" entry
  * point for AI editing once that backend exists.
  */
-export function SelectionToolbar({ editor, onImprove }: Props) {
+export function SelectionToolbar({ editor, onAiAction }: Props) {
+  // Opening the Improve dropdown moves focus off the editor, which the
+  // default shouldShow treats as "hide the menu" — this keeps the bubble
+  // menu open for as long as either the selection is non-empty or the
+  // dropdown itself is open, so picking an item doesn't vanish mid-click.
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+
   return (
-    <BubbleMenu editor={editor} options={{ placement: 'top' }}>
+    <BubbleMenu
+      editor={editor}
+      className="selection-toolbar-portal"
+      options={{ placement: 'top' }}
+      shouldShow={({ editor: instance, state }) =>
+        instance.isEditable && (!state.selection.empty || aiMenuOpen)}
+    >
       <Toolbar variant="floating">
         <ToolbarGroup>
-          {/* mousedown on a bubble-menu button normally fires before click and
-              collapses the text selection, which hides the menu (and the
-              button under the pointer) before the click ever lands — this
-              keeps the selection alive so the click actually reaches Improve. */}
-          <Button
-            variant="ghost"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => onImprove(editor)}
-          >
-            <IconSparkles className="tiptap-button-icon" size={16} />
-            Improve
-          </Button>
+          <AiImproveMenu editor={editor} onAction={onAiAction} onOpenChange={setAiMenuOpen} />
         </ToolbarGroup>
 
         <ToolbarSeparator />

@@ -54,10 +54,15 @@ const EMPTY_HTML = '<p></p>';
 export function PageBodyEditor({ value, onChange, placeholder = 'Start writing…' }: Props) {
   // The vendored Tiptap components theme off an ancestor `.dark` class
   // (their own toggle, which this app doesn't use) rather than Mantine's
-  // color scheme. Applied to this component's own wrapper below — not
-  // <html> — so it can't leak into the rest of the app or fight Mantine's
-  // own `data-mantine-color-scheme` attribute.
+  // color scheme. Popups (slash menu, bubble menu, drag handle) render via
+  // portal to document.body, outside this component's own DOM subtree, so
+  // the class has to live on <body> to reach them — a plain class name,
+  // separate from Mantine's `data-mantine-color-scheme` attribute, so the
+  // two don't collide.
   const colorScheme = useComputedColorScheme('light');
+  useEffect(() => {
+    document.body.classList.toggle('dark', colorScheme === 'dark');
+  }, [colorScheme]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -114,11 +119,12 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writing�
         {editor && (
           <SelectionToolbar
             editor={editor}
-            onImprove={() => {
-              // Placeholder until the AI writing feature ships — keeps the
-              // button real rather than dead, without a backend to call yet.
+            onAiAction={(action, { option }) => {
+              // Placeholder until this app's own AI writing feature ships —
+              // keeps every menu item real rather than dead, without a
+              // backend to call yet.
               // eslint-disable-next-line no-console
-              console.info('AI improve: not wired up yet');
+              console.info('AI action (not wired up yet):', action, option ?? '');
             }}
           />
         )}

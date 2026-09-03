@@ -2,18 +2,16 @@ import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import type { Editor, Range } from '@tiptap/core';
-import { Paper, Stack, Text, UnstyledButton, Group, ThemeIcon } from '@mantine/core';
-import {
-  IconH1, IconH2, IconH3, IconList, IconListNumbers, IconQuote, IconCode, IconPhoto,
-  IconLayoutList, IconClick, IconListDetails, IconMinus,
-} from '@tabler/icons-react';
 import {
   forwardRef, useEffect, useImperativeHandle, useState,
 } from 'react';
 import tippy, { type Instance as TippyInstance } from 'tippy.js';
-import 'tippy.js/dist/tippy.css';
-import 'tippy.js/animations/shift-away.css';
-import 'tippy.js/themes/light-border.css';
+import { Card, CardBody, CardItemGroup } from '@/components/tiptap-ui-primitive/card';
+import { Button } from '@/components/tiptap-ui-primitive/button';
+import {
+  IconH1, IconH2, IconH3, IconList, IconListNumbers, IconQuote, IconCode, IconPhoto,
+  IconLayoutList, IconClick, IconListDetails, IconMinus,
+} from '@tabler/icons-react';
 
 interface CommandItem {
   title: string;
@@ -119,8 +117,10 @@ export const SlashCommand = Extension.create({
                 interactive: true,
                 trigger: 'manual',
                 placement: 'bottom-start',
-                animation: 'shift-away',
-                theme: 'light-border',
+                // No tippy theme/animation CSS: the popup content is styled by
+                // Tiptap's own Card component, so tippy is positioning only —
+                // a themed tippy box would double up the surface.
+                offset: [0, 4],
               });
             },
             onUpdate: (props) => {
@@ -177,46 +177,33 @@ const CommandList = forwardRef<CommandListHandle, CommandListProps>(({ items, co
     },
   }));
 
-  if (items.length === 0) {
-    return (
-      <Paper shadow="md" p="xs" radius="md" withBorder w={260}>
-        <Text size="sm" c="dimmed">
-          No matching blocks
-        </Text>
-      </Paper>
-    );
-  }
-
   return (
-    <Paper shadow="md" p={4} radius="md" withBorder w={260} mah={320} style={{ overflowY: 'auto' }}>
-      <Stack gap={2}>
-        {items.map((item, index) => (
-          <UnstyledButton
-            key={item.title}
-            onClick={() => command(item)}
-            p={6}
-            style={{
-              borderRadius: 6,
-              background: index === selected ? 'var(--mantine-color-gray-1)' : undefined,
-            }}
-          >
-            <Group gap={8} wrap="nowrap">
-              <ThemeIcon variant="light" color="gray" size="md">
-                {item.icon}
-              </ThemeIcon>
-              <div>
-                <Text size="sm" fw={500}>
-                  {item.title}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {item.description}
-                </Text>
-              </div>
-            </Group>
-          </UnstyledButton>
-        ))}
-      </Stack>
-    </Paper>
+    <Card className="slash-command-menu" style={{ width: 260, maxHeight: 320, overflowY: 'auto' }}>
+      <CardBody style={{ padding: 4 }}>
+        {items.length === 0 ? (
+          <div style={{ padding: '0.5rem 0.625rem', fontSize: 13, opacity: 0.6 }}>No matching blocks</div>
+        ) : (
+          <CardItemGroup orientation="vertical">
+            {items.map((item, index) => (
+              <Button
+                key={item.title}
+                variant="ghost"
+                data-active-state={index === selected ? 'on' : 'off'}
+                onMouseEnter={() => setSelected(index)}
+                onClick={() => command(item)}
+                style={{ justifyContent: 'flex-start', width: '100%', height: 'auto', padding: '0.375rem 0.5rem' }}
+              >
+                <span className="tiptap-button-icon">{item.icon}</span>
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{item.title}</span>
+                  <span style={{ fontSize: 12, opacity: 0.6 }}>{item.description}</span>
+                </span>
+              </Button>
+            ))}
+          </CardItemGroup>
+        )}
+      </CardBody>
+    </Card>
   );
 });
 CommandList.displayName = 'CommandList';
