@@ -66,7 +66,7 @@ export function CollectionFormPage() {
       } else {
         await api.post(`/workspaces/${workspace.id}/collections`, values);
       }
-      navigate(`/${workspace.slug}/collections`);
+      navigate(`/${workspace.slug}/content/collections`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {

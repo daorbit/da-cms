@@ -21,7 +21,7 @@ export function CollectionListPage() {
     <Container size="md">
       <Group justify="space-between" mb="lg">
         <Title order={2}>Content types</Title>
-        <Button component={Link} to={`/${workspace.slug}/collections/new`} leftSection={<IconPlus size={16} />}>
+        <Button component={Link} to={`/${workspace.slug}/content/collections/new`} leftSection={<IconPlus size={16} />}>
           New collection
         </Button>
       </Group>
@@ -39,7 +39,7 @@ export function CollectionListPage() {
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         {collections?.map((c) => (
-          <Card key={c.id} withBorder padding="lg" component={Link} to={`/${workspace.slug}/collections/${c.id}/content`}>
+          <Card key={c.id} withBorder padding="lg" component={Link} to={`/${workspace.slug}/content/collections/${c.id}/content`}>
             <Text fw={600}>{c.name}</Text>
             <Text size="sm" c="dimmed">
               {c.fields.length} field{c.fields.length === 1 ? '' : 's'}

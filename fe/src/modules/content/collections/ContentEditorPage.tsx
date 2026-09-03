@@ -53,7 +53,7 @@ export function ContentEditorPage() {
       } else {
         await api.post(`/workspaces/${workspace.id}/collections/${collectionId}/content`, values);
       }
-      navigate(`/${workspace.slug}/collections/${collectionId}/content`);
+      navigate(`/${workspace.slug}/content/collections/${collectionId}/content`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {

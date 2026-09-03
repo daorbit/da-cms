@@ -33,13 +33,13 @@ export function ContentListPage() {
           <Button
             variant="default"
             component={Link}
-            to={`/${workspace.slug}/collections/${collectionId}/edit`}
+            to={`/${workspace.slug}/content/collections/${collectionId}/edit`}
           >
             Edit fields
           </Button>
           <Button
             component={Link}
-            to={`/${workspace.slug}/collections/${collectionId}/content/new`}
+            to={`/${workspace.slug}/content/collections/${collectionId}/content/new`}
             leftSection={<IconPlus size={16} />}
           >
             New entry
@@ -68,7 +68,7 @@ export function ContentListPage() {
             {items.map((item) => (
               <Table.Tr
                 key={item.id}
-                onClick={() => navigate(`/${workspace.slug}/collections/${collectionId}/content/${item.id}/edit`)}
+                onClick={() => navigate(`/${workspace.slug}/content/collections/${collectionId}/content/${item.id}/edit`)}
                 style={{ cursor: 'pointer' }}
               >
                 <Table.Td>{titleField ? String(item.data[titleField] ?? '(untitled)') : item.id}</Table.Td>

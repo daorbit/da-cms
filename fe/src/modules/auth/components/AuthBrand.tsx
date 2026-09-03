@@ -1,115 +1,33 @@
-import {
-  IconCheck, IconFileText, IconStack2, IconBolt, IconWorld, IconLayoutDashboard,
-} from '@tabler/icons-react';
-
-const FEATURES = [
-  { icon: IconFileText, text: 'Build pages from blocks' },
-  { icon: IconStack2, text: 'Structured collections' },
-  { icon: IconLayoutDashboard, text: 'One dashboard per workspace' },
-  { icon: IconWorld, text: 'Draft and publish in a click' },
-  { icon: IconBolt, text: 'API-first, no lock-in' },
-];
-
-const PROOF = ['No credit card', 'Unlimited drafts', 'Cancel anytime'];
-
-/**
- * A static miniature of the page list — it shows the product rather than
- * describing it, and stays cheap: no timers, no animation library.
- */
-function PreviewCard() {
-  const rows = [
-    { title: 'Home', slug: '/home', status: 'Published' },
-    { title: 'About us', slug: '/about-us', status: 'Published' },
-    { title: 'Pricing', slug: '/pricing', status: 'Draft' },
-  ];
-
-  return (
-    <div className="ab-card">
-      <div className="ab-card-head">
-        <span className="ab-card-title">Pages</span>
-        <span className="ab-live">
-          <span className="ab-live-dot" />
-          Live
-        </span>
-      </div>
-
-      <div className="ab-rows">
-        {rows.map((row) => (
-          <div key={row.slug} className="ab-row">
-            <span className="ab-row-main">
-              <span className="ab-row-title">{row.title}</span>
-              <span className="ab-row-slug">{row.slug}</span>
-            </span>
-            <span
-              className={`ab-chip ${row.status === 'Published' ? 'is-published' : 'is-draft'}`}
-            >
-              {row.status}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="ab-card-foot">
-        <div className="ab-stat">
-          <span className="ab-stat-val">12</span>
-          <span className="ab-stat-label">Pages</span>
-        </div>
-        <div className="ab-stat">
-          <span className="ab-stat-val">3</span>
-          <span className="ab-stat-label">Drafts</span>
-        </div>
-        <div className="ab-stat">
-          <span className="ab-stat-val">5</span>
-          <span className="ab-stat-label">Block types</span>
-        </div>
-        <span className="ab-card-note">Sample data</span>
-      </div>
-    </div>
-  );
+interface Props {
+  headline: string;
+  subline: string;
 }
 
-export function AuthBrand() {
+/**
+ * The marketing half of the auth screen: a wordmark, one headline, one line of
+ * support copy, and a single colour bloom. Deliberately sparse — the form is
+ * what the visitor came for, and a feature list beside it only competes.
+ */
+export function AuthBrand({ headline, subline }: Props) {
   return (
-    <div className="auth-brand">
-      <div className="ab-grid" />
-      <div className="ab-orb ab-orb-1" />
-      <div className="ab-orb ab-orb-2" />
+    <aside className="auth-brand">
+      <div className="ab-bloom" aria-hidden="true" />
 
-      <div className="ab-content">
-        <span className="ab-wordmark">
-          da-cms<span className="ab-wordmark-dot">.</span>
+      <div className="ab-mark">
+        <span className="ab-mark-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 7h16M4 12h16M4 17h10" />
+          </svg>
         </span>
-
-        <h2>A content workspace for the sites you ship.</h2>
-        <p>
-          Compose pages from reusable blocks, keep structured content in collections,
-          and publish when you are ready.
-        </p>
-
-        <div className="ab-showcase">
-          <PreviewCard />
-        </div>
-
-        <div className="ab-features">
-          {FEATURES.map((feature) => (
-            <div key={feature.text} className="ab-feature">
-              <span className="ab-feature-ic">
-                <feature.icon size={16} />
-              </span>
-              {feature.text}
-            </div>
-          ))}
-        </div>
-
-        <div className="ab-proof">
-          {PROOF.map((item) => (
-            <span key={item} className="ab-proof-item">
-              <IconCheck size={13} />
-              {item}
-            </span>
-          ))}
-        </div>
+        <span className="ab-mark-text">
+          da<strong>cms</strong>
+        </span>
       </div>
-    </div>
+
+      <div className="ab-copy">
+        <h2>{headline}</h2>
+        <p>{subline}</p>
+      </div>
+    </aside>
   );
 }

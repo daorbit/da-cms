@@ -8,13 +8,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { dashboardService } from '@/modules/dashboard/dashboardService';
 import { ApiError } from '@/lib/api';
-import type { DashboardStats } from '@/types';
+import type { DashboardStats, PageStatus } from '@/types';
 
 const TILES = [
   { key: 'total', label: 'Total pages', icon: IconFileText, color: 'blue' },
   { key: 'draft', label: 'Drafts', icon: IconPencil, color: 'gray' },
   { key: 'published', label: 'Published', icon: IconWorld, color: 'teal' },
 ] as const;
+
+const STATUS_COLOR: Record<PageStatus, string> = {
+  draft: 'gray',
+  published: 'teal',
+  archived: 'orange',
+};
 
 export function DashboardPage() {
   const workspace = useWorkspace();
@@ -151,11 +157,7 @@ export function DashboardPage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Badge
-                      size="sm"
-                      variant="light"
-                      color={page.status === 'published' ? 'teal' : 'gray'}
-                    >
+                    <Badge size="sm" variant="light" color={STATUS_COLOR[page.status]}>
                       {page.status}
                     </Badge>
                   </Table.Td>

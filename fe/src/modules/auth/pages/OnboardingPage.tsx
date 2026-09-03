@@ -1,22 +1,21 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button, Container, Paper, PasswordInput, Stack, TextInput, Title, Text, Alert } from '@mantine/core';
+import { useNavigate } from 'react-router-dom';
+import { Alert, Button, Container, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import type { User } from '@/types';
+import type { Workspace } from '@/types';
 
-export function LoginPage() {
+export function OnboardingPage() {
   const navigate = useNavigate();
-  const { setSession, refresh } = useAuth();
+  const { refresh } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm({
-    initialValues: { email: '', password: '' },
+    initialValues: { name: '' },
     validate: {
-      email: (v) => (/^\S+@\S+\.\S+$/.test(v) ? null : 'Enter a valid email'),
-      password: (v) => (v.length === 0 ? 'Password is required' : null),
+      name: (v) => (v.trim().length === 0 ? 'Give your workspace a name' : null),
     },
   });
 
@@ -24,10 +23,9 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await api.post<{ user: User }>('/auth/login', values);
-      setSession(res.user);
+      const workspace = await api.post<Workspace>('/workspaces', values);
       await refresh();
-      navigate('/');
+      navigate(`/${workspace.slug}/dashboard`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
     } finally {
@@ -38,8 +36,11 @@ export function LoginPage() {
   return (
     <Container size={420} py={80}>
       <Title order={2} ta="center">
-        Log in
+        Set up your workspace
       </Title>
+      <Text ta="center" c="dimmed" mt="xs">
+        This is where your content lives. You can create more later.
+      </Text>
       <Paper withBorder shadow="sm" p="lg" mt="lg" radius="md">
         <form onSubmit={handleSubmit}>
           <Stack>
@@ -48,17 +49,13 @@ export function LoginPage() {
                 {error}
               </Alert>
             )}
-            <TextInput label="Email" placeholder="you@example.com" {...form.getInputProps('email')} />
-            <PasswordInput label="Password" {...form.getInputProps('password')} />
+            <TextInput label="Workspace name" placeholder="Acme Inc." {...form.getInputProps('name')} />
             <Button type="submit" loading={submitting} fullWidth>
-              Log in
+              Create workspace
             </Button>
           </Stack>
         </form>
       </Paper>
-      <Text ta="center" mt="md" size="sm">
-        Don't have an account? <Link to="/signup">Sign up</Link>
-      </Text>
     </Container>
   );
 }

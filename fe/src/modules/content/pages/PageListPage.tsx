@@ -10,20 +10,26 @@ import {
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { ApiError } from '@/lib/api';
-import type { Page } from '@/types';
+import type { PageSummary, PageStatus } from '@/types';
 
-type StatusFilter = 'all' | 'draft' | 'published';
+type StatusFilter = 'all' | PageStatus;
+
+const STATUS_COLOR: Record<PageStatus, string> = {
+  draft: 'gray',
+  published: 'teal',
+  archived: 'orange',
+};
 
 export function PageListPage() {
   const workspace = useWorkspace();
   const navigate = useNavigate();
 
-  const [pages, setPages] = useState<Page[]>([]);
+  const [pages, setPages] = useState<PageSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
-  const [pendingDelete, setPendingDelete] = useState<Page | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Debounced so typing in the search box does not fire a request per keystroke.
@@ -68,7 +74,7 @@ export function PageListPage() {
     }
   };
 
-  const editHref = (page: Page) => `/${workspace?.slug}/content/pages/${page.id}/edit`;
+  const editHref = (page: PageSummary) => `/${workspace?.slug}/content/pages/${page.id}/edit`;
 
   return (
     <Stack gap="lg">
@@ -108,6 +114,7 @@ export function PageListPage() {
             { label: 'All', value: 'all' },
             { label: 'Draft', value: 'draft' },
             { label: 'Published', value: 'published' },
+            { label: 'Archived', value: 'archived' },
           ]}
         />
       </Group>
@@ -135,9 +142,9 @@ export function PageListPage() {
               <Table.Tr>
                 <Table.Th>Title</Table.Th>
                 <Table.Th>Slug</Table.Th>
-                <Table.Th>Sections</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Updated</Table.Th>
+                <Table.Th>Updated by</Table.Th>
                 <Table.Th w={50} />
               </Table.Tr>
             </Table.Thead>
@@ -148,6 +155,11 @@ export function PageListPage() {
                     <Text component={Link} to={editHref(page)} fw={500} c="inherit" td="none">
                       {page.title}
                     </Text>
+                    {page.description && (
+                      <Text c="dimmed" size="xs" lineClamp={1}>
+                        {page.description}
+                      </Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Text c="dimmed" size="sm" ff="monospace">
@@ -155,20 +167,18 @@ export function PageListPage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{page.sections.length}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge
-                      size="sm"
-                      variant="light"
-                      color={page.status === 'published' ? 'teal' : 'gray'}
-                    >
+                    <Badge size="sm" variant="light" color={STATUS_COLOR[page.status]}>
                       {page.status}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
                     <Text c="dimmed" size="sm">
                       {page.updatedAt ? new Date(page.updatedAt).toLocaleDateString() : '—'}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text c="dimmed" size="sm">
+                      {page.updatedBy?.name ?? '—'}
                     </Text>
                   </Table.Td>
                   <Table.Td>
