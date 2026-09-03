@@ -1,0 +1,4 @@
+// Required by every Tiptap UI component (buttons, toolbar, popovers) —
+// without these two, the installed components render unstyled.
+@import '@/styles/_variables.scss';
+@import '@/styles/_keyframe-animations.scss';

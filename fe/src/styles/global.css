@@ -52,6 +52,21 @@ body {
   border-color: rgba(255, 255, 255, 0.09);
 }
 
+/* ---------------------------------------------------------- page editor */
+
+/* The vendored Tiptap template sizes .simple-editor-wrapper for a full-page
+   app (100vw/100vh); embedded inside our page shell it just needs to fill
+   its own box. */
+.page-body-editor.simple-editor-wrapper {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.page-body-editor .simple-editor-content .tiptap.ProseMirror.simple-editor {
+  min-height: 480px;
+  padding: 2rem;
+}
+
 /* -------------------------------------------------------- rich text editor */
 
 /* The Placeholder extension marks the first empty node; without this rule it
