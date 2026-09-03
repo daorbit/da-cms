@@ -43,11 +43,11 @@ const pageSchema = new Schema(
     /** Short summary used in listings and as the SEO description fallback. */
     description: { type: String, trim: true, default: '' },
 
-    /** Which workspace group this page belongs to (blog, case study, …). One
-     *  of the workspace's `pageGroups`; validated in the controller so the list
-     *  stays editable without a migration. */
+    /** The group this page belongs to — a group name from
+     *  `workspace.settings.configuration.groups`. Validated in the controller so
+     *  the list stays editable without a migration. */
     group: { type: String, trim: true, default: 'General' },
-    /** Free-form labels for filtering within a group. */
+    /** Tag names from `workspace.settings.configuration.tags`. */
     tags: { type: [String], default: [] },
 
     /** Wide banner at the top of the page. */

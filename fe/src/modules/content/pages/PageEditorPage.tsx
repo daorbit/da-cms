@@ -71,6 +71,10 @@ export function PageEditorPage() {
         onSlugChange={editor.setSlug}
         description={editor.description}
         onDescriptionChange={editor.setDescription}
+        group={editor.group}
+        onGroupChange={editor.setGroup}
+        tags={editor.tags}
+        onTagsChange={editor.setTags}
         heroImage={editor.heroImage}
         onHeroImageChange={editor.setHeroImage}
         thumbnailImage={editor.thumbnailImage}

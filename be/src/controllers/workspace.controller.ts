@@ -48,7 +48,7 @@ export const createWorkspace: RequestHandler = async (req, res) => {
 };
 
 export const listWorkspaces: RequestHandler = async (req, res) => {
-  const memberships = await MembershipModel.find({ userId: req.userId });
+  const memberships = await MembershipModel.find({ userId: req.userId, status: 'active' });
   const workspaces = await WorkspaceModel.find({ _id: { $in: memberships.map((m) => m.workspaceId) } });
   // The caller's role travels with each workspace so the UI can hide admin-only
   // controls without a follow-up request.
@@ -95,11 +95,124 @@ export const updateWorkspace: RequestHandler = async (req, res) => {
   res.json(toResponse(workspace, req.workspaceRole));
 };
 
+/* ----------------------------------------------------------------- settings */
+
+const termSchema = z.object({
+  name: z.string().min(1).max(40),
+  color: z.string().max(20).optional(),
+  previewHost: z.string().max(255).optional(),
+  productionHost: z.string().max(255).optional(),
+});
+const siteLinkSchema = z.object({
+  label: z.string().min(1).max(60),
+  url: z.string().min(1).max(2048),
+  order: z.number().int().nonnegative().optional(),
+});
+
+/** Each key is replaced wholesale — the client sends the full array it wants. */
+const updateSettingsSchema = z
+  .object({
+    configuration: z
+      .object({
+        groups: z.array(termSchema).min(1).max(50),
+        tags: z.array(termSchema).max(200),
+      })
+      .partial(),
+    siteLinks: z.array(siteLinkSchema).max(50),
+  })
+  .partial();
+
+/** GET /workspaces/:workspaceId/settings */
+export const getSettings: RequestHandler = async (req, res) => {
+  const workspace = await WorkspaceModel.findById(req.params.workspaceId);
+  if (!workspace) {
+    const body: ApiError = { error: 'not_found', message: 'Workspace not found' };
+    res.status(404).json(body);
+    return;
+  }
+  res.json(settingsResponse(workspace));
+};
+
+/** PATCH /workspaces/:workspaceId/settings — owner/admin (gated on the route). */
+export const updateSettings: RequestHandler = async (req, res) => {
+  const parsed = updateSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const body: ApiError = { error: 'invalid_input', message: parsed.error.issues[0].message };
+    res.status(400).json(body);
+    return;
+  }
+
+  const workspace = await WorkspaceModel.findById(req.params.workspaceId);
+  if (!workspace) {
+    const body: ApiError = { error: 'not_found', message: 'Workspace not found' };
+    res.status(404).json(body);
+    return;
+  }
+
+  const dedupe = (terms: { name: string }[]) => {
+    const seen = new Set<string>();
+    return terms.filter((t) => {
+      const key = t.name.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  if (parsed.data.configuration?.groups) {
+    workspace.set('settings.configuration.groups', dedupe(parsed.data.configuration.groups));
+  }
+  if (parsed.data.configuration?.tags) {
+    workspace.set('settings.configuration.tags', dedupe(parsed.data.configuration.tags));
+  }
+  if (parsed.data.siteLinks) {
+    workspace.set(
+      'settings.siteLinks',
+      parsed.data.siteLinks
+        .map((l, i) => ({ label: l.label, url: l.url, order: l.order ?? i }))
+        .sort((a, b) => a.order - b.order)
+    );
+  }
+
+  await workspace.save();
+  res.json(settingsResponse(workspace));
+};
+
+interface Term {
+  name: string;
+  color?: string;
+  previewHost?: string;
+  productionHost?: string;
+}
 interface WorkspaceDoc {
   _id: unknown;
   name: string;
   slug: string;
   websiteUrl?: string;
+  settings?: {
+    configuration?: { groups?: Term[]; tags?: Term[] };
+    siteLinks?: { label: string; url: string; order: number }[];
+  };
+}
+
+function settingsResponse(w: WorkspaceDoc) {
+  const cfg = w.settings?.configuration ?? {};
+  const term = (t: Term) => ({
+    name: t.name,
+    color: t.color ?? '',
+    previewHost: t.previewHost ?? '',
+    productionHost: t.productionHost ?? '',
+  });
+  return {
+    configuration: {
+      groups: (cfg.groups ?? []).map(term),
+      tags: (cfg.tags ?? []).map(term),
+    },
+    siteLinks: (w.settings?.siteLinks ?? [])
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map(({ label, url, order }) => ({ label, url, order })),
+  };
 }
 
 function toResponse(workspace: WorkspaceDoc, role?: string) {

@@ -10,6 +10,8 @@ import { OnboardingPage } from '@/modules/auth/pages/OnboardingPage';
 import { DashboardPage } from '@/modules/dashboard/DashboardPage';
 import { PageListPage } from '@/modules/content/pages/PageListPage';
 import { PageEditorPage } from '@/modules/content/pages/PageEditorPage';
+import { SettingsPage } from '@/modules/workspace/SettingsPage';
+import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
 
 function HomeRedirect() {
   const { user, workspaces, loading } = useAuth();
@@ -27,6 +29,7 @@ export function App() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
           <Route element={<RequireAuth />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
@@ -46,6 +49,8 @@ export function App() {
                   <Route path="pages" element={<PageListPage />} />
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
                 </Route>
+
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>
           </Route>

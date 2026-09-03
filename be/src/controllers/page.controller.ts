@@ -2,19 +2,17 @@ import type { RequestHandler } from 'express';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 import { PageModel, SECTION_TYPES } from '../models/page.model.js';
-import { WorkspaceSettingsModel } from '../models/workspace-settings.model.js';
+import { WorkspaceModel } from '../models/workspace.model.js';
 import { slugify } from '../lib/slugify.js';
 import type { ApiError } from '../types/index.js';
 
-/** The group/tag slugs a workspace currently allows. Groups fall back to the
- *  seeded defaults if settings have never been opened. */
+/** The group/tag names a workspace currently allows, from its settings blob. */
 async function allowedTaxonomy(workspaceId: string) {
-  const settings = await WorkspaceSettingsModel.findOne({ workspaceId });
-  const groups = settings?.pageGroups?.length
-    ? settings.pageGroups.map((g) => g.slug)
-    : ['general', 'blog', 'case-study'];
-  const tags = settings?.pageTags?.map((t) => t.slug) ?? [];
-  return { groups, tags };
+  const workspace = await WorkspaceModel.findById(workspaceId).select('settings');
+  const cfg = workspace?.settings?.configuration;
+  const groups = (cfg?.groups ?? []).map((g) => g.name);
+  const tags = (cfg?.tags ?? []).map((t) => t.name);
+  return { groups: groups.length ? groups : ['General', 'Blog', 'Case study'], tags };
 }
 
 const sectionSchema = z.object({
@@ -33,7 +31,7 @@ const pageSchema = z.object({
   slug: z.string().optional(),
   description: z.string().max(500).default(''),
   /** A group slug from workspace settings. Validated against the live list. */
-  group: z.string().min(1).max(60).default('general'),
+  group: z.string().min(1).max(60).default('General'),
   tags: z.array(z.string().min(1).max(60)).max(50).default([]),
   heroImage: imageSchema.default({ url: '', alt: '' }),
   thumbnailImage: imageSchema.default({ url: '', alt: '' }),
@@ -87,7 +85,7 @@ function toResponse(page: PageDoc) {
     title: page.title,
     slug: page.slug,
     description: page.description ?? '',
-    group: page.group ?? 'general',
+    group: page.group ?? 'General',
     tags: page.tags ?? [],
     heroImage: page.heroImage ?? { url: '', alt: '' },
     thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },

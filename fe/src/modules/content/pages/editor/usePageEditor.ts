@@ -21,6 +21,8 @@ export function usePageEditor(id: string | undefined) {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
+  const [group, setGroup] = useState('general');
+  const [tags, setTags] = useState<string[]>([]);
   const [heroImage, setHeroImage] = useState<PageImage>(EMPTY_IMAGE);
   const [thumbnailImage, setThumbnailImage] = useState<PageImage>(EMPTY_IMAGE);
   const [body, setBody] = useState('');
@@ -45,6 +47,8 @@ export function usePageEditor(id: string | undefined) {
         setTitle(page.title);
         setSlug(page.slug);
         setDescription(page.description ?? '');
+        setGroup(page.group ?? 'general');
+        setTags(page.tags ?? []);
         setHeroImage(page.heroImage ?? EMPTY_IMAGE);
         setThumbnailImage(page.thumbnailImage ?? EMPTY_IMAGE);
         setBody(page.body ?? '');
@@ -77,6 +81,8 @@ export function usePageEditor(id: string | undefined) {
         title: title.trim(),
         slug: slug || slugify(title),
         description,
+        group,
+        tags,
         heroImage,
         thumbnailImage,
         body,
@@ -96,6 +102,8 @@ export function usePageEditor(id: string | undefined) {
     title, setTitle,
     slug, setSlug,
     description, setDescription,
+    group, setGroup,
+    tags, setTags,
     heroImage, setHeroImage,
     thumbnailImage, setThumbnailImage,
     body, setBody,

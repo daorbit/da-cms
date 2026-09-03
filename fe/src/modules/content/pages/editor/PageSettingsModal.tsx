@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import {
-  Button, Divider, Group, Modal, Stack, Switch, Text, TextInput, Textarea,
+  Button, Divider, Group, Modal, MultiSelect, Select, Stack, Switch, Text, TextInput, Textarea,
 } from '@mantine/core';
 import { ImageField } from '@/modules/content/components/ImageField';
-import type { PageImage, PageSeo } from '@/types';
+import { useWorkspace } from '@/hooks/useWorkspace';
+import { workspaceService } from '@/modules/workspace/workspaceService';
+import type { PageImage, PageSeo, Term } from '@/types';
 
 interface Props {
   opened: boolean;
@@ -13,6 +16,10 @@ interface Props {
   onSlugChange: (value: string) => void;
   description: string;
   onDescriptionChange: (value: string) => void;
+  group: string;
+  onGroupChange: (value: string) => void;
+  tags: string[];
+  onTagsChange: (value: string[]) => void;
   heroImage: PageImage;
   onHeroImageChange: (value: PageImage) => void;
   thumbnailImage: PageImage;
@@ -26,10 +33,28 @@ export function PageSettingsModal({
   title, onTitleChange,
   slug, onSlugChange,
   description, onDescriptionChange,
+  group, onGroupChange,
+  tags, onTagsChange,
   heroImage, onHeroImageChange,
   thumbnailImage, onThumbnailImageChange,
   seo, onSeoChange,
 }: Props) {
+  const workspace = useWorkspace();
+  const [groups, setGroups] = useState<Term[]>([]);
+  const [tagOptions, setTagOptions] = useState<Term[]>([]);
+
+  // Load the workspace taxonomy once the modal is first opened.
+  useEffect(() => {
+    if (!opened || !workspace) return;
+    workspaceService
+      .settings(workspace.id)
+      .then((s) => {
+        setGroups(s.pageGroups);
+        setTagOptions(s.pageTags);
+      })
+      .catch(() => {});
+  }, [opened, workspace]);
+
   return (
     <Modal opened={opened} onClose={onClose} title="Page settings" size="lg" centered>
       <Stack gap="sm">
@@ -58,6 +83,28 @@ export function PageSettingsModal({
           value={description}
           onChange={(e) => onDescriptionChange(e.currentTarget.value)}
         />
+
+        <Divider label="Organisation" labelPosition="left" mt="xs" />
+
+        <Group grow align="flex-start">
+          <Select
+            label="Group"
+            description="Managed in workspace settings"
+            data={groups.map((g) => ({ value: g.slug, label: g.name }))}
+            value={group}
+            allowDeselect={false}
+            onChange={(v) => v && onGroupChange(v)}
+          />
+          <MultiSelect
+            label="Tags"
+            placeholder={tagOptions.length ? 'Pick tags' : 'No tags defined yet'}
+            data={tagOptions.map((t) => ({ value: t.slug, label: t.name }))}
+            value={tags}
+            onChange={onTagsChange}
+            searchable
+            disabled={tagOptions.length === 0}
+          />
+        </Group>
 
         <Divider label="Media" labelPosition="left" mt="xs" />
 

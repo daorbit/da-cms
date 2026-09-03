@@ -4,6 +4,8 @@ import {
   listWorkspaces,
   getWorkspace,
   updateWorkspace,
+  getSettings,
+  updateSettings,
 } from '../controllers/workspace.controller.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { requireAuth } from '../middleware/require-auth.js';
@@ -14,7 +16,6 @@ import {
 import { pageRoutes } from './page.route.js';
 import { dashboardRoutes } from './dashboard.route.js';
 import { memberRoutes } from './member.route.js';
-import { workspaceSettingsRoutes } from './workspace-settings.route.js';
 
 export const workspaceRoutes = Router();
 
@@ -35,7 +36,18 @@ workspaceRoutes.patch(
   asyncHandler(updateWorkspace)
 );
 
+workspaceRoutes.get(
+  '/:workspaceId/settings',
+  requireWorkspaceMember,
+  asyncHandler(getSettings)
+);
+workspaceRoutes.patch(
+  '/:workspaceId/settings',
+  requireWorkspaceMember,
+  requireWorkspaceRole('owner', 'admin'),
+  asyncHandler(updateSettings)
+);
+
 workspaceRoutes.use('/:workspaceId/pages', pageRoutes);
 workspaceRoutes.use('/:workspaceId/dashboard', dashboardRoutes);
 workspaceRoutes.use('/:workspaceId/members', memberRoutes);
-workspaceRoutes.use('/:workspaceId/settings', workspaceSettingsRoutes);
