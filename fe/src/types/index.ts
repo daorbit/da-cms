@@ -8,11 +8,53 @@ export interface User {
   onboardedAt: string | null;
 }
 
+export type WorkspaceRole = 'owner' | 'admin' | 'editor';
+
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
   websiteUrl: string;
+  /** The signed-in user's role in this workspace. */
+  role: WorkspaceRole | null;
+}
+
+/* ------------------------------------------------------------- members --- */
+
+export interface WorkspaceMember {
+  id: string;
+  role: WorkspaceRole;
+  joinedAt: string | null;
+  user: { id: string; name: string | null; email: string | null };
+}
+
+export interface PendingInvite {
+  id: string;
+  email: string;
+  role: Exclude<WorkspaceRole, 'owner'>;
+  expiresAt: string;
+  invitedAt: string | null;
+  expired: boolean;
+}
+
+/* ------------------------------------------------------------ settings --- */
+
+/** A page group or tag: `slug` is stored on pages, `name` is the label. */
+export interface Term {
+  name: string;
+  slug: string;
+}
+
+export interface SiteLink {
+  label: string;
+  url: string;
+  order: number;
+}
+
+export interface WorkspaceSettings {
+  pageGroups: Term[];
+  pageTags: Term[];
+  siteLinks: SiteLink[];
 }
 
 /* ---------------------------------------------------------------- pages --- */
@@ -56,6 +98,10 @@ export interface Page {
   title: string;
   slug: string;
   description: string;
+  /** Group slug from workspace settings. */
+  group: string;
+  /** Tag slugs from workspace settings. */
+  tags: string[];
   heroImage: PageImage;
   thumbnailImage: PageImage;
   /** HTML from the page editor. Hero/CTA/features render as blocks inline here. */

@@ -2,8 +2,20 @@ import type { RequestHandler } from 'express';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 import { PageModel, SECTION_TYPES } from '../models/page.model.js';
+import { WorkspaceSettingsModel } from '../models/workspace-settings.model.js';
 import { slugify } from '../lib/slugify.js';
 import type { ApiError } from '../types/index.js';
+
+/** The group/tag slugs a workspace currently allows. Groups fall back to the
+ *  seeded defaults if settings have never been opened. */
+async function allowedTaxonomy(workspaceId: string) {
+  const settings = await WorkspaceSettingsModel.findOne({ workspaceId });
+  const groups = settings?.pageGroups?.length
+    ? settings.pageGroups.map((g) => g.slug)
+    : ['general', 'blog', 'case-study'];
+  const tags = settings?.pageTags?.map((t) => t.slug) ?? [];
+  return { groups, tags };
+}
 
 const sectionSchema = z.object({
   key: z.string().min(1),
@@ -20,6 +32,9 @@ const pageSchema = z.object({
   title: z.string().min(1, 'A title is required').max(200),
   slug: z.string().optional(),
   description: z.string().max(500).default(''),
+  /** A group slug from workspace settings. Validated against the live list. */
+  group: z.string().min(1).max(60).default('general'),
+  tags: z.array(z.string().min(1).max(60)).max(50).default([]),
   heroImage: imageSchema.default({ url: '', alt: '' }),
   thumbnailImage: imageSchema.default({ url: '', alt: '' }),
   body: z.string().default(''),
@@ -51,6 +66,8 @@ interface PageDoc {
   title: string;
   slug: string;
   description?: string;
+  group?: string;
+  tags?: string[];
   heroImage?: unknown;
   thumbnailImage?: unknown;
   body?: string;
@@ -70,6 +87,8 @@ function toResponse(page: PageDoc) {
     title: page.title,
     slug: page.slug,
     description: page.description ?? '',
+    group: page.group ?? 'general',
+    tags: page.tags ?? [],
     heroImage: page.heroImage ?? { url: '', alt: '' },
     thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },
     body: page.body ?? '',
@@ -86,6 +105,21 @@ function toResponse(page: PageDoc) {
 
 const AUTHOR_FIELDS = 'name email';
 
+/** Returns an error message if `group`/`tags` are not in the workspace's
+ *  configured taxonomy, or null if they check out. */
+async function checkTaxonomy(workspaceId: string, group?: string, tags?: string[]) {
+  if (group === undefined && tags === undefined) return null;
+  const allowed = await allowedTaxonomy(workspaceId);
+  if (group !== undefined && !allowed.groups.includes(group)) {
+    return `"${group}" is not a group in this workspace`;
+  }
+  if (tags?.length) {
+    const unknown = tags.find((t) => !allowed.tags.includes(t));
+    if (unknown) return `"${unknown}" is not a tag in this workspace`;
+  }
+  return null;
+}
+
 const duplicateSlug = (err: unknown) =>
   typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000;
 
@@ -100,6 +134,13 @@ export const createPage: RequestHandler = async (req, res) => {
   const { title, status, ...rest } = parsed.data;
   const { workspaceId } = req.params;
   const slug = slugify(parsed.data.slug || title);
+
+  const taxonomyError = await checkTaxonomy(workspaceId, rest.group, rest.tags);
+  if (taxonomyError) {
+    const body: ApiError = { error: 'invalid_input', message: taxonomyError };
+    res.status(400).json(body);
+    return;
+  }
 
   try {
     const page = await PageModel.create({
@@ -131,8 +172,12 @@ export const listPages: RequestHandler = async (req, res) => {
   const { workspaceId } = req.params;
   const { status, q } = req.query;
 
+  const { group, tag } = req.query;
+
   const filter: Record<string, unknown> = { workspaceId };
   if (status === 'draft' || status === 'published' || status === 'archived') filter.status = status;
+  if (typeof group === 'string' && group.trim()) filter.group = group.trim();
+  if (typeof tag === 'string' && tag.trim()) filter.tags = tag.trim();
   if (typeof q === 'string' && q.trim()) {
     // Escaped so a stray "(" in the search box cannot throw an invalid-regex error.
     const safe = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -180,6 +225,13 @@ export const updatePage: RequestHandler = async (req, res) => {
   if (!existing) {
     const body: ApiError = { error: 'not_found', message: 'Page not found' };
     res.status(404).json(body);
+    return;
+  }
+
+  const taxonomyError = await checkTaxonomy(workspaceId, parsed.data.group, parsed.data.tags);
+  if (taxonomyError) {
+    const body: ApiError = { error: 'invalid_input', message: taxonomyError };
+    res.status(400).json(body);
     return;
   }
 
