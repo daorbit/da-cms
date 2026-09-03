@@ -1,7 +1,7 @@
 import { AppShell, Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledButton, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-  IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings,
+  IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -73,6 +73,13 @@ export function WorkspaceLayout() {
                   {item.name}
                 </Menu.Item>
               ))}
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<IconPlus size={14} />}
+                onClick={() => navigate('/workspaces')}
+              >
+                Manage workspaces
+              </Menu.Item>
             </Menu.Dropdown>
           </Menu>
 

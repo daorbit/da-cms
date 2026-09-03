@@ -1,12 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 
-/** Groups a new workspace starts with. */
-export const DEFAULT_GROUPS = [
-  { name: 'General', color: '#868e96' },
-  { name: 'Blog', color: '#4c6ef5' },
-  { name: 'Case study', color: '#12b886' },
-];
-
 /** A page group or tag stored in workspace settings. Pages reference it by
  *  `name`. Groups also carry the hosts the published site uses. */
 const termSchema = new Schema(
@@ -37,7 +30,7 @@ const siteLinkSchema = new Schema(
 const settingsSchema = new Schema(
   {
     configuration: {
-      groups: { type: [termSchema], default: () => DEFAULT_GROUPS.map((g) => ({ ...g })) },
+      groups: { type: [termSchema], default: [] },
       tags: { type: [termSchema], default: [] },
     },
     siteLinks: { type: [siteLinkSchema], default: [] },

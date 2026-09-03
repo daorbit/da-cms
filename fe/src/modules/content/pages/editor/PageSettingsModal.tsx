@@ -90,10 +90,12 @@ export function PageSettingsModal({
           <Select
             label="Group"
             description="Managed in workspace settings"
+            placeholder={groups.length ? 'No group' : 'Add groups in Settings'}
             data={groups.map((g) => ({ value: g.name, label: g.name }))}
-            value={group}
-            allowDeselect={false}
-            onChange={(v) => v && onGroupChange(v)}
+            value={group || null}
+            clearable
+            disabled={groups.length === 0}
+            onChange={(v) => onGroupChange(v ?? '')}
           />
           <MultiSelect
             label="Tags"

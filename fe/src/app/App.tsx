@@ -12,6 +12,7 @@ import { PageListPage } from '@/modules/content/pages/PageListPage';
 import { PageEditorPage } from '@/modules/content/pages/PageEditorPage';
 import { SettingsPage } from '@/modules/workspace/SettingsPage';
 import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
+import { WorkspacesPage } from '@/modules/workspace/WorkspacesPage';
 
 function HomeRedirect() {
   const { user, workspaces, loading } = useAuth();
@@ -33,6 +34,7 @@ export function App() {
 
           <Route element={<RequireAuth />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/workspaces" element={<WorkspacesPage />} />
 
             <Route element={<RequireWorkspace />}>
               <Route path="/:workspaceSlug" element={<WorkspaceLayout />}>

@@ -46,7 +46,7 @@ const pageSchema = new Schema(
     /** The group this page belongs to — a group name from
      *  `workspace.settings.configuration.groups`. Validated in the controller so
      *  the list stays editable without a migration. */
-    group: { type: String, trim: true, default: 'General' },
+    group: { type: String, trim: true, default: '' },
     /** Tag names from `workspace.settings.configuration.tags`. */
     tags: { type: [String], default: [] },
 

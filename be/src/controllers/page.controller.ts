@@ -10,9 +10,10 @@ import type { ApiError } from '../types/index.js';
 async function allowedTaxonomy(workspaceId: string) {
   const workspace = await WorkspaceModel.findById(workspaceId).select('settings');
   const cfg = workspace?.settings?.configuration;
-  const groups = (cfg?.groups ?? []).map((g) => g.name);
-  const tags = (cfg?.tags ?? []).map((t) => t.name);
-  return { groups: groups.length ? groups : ['General', 'Blog', 'Case study'], tags };
+  return {
+    groups: (cfg?.groups ?? []).map((g) => g.name),
+    tags: (cfg?.tags ?? []).map((t) => t.name),
+  };
 }
 
 const sectionSchema = z.object({
@@ -30,8 +31,9 @@ const pageSchema = z.object({
   title: z.string().min(1, 'A title is required').max(200),
   slug: z.string().optional(),
   description: z.string().max(500).default(''),
-  /** A group slug from workspace settings. Validated against the live list. */
-  group: z.string().min(1).max(60).default('General'),
+  /** A group name from workspace settings, or '' when none is set. Validated
+   *  against the live list. */
+  group: z.string().max(60).default(''),
   tags: z.array(z.string().min(1).max(60)).max(50).default([]),
   heroImage: imageSchema.default({ url: '', alt: '' }),
   thumbnailImage: imageSchema.default({ url: '', alt: '' }),
@@ -85,7 +87,7 @@ function toResponse(page: PageDoc) {
     title: page.title,
     slug: page.slug,
     description: page.description ?? '',
-    group: page.group ?? 'General',
+    group: page.group ?? '',
     tags: page.tags ?? [],
     heroImage: page.heroImage ?? { url: '', alt: '' },
     thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },
@@ -108,7 +110,8 @@ const AUTHOR_FIELDS = 'name email';
 async function checkTaxonomy(workspaceId: string, group?: string, tags?: string[]) {
   if (group === undefined && tags === undefined) return null;
   const allowed = await allowedTaxonomy(workspaceId);
-  if (group !== undefined && !allowed.groups.includes(group)) {
+  // '' means "no group" — always allowed, e.g. before any group is defined.
+  if (group !== undefined && group !== '' && !allowed.groups.includes(group)) {
     return `"${group}" is not a group in this workspace`;
   }
   if (tags?.length) {

@@ -135,8 +135,9 @@ export const me: RequestHandler = async (req, res) => {
     return;
   }
 
-  const memberships = await MembershipModel.find({ userId: user._id });
+  const memberships = await MembershipModel.find({ userId: user._id, status: 'active' });
   const workspaces = await WorkspaceModel.find({ _id: { $in: memberships.map((m) => m.workspaceId) } });
+  const roleByWorkspace = new Map(memberships.map((m) => [String(m.workspaceId), m.role]));
 
   res.json({
     user: toUserResponse(user),
@@ -145,6 +146,7 @@ export const me: RequestHandler = async (req, res) => {
       name: w.name,
       slug: w.slug,
       websiteUrl: w.websiteUrl ?? '',
+      role: roleByWorkspace.get(String(w._id)) ?? null,
     })),
   });
 };
