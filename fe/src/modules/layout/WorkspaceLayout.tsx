@@ -1,7 +1,7 @@
 import { AppShell, Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledButton, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-  IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconStack2, IconCheck,
+  IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -11,7 +11,6 @@ import { ThemeToggle } from './ThemeToggle';
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
   { label: 'Pages', to: 'content/pages', icon: IconFileText },
-  { label: 'Collections', to: 'content/collections', icon: IconStack2 },
 ];
 
 export function WorkspaceLayout() {

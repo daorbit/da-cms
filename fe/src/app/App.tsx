@@ -10,10 +10,6 @@ import { OnboardingPage } from '@/modules/auth/pages/OnboardingPage';
 import { DashboardPage } from '@/modules/dashboard/DashboardPage';
 import { PageListPage } from '@/modules/content/pages/PageListPage';
 import { PageEditorPage } from '@/modules/content/pages/PageEditorPage';
-import { CollectionListPage } from '@/modules/content/collections/CollectionListPage';
-import { CollectionFormPage } from '@/modules/content/collections/CollectionFormPage';
-import { ContentListPage } from '@/modules/content/collections/ContentListPage';
-import { ContentEditorPage } from '@/modules/content/collections/ContentEditorPage';
 
 function HomeRedirect() {
   const { user, workspaces, loading } = useAuth();
@@ -49,13 +45,6 @@ export function App() {
                       list, so the editor always has a real page to open. */}
                   <Route path="pages" element={<PageListPage />} />
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
-
-                  <Route path="collections" element={<CollectionListPage />} />
-                  <Route path="collections/new" element={<CollectionFormPage />} />
-                  <Route path="collections/:collectionId/edit" element={<CollectionFormPage />} />
-                  <Route path="collections/:collectionId/content" element={<ContentListPage />} />
-                  <Route path="collections/:collectionId/content/new" element={<ContentEditorPage />} />
-                  <Route path="collections/:collectionId/content/:id/edit" element={<ContentEditorPage />} />
                 </Route>
               </Route>
             </Route>
