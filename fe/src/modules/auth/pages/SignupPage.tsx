@@ -62,7 +62,7 @@ export function SignupPage() {
     <div className="auth-split">
       <AuthBrand
         headline="Ship content without shipping code"
-        subline="Pages, collections and publishing in one workspace."
+        subline="Create and publish pages in one workspace."
       />
 
       <div className="auth-panel">

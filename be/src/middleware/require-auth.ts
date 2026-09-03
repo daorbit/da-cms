@@ -2,12 +2,15 @@ import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import { verifyToken } from '../lib/jwt.js';
 import type { ApiError } from '../types/index.js';
+import type { WorkspaceRole } from '../models/membership.model.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       userId?: string;
+      /** Set by `requireWorkspaceMember` for `/:workspaceId/*` routes. */
+      workspaceRole?: WorkspaceRole;
     }
   }
 }

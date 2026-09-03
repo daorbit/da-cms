@@ -43,6 +43,13 @@ const pageSchema = new Schema(
     /** Short summary used in listings and as the SEO description fallback. */
     description: { type: String, trim: true, default: '' },
 
+    /** Which workspace group this page belongs to (blog, case study, …). One
+     *  of the workspace's `pageGroups`; validated in the controller so the list
+     *  stays editable without a migration. */
+    group: { type: String, trim: true, default: 'General' },
+    /** Free-form labels for filtering within a group. */
+    tags: { type: [String], default: [] },
+
     /** Wide banner at the top of the page. */
     heroImage: { type: imageSchema, default: () => ({}) },
     /** Square-ish card image used in listings and social previews. */
@@ -69,6 +76,7 @@ const pageSchema = new Schema(
 
 pageSchema.index({ workspaceId: 1, slug: 1 }, { unique: true });
 pageSchema.index({ workspaceId: 1, status: 1, updatedAt: -1 });
+pageSchema.index({ workspaceId: 1, group: 1, updatedAt: -1 });
 
 export type Page = InferSchemaType<typeof pageSchema> & { _id: Schema.Types.ObjectId };
 export const PageModel = model('Page', pageSchema);

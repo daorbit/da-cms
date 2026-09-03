@@ -177,6 +177,41 @@ If you didn't try to sign up, you can ignore this email — no account has been 
   await sendOne(to, `${code} is your da-cms verification code`, text, html);
 }
 
+/** A single primary action button, centred. */
+function ctaButton(label: string, href: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:${S.section}px 0 0">
+    <tr><td align="center">
+      <a href="${href}" style="display:inline-block;background:${C.accent};color:#ffffff;font-size:14.5px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:9px">${label}</a>
+    </td></tr>
+  </table>`;
+}
+
+/**
+ * Sent when an admin invites someone to a workspace. The link carries a
+ * one-time token; the recipient signs in (or signs up) and accepts.
+ */
+export async function sendInviteEmail(
+  to: Recipient,
+  detail: { workspaceName: string; inviterName: string; role: string; acceptUrl: string }
+): Promise<void> {
+  const { workspaceName, inviterName, role, acceptUrl } = detail;
+
+  const text = `${inviterName} invited you to join the "${workspaceName}" workspace on da-cms as ${role}.
+
+Accept the invite: ${acceptUrl}
+
+If you weren't expecting this, you can ignore this email.`;
+
+  const html = shell(
+    `${heading('You have been invited')}
+     ${paragraph(`<strong style="color:${C.text}">${escapeHtml(inviterName)}</strong> invited you to join <strong style="color:${C.text}">${escapeHtml(workspaceName)}</strong> as ${escapeHtml(role)}.`)}
+     ${ctaButton('Accept invite', acceptUrl)}
+     ${footnote("If you weren't expecting this, you can safely ignore this email.")}`
+  );
+
+  await sendOne(to, `Join ${workspaceName} on da-cms`, text, html);
+}
+
 /** Sent once an account exists, so the first thing in the inbox is not a code. */
 export async function sendWelcomeEmail(to: Recipient, workspaceName: string): Promise<void> {
   const text = `Welcome to da-cms.
@@ -186,7 +221,7 @@ Your workspace "${workspaceName}" is ready. Create your first page whenever you 
   const html = shell(
     `${heading('Your workspace is ready')}
      ${paragraph(`<strong style="color:${C.text}">${escapeHtml(workspaceName)}</strong> is set up and waiting.`)}
-     ${paragraph('Build pages from blocks, keep structured content in collections, and publish when you are ready.')}`
+     ${paragraph('Create and publish pages when you are ready.')}`
   );
 
   await sendOne(to, 'Welcome to da-cms', text, html);
