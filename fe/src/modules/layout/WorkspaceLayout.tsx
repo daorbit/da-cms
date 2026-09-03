@@ -50,15 +50,9 @@ export function WorkspaceLayout() {
             <Menu.Target>
               <UnstyledButton className="ws-switcher">
                 <Group gap="sm" wrap="nowrap">
-                  <span className="ws-mark" aria-hidden="true">
-                    {workspace?.name?.[0]?.toUpperCase() ?? 'D'}
-                  </span>
                   <span className="ws-switcher-text">
-                    <Text size="sm" fw={600} truncate>
+                    <Text size="md" fw={600} truncate>
                       {workspace?.name ?? 'da-cms'}
-                    </Text>
-                    <Text size="xs" c="dimmed" truncate>
-                      /{workspace?.slug}
                     </Text>
                   </span>
                   <IconSelector size={15} stroke={1.7} opacity={0.5} />
@@ -82,7 +76,7 @@ export function WorkspaceLayout() {
             </Menu.Dropdown>
           </Menu>
 
-          <Divider />
+          <Divider className="nav-rule" />
 
           <Stack gap={2}>
             {NAV.map((item) => (
@@ -103,7 +97,7 @@ export function WorkspaceLayout() {
               fourth and fifth destination. */}
           <Stack gap="xs" mt="auto">
             <ThemeToggle />
-            <Divider />
+            <Divider className="nav-rule" />
 
             <Menu shadow="md" width={200} position="top-start">
               <Menu.Target>

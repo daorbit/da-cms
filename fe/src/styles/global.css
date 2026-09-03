@@ -24,16 +24,116 @@ h2.mantine-Title-root {
   letter-spacing: -0.02em;
 }
 
+/* ---------------------------------------------------------- page surface */
+
+/* Off-white rather than pure white: the inset rail and the cards both need a
+   ground to sit on, and on #fff neither has an edge. */
+body {
+  background: var(--mantine-color-gray-1);
+}
+
+/* Mantine paints `--mantine-color-body` from dark[7]; this pins the page to the
+   darkest step so the content area is near-black rather than the charcoal the
+   default ramp lands on — and so the rail and cards, which are lighter, have
+   something to sit on. */
+[data-mantine-color-scheme='dark'] body,
+[data-mantine-color-scheme='dark'] .mantine-AppShell-main {
+  background: #0a0a0b;
+}
+
+/* Cards lift off the ground rather than blending into it: a step lighter than
+   the page, with a border that is actually visible at that depth. */
+.mantine-Card-root {
+  background: #fff;
+}
+[data-mantine-color-scheme='dark'] .mantine-Card-root,
+[data-mantine-color-scheme='dark'] .mantine-Paper-root {
+  background: #141416;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
 /* ------------------------------------------------------------- app shell */
 
-/* The sidebar sits on a slightly recessed surface so the content area reads as
-   the page and the nav as chrome. Both schemes get an explicit value — leaving
-   one to the default made the divide vanish in dark mode. */
+/* The sidebar is an inset panel floating on the page ground rather than a rail
+   welded to the window edge — the same shape as the auth screens' brand panel,
+   so signing in and using the app read as one product.
+   Dark in both schemes, for the same reason it is there: it is chrome, and a
+   white rail beside white content needs a border to exist at all. */
 .app-nav {
-  background: var(--mantine-color-gray-0);
+  top: 10px;
+  bottom: 10px;
+  left: 10px;
+  height: auto;
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 12px 32px rgba(16, 24, 40, 0.06);
 }
 [data-mantine-color-scheme='dark'] .app-nav {
-  background: var(--mantine-color-dark-8);
+  background: #17171a;
+  color: #fff;
+  /* The page behind is near-black too, so the panel's edge comes from a
+     hairline and a drop shadow rather than from the fill alone. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* The bloom, as on the auth panel: one soft light source low in the panel so
+   the flat fill has depth instead of reading as a dead rectangle. Dark only —
+   on white it turned the lower third a washed lilac. */
+[data-mantine-color-scheme='dark'] .app-nav::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -30%;
+  width: 190%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+  /* Held well below the auth panel's strength: this one sits behind working
+     controls, and at full weight it tinted the account row purple. */
+  background:
+    radial-gradient(closest-side, rgba(124, 138, 255, 0.16), transparent 70%),
+    radial-gradient(closest-side, rgba(150, 90, 240, 0.12), transparent 72%);
+  background-position: 54% 46%, 46% 56%;
+  background-size: 74% 74%, 96% 96%;
+  background-repeat: no-repeat;
+  filter: blur(52px);
+}
+
+/* Everything in the rail sits above the bloom. */
+.app-nav > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The content area is inset to match, so the rail's rounded corners have a
+   ground to sit on rather than butting against the window. */
+.mantine-AppShell-main {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 10px;
+}
+
+@media (max-width: 48em) {
+  /* Inset framing costs real width on a phone, and the rail is a drawer there
+     rather than a permanent panel. */
+  .app-nav {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 0;
+  }
+  .mantine-AppShell-main {
+    padding: 1rem;
+  }
 }
 
 /* Workspace switcher and account button share a shape: full-width rows that
@@ -45,13 +145,45 @@ h2.mantine-Title-root {
   border-radius: var(--mantine-radius-md);
   transition: background-color 120ms ease;
 }
+
+/* A single line of text now the slug is gone, so the row needs the height set
+   deliberately or it collapses to something shorter than the account row. */
+.ws-switcher {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
 .ws-switcher:hover,
 .ws-account:hover {
   background: var(--mantine-color-gray-1);
 }
+
+/* On the dark rail Mantine's own colours are computed against the page rather
+   than this panel, so they are restated here. */
 [data-mantine-color-scheme='dark'] .ws-switcher:hover,
 [data-mantine-color-scheme='dark'] .ws-account:hover {
-  background: var(--mantine-color-dark-6);
+  background: rgba(255, 255, 255, 0.07);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root {
+  color: #fff;
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root[data-dimmed],
+[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root[data-c='dimmed'] {
+  color: rgba(255, 255, 255, 0.5);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-Divider-root {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Pulled out past the navbar's own padding so the rule spans the full panel —
+   inset on both sides it read as a stray underline under the switcher rather
+   than as a division of the rail. */
+.app-nav .nav-rule {
+  margin-left: calc(var(--mantine-spacing-sm) * -1);
+  margin-right: calc(var(--mantine-spacing-sm) * -1);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-Avatar-placeholder {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 /* `min-width: 0` is what lets the Text children truncate — without it the flex
@@ -62,33 +194,60 @@ h2.mantine-Title-root {
   display: block;
 }
 
-.ws-mark {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--mantine-color-brand-6);
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
 /* Nav items: a filled pill when active rather than Mantine's default tint,
    which was too faint to find at a glance on the recessed sidebar. */
 .app-nav .mantine-NavLink-root {
   border-radius: var(--mantine-radius-md);
-  padding: 8px 10px;
+  padding: 9px 10px;
 }
 .app-nav .mantine-NavLink-label {
   font-size: 0.9rem;
   font-weight: 500;
 }
-.app-nav .mantine-NavLink-root[data-active] {
-  background: var(--mantine-color-brand-6);
+.app-nav .mantine-NavLink-root {
+  color: var(--mantine-color-text);
+}
+.app-nav .mantine-NavLink-root:hover {
+  background: var(--mantine-color-gray-1);
+}
+/* A tinted pill rather than a saturated fill: the rail is a quiet surface, and
+   a solid blue block on it reads as a button rather than as "you are here". */
+.app-nav .mantine-NavLink-root[data-active],
+.app-nav .mantine-NavLink-root[data-active]:hover {
+  background: var(--mantine-color-brand-0);
+  color: var(--mantine-color-brand-7);
+  font-weight: 600;
+}
+
+[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root {
+  color: rgba(255, 255, 255, 0.62);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root:hover {
+  background: rgba(255, 255, 255, 0.07);
   color: #fff;
 }
-.app-nav .mantine-NavLink-root[data-active]:hover {
-  background: var(--mantine-color-brand-7);
+/* Translucent white on the dark rail: a saturated blue block there fights the
+   bloom behind it, where a lit surface belongs to it. */
+[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root[data-active],
+[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root[data-active]:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+/* The theme switch sits on the rail's own ground, which is a step off the
+   page's in both schemes. */
+.app-nav .mantine-SegmentedControl-root {
+  background: var(--mantine-color-gray-1);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-root {
+  background: rgba(255, 255, 255, 0.07);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-indicator {
+  background: rgba(255, 255, 255, 0.16);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-label[data-active] {
+  color: #fff;
 }
