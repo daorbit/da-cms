@@ -1,23 +1,17 @@
 import { api } from '@/lib/api';
-import type {
-  Workspace,
-  WorkspaceMember,
-  PendingInvite,
-  WorkspaceSettings,
-  SiteLink,
-} from '@/types';
+import type { Workspace, WorkspaceMember, WorkspaceSettings, Term, SiteLink } from '@/types';
 
 const base = (workspaceId: string) => `/workspaces/${workspaceId}`;
 
 export interface MembersResponse {
   members: WorkspaceMember[];
-  invites: PendingInvite[];
+  invites: WorkspaceMember[];
 }
 
+/** Groups/tags are sent with their full object shape; each array replaces the
+ *  stored one entirely. */
 export type SettingsPayload = Partial<{
-  /** Groups/tags are sent as plain name lists; the server derives slugs. */
-  pageGroups: string[];
-  pageTags: string[];
+  configuration: Partial<{ groups: Term[]; tags: Term[] }>;
   siteLinks: Omit<SiteLink, 'order'>[];
 }>;
 
@@ -36,15 +30,15 @@ export const workspaceService = {
     return api.get<MembersResponse>(`${base(workspaceId)}/members`);
   },
 
-  invite(workspaceId: string, email: string, role: 'admin' | 'editor') {
-    return api.post<{ invite: PendingInvite; acceptUrl: string }>(
+  invite(workspaceId: string, email: string, role: 'admin' | 'editor', name?: string) {
+    return api.post<{ invite: WorkspaceMember; acceptUrl: string }>(
       `${base(workspaceId)}/members/invites`,
-      { email, role }
+      { email, role, name }
     );
   },
 
   resendInvite(workspaceId: string, inviteId: string) {
-    return api.post<{ invite: PendingInvite; acceptUrl: string }>(
+    return api.post<{ invite: WorkspaceMember; acceptUrl: string }>(
       `${base(workspaceId)}/members/invites/${inviteId}/resend`
     );
   },
@@ -75,7 +69,7 @@ export const workspaceService = {
   },
 };
 
-/* --- invite accept (outside workspace scope) --- */
+/* --- invitation accept / decline (outside workspace scope) --- */
 
 export interface InvitePreview {
   email: string;
@@ -83,13 +77,17 @@ export interface InvitePreview {
   workspace: { name: string; slug: string } | null;
 }
 
-export const inviteService = {
+export const invitationService = {
   preview(token: string) {
-    return api.get<InvitePreview>(`/invites/${token}`);
+    return api.get<InvitePreview>(`/invitation/${token}`);
   },
-  accept(token: string) {
+  accept(token: string, forceAcceptOtherEmail = false) {
     return api.post<{ workspace: { slug: string; name: string } | null }>(
-      `/invites/${token}/accept`
+      `/invitation/${token}/accept`,
+      { forceAcceptOtherEmail }
     );
+  },
+  decline(token: string) {
+    return api.delete<void>(`/invitation/${token}/decline`);
   },
 };

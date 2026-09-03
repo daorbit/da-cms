@@ -21,28 +21,25 @@ export interface Workspace {
 
 /* ------------------------------------------------------------- members --- */
 
+/** One row from the members endpoint — active member or pending invite. For a
+ *  pending row `user.id` is null and `user.email` is the invited address. */
 export interface WorkspaceMember {
   id: string;
   role: WorkspaceRole;
+  status: 'active' | 'pending';
   joinedAt: string | null;
-  user: { id: string; name: string | null; email: string | null };
-}
-
-export interface PendingInvite {
-  id: string;
-  email: string;
-  role: Exclude<WorkspaceRole, 'owner'>;
-  expiresAt: string;
   invitedAt: string | null;
-  expired: boolean;
+  user: { id: string | null; name: string | null; email: string | null };
 }
 
 /* ------------------------------------------------------------ settings --- */
 
-/** A page group or tag: `slug` is stored on pages, `name` is the label. */
+/** A page group or tag. Pages reference it by `name`. */
 export interface Term {
   name: string;
-  slug: string;
+  color: string;
+  previewHost: string;
+  productionHost: string;
 }
 
 export interface SiteLink {
@@ -51,9 +48,12 @@ export interface SiteLink {
   order: number;
 }
 
+/** The whole Settings blob — each array is replaced wholesale on save. */
 export interface WorkspaceSettings {
-  pageGroups: Term[];
-  pageTags: Term[];
+  configuration: {
+    groups: Term[];
+    tags: Term[];
+  };
   siteLinks: SiteLink[];
 }
 

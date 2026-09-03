@@ -49,8 +49,8 @@ export function PageSettingsModal({
     workspaceService
       .settings(workspace.id)
       .then((s) => {
-        setGroups(s.pageGroups);
-        setTagOptions(s.pageTags);
+        setGroups(s.configuration.groups);
+        setTagOptions(s.configuration.tags);
       })
       .catch(() => {});
   }, [opened, workspace]);
@@ -90,7 +90,7 @@ export function PageSettingsModal({
           <Select
             label="Group"
             description="Managed in workspace settings"
-            data={groups.map((g) => ({ value: g.slug, label: g.name }))}
+            data={groups.map((g) => ({ value: g.name, label: g.name }))}
             value={group}
             allowDeselect={false}
             onChange={(v) => v && onGroupChange(v)}
@@ -98,7 +98,7 @@ export function PageSettingsModal({
           <MultiSelect
             label="Tags"
             placeholder={tagOptions.length ? 'Pick tags' : 'No tags defined yet'}
-            data={tagOptions.map((t) => ({ value: t.slug, label: t.name }))}
+            data={tagOptions.map((t) => ({ value: t.name, label: t.name }))}
             value={tags}
             onChange={onTagsChange}
             searchable

@@ -10,7 +10,7 @@ import { notifications } from '@mantine/notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/lib/api';
 import { workspaceService } from '@/modules/workspace/workspaceService';
-import type { Workspace, WorkspaceMember, PendingInvite } from '@/types';
+import type { Workspace, WorkspaceMember } from '@/types';
 
 const ROLE_COLOR: Record<string, string> = { owner: 'blue', admin: 'grape', editor: 'gray' };
 const ASSIGNABLE = [
@@ -21,7 +21,7 @@ const ASSIGNABLE = [
 export function MembersTab({ workspace, canManage }: { workspace: Workspace; canManage: boolean }) {
   const { user } = useAuth();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [invites, setInvites] = useState<PendingInvite[]>([]);
+  const [invites, setInvites] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +89,7 @@ export function MembersTab({ workspace, canManage }: { workspace: Workspace; can
     }
   };
 
-  const resend = async (invite: PendingInvite) => {
+  const resend = async (invite: WorkspaceMember) => {
     try {
       const { acceptUrl } = await workspaceService.resendInvite(workspace.id, invite.id);
       setLastLink(acceptUrl);
@@ -102,7 +102,7 @@ export function MembersTab({ workspace, canManage }: { workspace: Workspace; can
     }
   };
 
-  const revoke = async (invite: PendingInvite) => {
+  const revoke = async (invite: WorkspaceMember) => {
     try {
       await workspaceService.revokeInvite(workspace.id, invite.id);
       load();
@@ -227,14 +227,14 @@ export function MembersTab({ workspace, canManage }: { workspace: Workspace; can
                 {invites.map((inv) => (
                   <Table.Tr key={inv.id}>
                     <Table.Td>
-                      <Text size="sm">{inv.email}</Text>
+                      <Text size="sm">{inv.user.email}</Text>
                       <Text c="dimmed" size="xs">
-                        {inv.expired ? 'Expired' : `Invited as ${inv.role}`}
+                        {`Invited as ${inv.role}`}
                       </Text>
                     </Table.Td>
                     <Table.Td w={120}>
-                      <Badge variant="light" color={inv.expired ? 'red' : 'yellow'} tt="none">
-                        {inv.expired ? 'expired' : 'pending'}
+                      <Badge variant="light" color="yellow" tt="none">
+                        pending
                       </Badge>
                     </Table.Td>
                     {canManage && (

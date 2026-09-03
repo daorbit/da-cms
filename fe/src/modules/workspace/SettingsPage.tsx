@@ -106,7 +106,7 @@ export function SettingsPage() {
                 <TermsTab
                   kind="group"
                   workspaceId={workspace.id}
-                  terms={settings?.pageGroups ?? []}
+                  terms={settings?.configuration.groups ?? []}
                   canManage={canManage}
                   onSaved={(s) => setSettings(s)}
                 />
@@ -116,7 +116,7 @@ export function SettingsPage() {
                 <TermsTab
                   kind="tag"
                   workspaceId={workspace.id}
-                  terms={settings?.pageTags ?? []}
+                  terms={settings?.configuration.tags ?? []}
                   canManage={canManage}
                   onSaved={(s) => setSettings(s)}
                 />

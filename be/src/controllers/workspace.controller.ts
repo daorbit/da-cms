@@ -184,19 +184,13 @@ interface Term {
   previewHost?: string;
   productionHost?: string;
 }
-interface WorkspaceDoc {
-  _id: unknown;
-  name: string;
-  slug: string;
-  websiteUrl?: string;
-  settings?: {
-    configuration?: { groups?: Term[]; tags?: Term[] };
-    siteLinks?: { label: string; url: string; order: number }[];
-  };
-}
 
-function settingsResponse(w: WorkspaceDoc) {
-  const cfg = w.settings?.configuration ?? {};
+/* Loose shapes — the callers pass Mongoose documents, whose subdocument types
+ * don't line up with plain interfaces. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+function settingsResponse(w: any) {
+  const cfg = w?.settings?.configuration ?? {};
   const term = (t: Term) => ({
     name: t.name,
     color: t.color ?? '',
@@ -205,17 +199,17 @@ function settingsResponse(w: WorkspaceDoc) {
   });
   return {
     configuration: {
-      groups: (cfg.groups ?? []).map(term),
-      tags: (cfg.tags ?? []).map(term),
+      groups: ((cfg.groups ?? []) as Term[]).map(term),
+      tags: ((cfg.tags ?? []) as Term[]).map(term),
     },
-    siteLinks: (w.settings?.siteLinks ?? [])
+    siteLinks: ((w?.settings?.siteLinks ?? []) as { label: string; url: string; order: number }[])
       .slice()
       .sort((a, b) => a.order - b.order)
       .map(({ label, url, order }) => ({ label, url, order })),
   };
 }
 
-function toResponse(workspace: WorkspaceDoc, role?: string) {
+function toResponse(workspace: any, role?: string) {
   return {
     id: String(workspace._id),
     name: workspace.name,
