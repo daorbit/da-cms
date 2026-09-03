@@ -6,7 +6,6 @@ import { App } from '@/app/App';
 import { theme } from '@/app/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
-import '@/components/tiptap-templates/simple/simple-editor-globals.scss';
 import '@/styles/global.css';
 import '@/styles/auth.css';
 
