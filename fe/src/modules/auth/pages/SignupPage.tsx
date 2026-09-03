@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  TextInput, PasswordInput, Button, Title, Text, Alert, Stack, Anchor, Group,
-} from '@mantine/core';
+import { TextInput, PasswordInput, Button, Text, Alert, Stack, Anchor, Group } from '@mantine/core';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthBrand } from '@/modules/auth/components/AuthBrand';
@@ -16,7 +14,6 @@ export function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,10 +23,8 @@ export function SignupPage() {
 
   const errors = {
     firstName: firstName.trim() ? null : 'First name is required',
-    lastName: null,
     email: /^\S+@\S+\.\S+$/.test(email) ? null : 'Enter a valid email',
     password: password.length >= 8 ? null : 'At least 8 characters',
-    confirm: confirm === password ? null : 'Passwords do not match',
   };
 
   const show = (field: keyof typeof errors) => (touched[field] ? errors[field] : null);
@@ -40,7 +35,7 @@ export function SignupPage() {
 
     // Reveal every error at once on submit, so nothing is discovered one field
     // at a time.
-    setTouched({ firstName: true, lastName: true, email: true, password: true, confirm: true });
+    setTouched({ firstName: true, email: true, password: true });
     if (Object.values(errors).some(Boolean)) return;
 
     setBusy(true);
@@ -65,15 +60,17 @@ export function SignupPage() {
 
   return (
     <div className="auth-split">
-      <AuthBrand />
+      <AuthBrand
+        headline="Ship content without shipping code"
+        subline="Pages, collections and publishing in one workspace."
+      />
+
       <div className="auth-panel">
         <form className="auth-form" onSubmit={submit} noValidate>
           <Stack gap="lg">
             <div>
-              <Title order={2}>Create your account</Title>
-              <Text c="dimmed" size="sm" mt={4}>
-                Start building in under two minutes.
-              </Text>
+              <h1 className="auth-title">Create an account</h1>
+              <p className="auth-subtitle">Start building in under two minutes.</p>
             </div>
 
             {error && (
@@ -82,73 +79,59 @@ export function SignupPage() {
               </Alert>
             )}
 
-            <Group grow align="flex-start" gap="sm">
+            {/* The four fields are one block — spaced like the rest of the form
+                they read as unrelated rows. */}
+            <Stack gap={8}>
+              <Group grow gap={8} align="flex-start" wrap="nowrap">
+                <TextInput
+                  placeholder="First name"
+                  size="md"
+                  autoComplete="given-name"
+                  value={firstName}
+                  error={show('firstName')}
+                  onChange={(e) => setFirstName(e.currentTarget.value)}
+                  onBlur={blur('firstName')}
+                />
+                <TextInput
+                  placeholder="Last name"
+                  size="md"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.currentTarget.value)}
+                />
+              </Group>
+
               <TextInput
-                label="First name"
-                placeholder="Ada"
+                type="email"
+                placeholder="you@example.com"
                 size="md"
-                withAsterisk
-                autoComplete="given-name"
-                value={firstName}
-                error={show('firstName')}
-                onChange={(e) => setFirstName(e.currentTarget.value)}
-                onBlur={blur('firstName')}
+                autoComplete="email"
+                value={email}
+                error={show('email')}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+                onBlur={blur('email')}
               />
-              <TextInput
-                label="Last name"
-                placeholder="Lovelace"
+
+              <PasswordInput
+                placeholder="At least 8 characters"
                 size="md"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(e) => setLastName(e.currentTarget.value)}
+                autoComplete="new-password"
+                value={password}
+                error={show('password')}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+                onBlur={blur('password')}
               />
-            </Group>
+            </Stack>
 
-            <TextInput
-              label="Work email"
-              type="email"
-              placeholder="you@company.com"
-              size="md"
-              withAsterisk
-              autoComplete="email"
-              value={email}
-              error={show('email')}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-              onBlur={blur('email')}
-            />
-
-            <PasswordInput
-              label="Password"
-              placeholder="At least 8 characters"
-              size="md"
-              withAsterisk
-              autoComplete="new-password"
-              value={password}
-              error={show('password')}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-              onBlur={blur('password')}
-            />
-
-            <PasswordInput
-              label="Confirm password"
-              placeholder="Re-enter your password"
-              size="md"
-              withAsterisk
-              autoComplete="new-password"
-              value={confirm}
-              error={show('confirm')}
-              onChange={(e) => setConfirm(e.currentTarget.value)}
-              onBlur={blur('confirm')}
-            />
-
-            <Button type="submit" loading={busy} fullWidth size="md">
+            <Button type="submit" className="auth-submit" loading={busy} fullWidth size="md" radius="md">
               Create account
             </Button>
 
-            <Text c="dimmed" size="sm" ta="center">
-              Have an account?{' '}
-              <Anchor component={Link} to="/login" fw={600}>
-                Log in
+            <div className="auth-divider">or</div>
+
+            <Text ta="center">
+              <Anchor component={Link} to="/login" size="sm" underline="always" c="dimmed">
+                Log in to an existing account
               </Anchor>
             </Text>
           </Stack>

@@ -1,51 +1,15 @@
-/* Split-screen auth: form on one side, brand panel on the other.
-   The panel is dark in both colour schemes by design — it is a marketing
-   surface, not app chrome, so it does not follow the Mantine theme. */
+/* Split auth screen: an inset dark brand panel on the left, the form on the
+   right. The panel is dark in both colour schemes by design — it is a
+   marketing surface, not app chrome, so it does not follow the Mantine theme. */
 
 .auth-split {
-  --auth-accent: var(--mantine-color-blue-5);
-  position: relative;
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
+  padding: 12px;
+  gap: 12px;
   background: var(--mantine-color-body);
-}
-
-/* A faint accent wash bleeding in from the seam ties the form side to the
-   brand side — flat, the form floats in dead space. */
-.auth-panel {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-.auth-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(60% 50% at 0% 30%, color-mix(in srgb, var(--auth-accent) 9%, transparent), transparent 70%),
-    radial-gradient(50% 40% at 100% 100%, color-mix(in srgb, var(--auth-accent) 6%, transparent), transparent 70%);
-}
-
-.auth-form {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 380px;
-}
-
-@media (max-width: 48em) {
-  /* Vertical centring in a short viewport pushes the submit button below the
-     fold once the keyboard opens, so the form is top-aligned on phones. */
-  .auth-panel {
-    align-items: flex-start;
-    padding: 1.75rem 1.1rem calc(2rem + env(safe-area-inset-bottom, 0px));
-  }
-  .auth-form { max-width: 100%; }
 }
 
 /* ------------------------------------------------------------ brand panel */
@@ -53,210 +17,163 @@
 .auth-brand {
   position: relative;
   overflow: hidden;
-  overflow-y: auto;
-  padding: 3.25rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Generous and even: the copy used to sit hard against the left edge with a
+     wide empty band to its right. */
+  padding: clamp(2.5rem, 5vw, 4.5rem);
+  border-radius: 16px;
+  background: #0e0e10;
+  color: #fff;
+}
+
+/* One soft bloom rather than a gradient across the whole panel: it gives the
+   flat black a light source without washing out the copy sitting on it.
+   Centred on the panel — off to one side it read as a stray highlight. */
+.ab-bloom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    radial-gradient(closest-side, rgba(124, 138, 255, 0.42), transparent 70%),
+    radial-gradient(closest-side, rgba(150, 90, 240, 0.34), transparent 72%);
+  background-position: 56% 44%, 44% 58%;
+  background-size: 70% 70%, 92% 92%;
+  background-repeat: no-repeat;
+  filter: blur(52px);
+}
+
+.ab-mark {
+  position: absolute;
+  top: clamp(1.75rem, 3vw, 2.5rem);
+  left: clamp(2.5rem, 5vw, 4.5rem);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  color: #fff;
-  /* The scrollbar sat on the seam between the two panels and read as a
-     page-level one, so it is hidden while scrolling still works. */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  background:
-    radial-gradient(90% 70% at 12% 108%, color-mix(in srgb, var(--auth-accent) 42%, transparent) 0%, transparent 62%),
-    radial-gradient(70% 55% at 96% -8%, color-mix(in srgb, var(--auth-accent) 20%, transparent) 0%, transparent 60%),
-    linear-gradient(160deg, #0b0d0f 0%, #0a0c0d 55%, #090a0c 100%);
+  gap: 0.6rem;
 }
-.auth-brand::-webkit-scrollbar { width: 0; height: 0; }
-
-.ab-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse at 30% 40%, #000 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at 30% 40%, #000 30%, transparent 75%);
+.ab-mark-ic {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #fff;
+  color: #0e0e10;
 }
+.ab-mark-text { font-size: 1.05rem; font-weight: 400; letter-spacing: -0.01em; }
+.ab-mark-text strong { font-weight: 700; }
 
-.ab-orb { position: absolute; border-radius: 50%; filter: blur(80px); }
-.ab-orb-1 {
-  width: 320px; height: 320px; top: -80px; right: -60px;
-  background: color-mix(in srgb, var(--auth-accent) 30%, transparent);
-}
-.ab-orb-2 {
-  width: 260px; height: 260px; bottom: -60px; left: -40px;
-  background: color-mix(in srgb, var(--auth-accent) 16%, transparent);
-}
-
-.ab-content {
-  position: relative;
-  z-index: 3;
-  max-width: 620px;
-  width: 100%;
-  margin: auto 0;
-}
-
-.ab-wordmark { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
-.ab-wordmark-dot { color: var(--auth-accent); }
-
-.ab-content h2 {
-  color: #fff;
-  font-size: 2.35rem;
-  line-height: 1.14;
-  margin: 1.75rem 0 0.9rem;
-  letter-spacing: -0.025em;
-  max-width: 20ch;
+/* No character cap on the block itself — at 22ch the headline broke to one
+   word per line. The measure is set on the elements instead, and `balance`
+   keeps the headline's lines close to even. */
+.ab-copy { position: relative; z-index: 1; width: 100%; }
+.ab-copy h2 {
+  margin: 0 0 1rem;
+  max-width: 15ch;
+  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
-.ab-content > p {
-  color: rgba(255, 255, 255, 0.82);
+.ab-copy p {
+  margin: 0;
+  max-width: 38ch;
+  font-size: clamp(0.92rem, 1.1vw, 1rem);
   line-height: 1.6;
-  font-size: 1.02rem;
-  margin: 0 0 1.9rem;
-  max-width: 46ch;
+  color: rgba(255, 255, 255, 0.62);
 }
 
-/* ------------------------------------------------------------ preview card */
+/* ------------------------------------------------------------- form side */
 
-.ab-showcase { display: flex; flex-direction: column; gap: 0.9rem; margin: 0 0 2.25rem; }
-
-/* A faint accent tint plus a lit top edge gives the card a light source, so it
-   reads as product rather than a generic glass panel. */
-.ab-card {
-  position: relative;
-  z-index: 3;
-  padding: 1.2rem 1.35rem 1.15rem;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)),
-    color-mix(in srgb, var(--auth-accent) 7%, rgba(10, 12, 13, 0.55));
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 8px 16px rgba(0, 0, 0, 0.3),
-    0 24px 60px rgba(0, 0, 0, 0.5);
-}
-
-.ab-card-head {
+.auth-panel {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.85rem;
-}
-.ab-card-title {
-  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.07em; color: rgba(255, 255, 255, 0.55);
-}
-.ab-live {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 999px; padding: 0.2rem 0.5rem;
-}
-.ab-live-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--auth-accent);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--auth-accent) 70%, transparent);
-  animation: ab-pulse 2s ease-out infinite;
-}
-@keyframes ab-pulse {
-  70%  { box-shadow: 0 0 0 7px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ab-live-dot { animation: none; }
+  justify-content: center;
+  padding: 2rem;
 }
 
-.ab-rows { display: flex; flex-direction: column; gap: 0.1rem; }
-.ab-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 0.75rem; padding: 0.55rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+.auth-form { width: 100%; max-width: 380px; }
+
+/* A serif title against the sans-serif form is the one typographic flourish on
+   this screen — it stops the page reading as a bare settings dialog. */
+.auth-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.1rem;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  text-align: center;
+  color: var(--mantine-color-text);
 }
-.ab-row:last-child { border-bottom: 0; }
-.ab-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.ab-row-title { font-size: 0.85rem; font-weight: 600; color: #fff; }
-.ab-row-slug {
-  font-size: 0.7rem; color: rgba(255, 255, 255, 0.45);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.ab-chip {
-  flex-shrink: 0; font-size: 0.65rem; font-weight: 600;
-  border-radius: 999px; padding: 0.15rem 0.5rem;
-}
-.ab-chip.is-published {
-  color: color-mix(in srgb, var(--auth-accent) 55%, #fff);
-  background: color-mix(in srgb, var(--auth-accent) 20%, transparent);
-}
-.ab-chip.is-draft {
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.1);
+.auth-subtitle {
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--mantine-color-dimmed);
 }
 
-/* Three stats plus the caption on one baseline. `auto` on the last track lets
-   the caption keep its natural width so the stats stay evenly spaced. */
-.ab-card-foot {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr) auto;
-  align-items: end;
-  gap: 0.5rem;
-  margin-top: 0.55rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+/* Placeholder-only fields: with a visible label above every input the form grew
+   to twice this height for no added clarity at four fields. They carry a real
+   border and a lifted focus ring so they read as controls rather than as flat
+   grey bands on a grey ground. */
+.auth-form .mantine-TextInput-input,
+.auth-form .mantine-PasswordInput-input {
+  height: 46px;
+  border-radius: 10px;
+  border-color: var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
-.ab-stat { display: flex; flex-direction: column; gap: 2px; }
-.ab-stat-val {
-  font-size: 1rem; font-weight: 700; color: #fff; line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.ab-stat-label { font-size: 0.66rem; color: rgba(255, 255, 255, 0.6); }
-.ab-card-note {
-  font-size: 0.62rem; color: rgba(255, 255, 255, 0.34);
-  letter-spacing: 0.02em; align-self: end; text-align: right; white-space: nowrap;
+.auth-form .mantine-TextInput-input:focus,
+.auth-form .mantine-PasswordInput-input:focus,
+.auth-form .mantine-TextInput-input:focus-within,
+.auth-form .mantine-PasswordInput-input:focus-within {
+  border-color: var(--mantine-color-default-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mantine-color-default-color) 12%, transparent);
 }
 
-/* ------------------------------------------------------------- features */
-
-/* Filled down rather than across: three items in the left column, two in the
-   right. The default row flow would strand the fifth item on its own row. */
-.ab-features {
-  display: grid;
-  grid-template-rows: repeat(3, auto);
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 0.9rem 1.5rem;
+/* The submit button inverts against the page rather than using a theme colour:
+   dark-on-light and light-on-dark, so it stays the highest-contrast thing on
+   the form in either scheme. Mantine's `color="dark"` went nearly invisible on
+   the dark ground. */
+.auth-form .auth-submit {
+  height: 46px;
+  font-size: 0.95rem;
+  background: var(--mantine-color-text);
+  color: var(--mantine-color-body);
 }
-.ab-feature {
-  display: flex; align-items: center; gap: 0.7rem;
-  font-size: 0.9rem; font-weight: 500; color: rgba(255, 255, 255, 0.92);
-}
-.ab-feature-ic {
-  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.15);
-  display: grid; place-items: center;
+.auth-form .auth-submit:hover:not([data-loading]) {
+  background: color-mix(in srgb, var(--mantine-color-text) 88%, var(--mantine-color-body));
 }
 
-.ab-proof {
-  display: flex; flex-wrap: wrap; gap: 0.5rem 1.1rem;
-  margin-top: 2.25rem; padding-top: 1.35rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.8rem;
 }
-.ab-proof-item {
-  display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.8rem; font-weight: 500; color: rgba(255, 255, 255, 0.72);
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--mantine-color-default-border);
 }
-.ab-proof-item svg { color: var(--auth-accent); flex-shrink: 0; }
 
-/* The brand panel is a pitch, not a step — below this width it costs a full
-   screen of scrolling before the form, so it is dropped entirely. */
 @media (max-width: 900px) {
-  .auth-split { grid-template-columns: 1fr; }
+  /* The panel is a pitch, not a step — below this width it costs a full screen
+     of scrolling before the form, so it is dropped entirely. */
+  .auth-split { grid-template-columns: 1fr; padding: 0; gap: 0; }
   .auth-brand { display: none; }
+  .auth-panel {
+    align-items: flex-start;
+    padding: 3rem 1.25rem calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
 }

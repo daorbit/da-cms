@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  TextInput, PasswordInput, Button, Title, Text, Alert, Stack, Anchor,
-} from '@mantine/core';
+import { TextInput, PasswordInput, Button, Text, Alert, Stack, Anchor, Group } from '@mantine/core';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthBrand } from '@/modules/auth/components/AuthBrand';
@@ -56,15 +54,17 @@ export function LoginPage() {
 
   return (
     <div className="auth-split">
-      <AuthBrand />
+      <AuthBrand
+        headline="Ship content without shipping code"
+        subline="Pages, collections and publishing in one workspace."
+      />
+
       <div className="auth-panel">
         <form className="auth-form" onSubmit={submit} noValidate>
           <Stack gap="lg">
             <div>
-              <Title order={2}>Welcome back</Title>
-              <Text c="dimmed" size="sm" mt={4}>
-                Log in to your workspace.
-              </Text>
+              <h1 className="auth-title">Log in</h1>
+              <p className="auth-subtitle">Welcome back to your workspace.</p>
             </div>
 
             {error && (
@@ -73,39 +73,47 @@ export function LoginPage() {
               </Alert>
             )}
 
-            <TextInput
-              label="Email"
-              type="email"
-              placeholder="you@company.com"
-              size="md"
-              withAsterisk
-              autoComplete="email"
-              value={email}
-              error={show('email')}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-              onBlur={blur('email')}
-            />
+            {/* The two fields and the recovery link are one block: spaced like
+                the rest of the form they read as three unrelated rows. */}
+            <Stack gap={8}>
+              <TextInput
+                type="email"
+                placeholder="you@example.com"
+                size="md"
+                autoComplete="email"
+                value={email}
+                error={show('email')}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+                onBlur={blur('email')}
+              />
+              <PasswordInput
+                placeholder="••••••••"
+                size="md"
+                autoComplete="current-password"
+                value={password}
+                error={show('password')}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+                onBlur={blur('password')}
+              />
 
-            <PasswordInput
-              label="Password"
-              placeholder="••••••••"
-              size="md"
-              withAsterisk
-              autoComplete="current-password"
-              value={password}
-              error={show('password')}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-              onBlur={blur('password')}
-            />
+              {/* No "remember me": the session cookie's lifetime is set server
+                  side, so a checkbox here would control nothing. */}
+              <Group justify="flex-end" mt={2}>
+                <Anchor component={Link} to="/forgot-password" size="xs" c="dimmed" underline="always">
+                  Forgot password?
+                </Anchor>
+              </Group>
+            </Stack>
 
-            <Button type="submit" loading={busy} fullWidth size="md">
+            <Button type="submit" className="auth-submit" loading={busy} fullWidth size="md" radius="md">
               Log in
             </Button>
 
-            <Text c="dimmed" size="sm" ta="center">
-              No account?{' '}
-              <Anchor component={Link} to="/signup" fw={600}>
-                Sign up free
+            <div className="auth-divider">or</div>
+
+            <Text ta="center">
+              <Anchor component={Link} to="/signup" size="sm" underline="always" c="dimmed">
+                Create an account
               </Anchor>
             </Text>
           </Stack>

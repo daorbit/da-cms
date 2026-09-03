@@ -10,4 +10,15 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    // The API is proxied rather than called on its own origin so that requests
+    // stay same-origin in development: the session cookie is httpOnly and
+    // SameSite, and a cross-origin call from :5173 to :8081 would not carry it.
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:8081',
+        changeOrigin: true,
+      },
+    },
+  },
 })
