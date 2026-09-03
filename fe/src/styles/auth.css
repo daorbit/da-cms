@@ -89,6 +89,80 @@
   color: rgba(255, 255, 255, 0.62);
 }
 
+/* --------------------------------------------------------------- stepper */
+
+.ab-steps {
+  list-style: none;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ab-step {
+  position: relative;
+  display: flex;
+  gap: 0.85rem;
+  padding-bottom: 1.5rem;
+}
+.ab-step:last-child { padding-bottom: 0; }
+
+/* The connector is drawn from each step down to the next, so it inherits that
+   step's own state — completed steps get a lit rail, pending ones a dim one. */
+.ab-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ab-step.is-done:not(:last-child)::before { background: rgba(255, 255, 255, 0.55); }
+
+.ab-step-dot {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.5);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.ab-step.is-current .ab-step-dot {
+  border-color: #fff;
+  color: #fff;
+  /* A ring rather than a fill: the current step is where you are, not where
+     you have been, and a solid dot reads as completed. */
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+}
+.ab-step.is-done .ab-step-dot {
+  background: #fff;
+  border-color: #fff;
+  color: #0e0e10;
+}
+
+.ab-step-text { display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
+.ab-step-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 160ms ease;
+}
+.ab-step-desc { font-size: 0.8rem; line-height: 1.5; color: rgba(255, 255, 255, 0.38); }
+
+.ab-step.is-current .ab-step-label,
+.ab-step.is-done .ab-step-label { color: #fff; }
+.ab-step.is-current .ab-step-desc { color: rgba(255, 255, 255, 0.62); }
+
 /* ------------------------------------------------------------- form side */
 
 .auth-panel {

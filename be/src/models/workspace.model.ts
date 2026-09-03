@@ -5,6 +5,9 @@ const workspaceSchema = new Schema(
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
+    /** The site this workspace publishes to. Optional — set during onboarding. */
+    websiteUrl: { type: String, trim: true, default: '' },
   },
   { timestamps: true }
 );

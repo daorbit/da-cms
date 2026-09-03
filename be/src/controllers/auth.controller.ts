@@ -31,8 +31,24 @@ function setSessionCookie(res: Parameters<RequestHandler>[1], userId: string) {
   });
 }
 
-function toUserResponse(user: { _id: unknown; email: string; name: string }) {
-  return { id: String(user._id), email: user.email, name: user.name };
+function toUserResponse(user: {
+  _id: unknown;
+  email: string;
+  name: string;
+  jobRole?: string;
+  teamSize?: string;
+  onboardedAt?: Date | null;
+}) {
+  return {
+    id: String(user._id),
+    email: user.email,
+    name: user.name,
+    jobRole: user.jobRole ?? '',
+    teamSize: user.teamSize ?? '',
+    // The frontend routes on this: a user who has finished onboarding is never
+    // sent back through it.
+    onboardedAt: user.onboardedAt ?? null,
+  };
 }
 
 export const signup: RequestHandler = async (req, res) => {
@@ -73,6 +89,39 @@ export const login: RequestHandler = async (req, res) => {
   res.json({ user: toUserResponse(user) });
 };
 
+const profileSchema = z.object({
+  jobRole: z.string().max(60).optional(),
+  teamSize: z.string().max(30).optional(),
+  /** Sent by the final onboarding step to close the flow for good. */
+  onboarded: z.boolean().optional(),
+});
+
+/** Onboarding's profile step. Every field optional — the step is skippable. */
+export const updateProfile: RequestHandler = async (req, res) => {
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const body: ApiError = { error: 'invalid_input', message: parsed.error.issues[0].message };
+    res.status(400).json(body);
+    return;
+  }
+
+  const { jobRole, teamSize, onboarded } = parsed.data;
+  const update: Record<string, unknown> = {};
+  if (jobRole !== undefined) update.jobRole = jobRole;
+  if (teamSize !== undefined) update.teamSize = teamSize;
+  // Stamped once. Re-running the flow should not move the date.
+  if (onboarded) update.onboardedAt = new Date();
+
+  const user = await UserModel.findByIdAndUpdate(req.userId, update, { new: true });
+  if (!user) {
+    const body: ApiError = { error: 'unauthorized', message: 'Not signed in' };
+    res.status(401).json(body);
+    return;
+  }
+
+  res.json({ user: toUserResponse(user) });
+};
+
 export const logout: RequestHandler = (_req, res) => {
   res.clearCookie(env.cookieName);
   res.status(204).end();
@@ -91,6 +140,11 @@ export const me: RequestHandler = async (req, res) => {
 
   res.json({
     user: toUserResponse(user),
-    workspaces: workspaces.map((w) => ({ id: String(w._id), name: w.name, slug: w.slug })),
+    workspaces: workspaces.map((w) => ({
+      id: String(w._id),
+      name: w.name,
+      slug: w.slug,
+      websiteUrl: w.websiteUrl ?? '',
+    })),
   });
 };

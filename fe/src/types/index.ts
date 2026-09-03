@@ -2,12 +2,17 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  jobRole: string;
+  teamSize: string;
+  /** Null until onboarding finishes; routing uses it to skip the flow. */
+  onboardedAt: string | null;
 }
 
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  websiteUrl: string;
 }
 
 export type FieldType = 'text' | 'richtext' | 'number' | 'boolean' | 'date' | 'image';
