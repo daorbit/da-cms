@@ -103,8 +103,8 @@ export interface Page {
   heroImage: PageImage;
   thumbnailImage: PageImage;
   /** HTML from the page editor. Hero/CTA/features render as blocks inline here. */
-  body: string;
-  /** Read-only: sections from pages saved before those blocks moved into `body`. */
+  content: string;
+  /** Read-only: sections from pages saved before those blocks moved into `content`. */
   sections: PageSection[];
   seo: PageSeo;
   status: PageStatus;
@@ -116,7 +116,7 @@ export interface Page {
 }
 
 /** The list endpoint omits the two heaviest fields. */
-export type PageSummary = Omit<Page, 'body' | 'sections'>;
+export type PageSummary = Omit<Page, 'content' | 'sections'>;
 
 export interface DashboardStats {
   pages: { total: number; draft: number; published: number; archived: number };

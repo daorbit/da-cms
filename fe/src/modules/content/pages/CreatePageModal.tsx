@@ -83,7 +83,7 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
         slug: slug || slugify(title),
         description,
         ...(group ? { group } : {}),
-        body: '',
+        content: '',
         status: 'draft',
       });
       reset();

@@ -56,9 +56,9 @@ const pageSchema = new Schema(
     thumbnailImage: { type: imageSchema, default: () => ({}) },
 
     /** TipTap HTML from the page editor. Hero/CTA/features render as blocks inline here. */
-    body: { type: String, default: '' },
+    content: { type: String, default: '' },
 
-    /** Read-only now: sections from pages saved before those blocks moved into `body`. */
+    /** Read-only now: sections from pages saved before those blocks moved into `content`. */
     sections: { type: [sectionSchema], default: [] },
     seo: { type: seoSchema, default: () => ({}) },
 

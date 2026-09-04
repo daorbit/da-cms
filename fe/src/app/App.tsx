@@ -10,6 +10,7 @@ import { OnboardingPage } from '@/modules/auth/pages/OnboardingPage';
 import { DashboardPage } from '@/modules/dashboard/DashboardPage';
 import { PageListPage } from '@/modules/content/pages/PageListPage';
 import { PageEditorPage } from '@/modules/content/pages/PageEditorPage';
+import { PageDetailsPage } from '@/modules/content/pages/PageDetailsPage';
 import { SettingsPage } from '@/modules/workspace/SettingsPage';
 import { TeamsPage } from '@/modules/workspace/TeamsPage';
 import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
@@ -50,6 +51,7 @@ export function App() {
                   {/* No "new" route: a page is created through a dialog on the
                       list, so the editor always has a real page to open. */}
                   <Route path="pages" element={<PageListPage />} />
+                  <Route path="pages/:id/details" element={<PageDetailsPage />} />
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
                 </Route>
 

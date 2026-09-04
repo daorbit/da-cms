@@ -4,20 +4,19 @@ import { Alert, Center, Loader, Stack } from '@mantine/core';
 import { usePageEditor } from '@/modules/content/pages/editor/usePageEditor';
 import { PageEditorToolbar } from '@/modules/content/pages/editor/PageEditorToolbar';
 import { EditorSurface } from '@/modules/content/pages/editor/EditorSurface';
-import { PagePreview } from '@/modules/content/pages/editor/PagePreview';
-import { PageSettingsModal } from '@/modules/content/pages/editor/PageSettingsModal';
+import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
+import { pageService } from '@/modules/content/pageService';
 
 /**
- * Shell only: wires the editor state hook to the toolbar, the writing
- * surface (edit mode) or preview, and the settings modal. Each of those owns
- * its own layout — this component just decides which is on screen.
+ * Shell only: wires the editor state hook to the toolbar and the writing
+ * surface. Content preview is a full-screen modal; page metadata lives on its
+ * own /details route.
  */
 export function PageEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const editor = usePageEditor(id);
 
@@ -35,11 +34,10 @@ export function PageEditorPage() {
         title={editor.title}
         slug={editor.slug}
         status={editor.status}
-        mode={mode}
-        onModeChange={setMode}
         saving={editor.saving}
         onBack={() => navigate(`/${editor.workspace?.slug}/content/pages`)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenDetails={() => navigate(`/${editor.workspace?.slug}/content/pages/${id}/details`)}
+        onPreview={() => setPreviewOpen(true)}
         onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft')}
         onPublishToggle={() => editor.save(editor.status === 'published' ? 'draft' : 'published')}
       />
@@ -50,38 +48,16 @@ export function PageEditorPage() {
         </Alert>
       )}
 
-      {mode === 'edit' ? (
-        <EditorSurface body={editor.body} onBodyChange={editor.setBody} />
-      ) : (
-        <PagePreview
+      <EditorSurface content={editor.content} onContentChange={editor.setContent} />
+
+      {editor.workspace && id && (
+        <ContentPreviewModal
+          opened={previewOpen}
+          onClose={() => setPreviewOpen(false)}
           title={editor.title}
-          description={editor.description}
-          heroImage={editor.heroImage}
-          body={editor.body}
-          legacySections={editor.legacySections}
+          src={pageService.previewUrl(editor.workspace.id, id)}
         />
       )}
-
-      <PageSettingsModal
-        opened={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        title={editor.title}
-        onTitleChange={editor.setTitle}
-        slug={editor.slug}
-        onSlugChange={editor.setSlug}
-        description={editor.description}
-        onDescriptionChange={editor.setDescription}
-        group={editor.group}
-        onGroupChange={editor.setGroup}
-        tags={editor.tags}
-        onTagsChange={editor.setTags}
-        heroImage={editor.heroImage}
-        onHeroImageChange={editor.setHeroImage}
-        thumbnailImage={editor.thumbnailImage}
-        onThumbnailImageChange={editor.setThumbnailImage}
-        seo={editor.seo}
-        onSeoChange={editor.setSeo}
-      />
     </Stack>
   );
 }

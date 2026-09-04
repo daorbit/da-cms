@@ -25,8 +25,8 @@ export function usePageEditor(id: string | undefined) {
   const [tags, setTags] = useState<string[]>([]);
   const [heroImage, setHeroImage] = useState<PageImage>(EMPTY_IMAGE);
   const [thumbnailImage, setThumbnailImage] = useState<PageImage>(EMPTY_IMAGE);
-  const [body, setBody] = useState('');
-  // Read-only: pages saved before sections moved into the body editor still
+  const [content, setContent] = useState('');
+  // Read-only: pages saved before sections moved into the content editor still
   // carry this, so the preview keeps showing it. Never written back.
   const [legacySections, setLegacySections] = useState<PageSection[]>([]);
   const [seo, setSeo] = useState<PageSeo>(EMPTY_SEO);
@@ -51,7 +51,7 @@ export function usePageEditor(id: string | undefined) {
         setTags(page.tags ?? []);
         setHeroImage(page.heroImage ?? EMPTY_IMAGE);
         setThumbnailImage(page.thumbnailImage ?? EMPTY_IMAGE);
-        setBody(page.body ?? '');
+        setContent(page.content ?? '');
         setLegacySections(page.sections ?? []);
         setSeo(page.seo ?? EMPTY_SEO);
         setStatus(page.status);
@@ -85,7 +85,7 @@ export function usePageEditor(id: string | undefined) {
         tags,
         heroImage,
         thumbnailImage,
-        body,
+        content,
         seo,
         status: nextStatus,
       });
@@ -106,7 +106,7 @@ export function usePageEditor(id: string | undefined) {
     tags, setTags,
     heroImage, setHeroImage,
     thumbnailImage, setThumbnailImage,
-    body, setBody,
+    content, setContent,
     legacySections,
     seo, setSeo,
     status,

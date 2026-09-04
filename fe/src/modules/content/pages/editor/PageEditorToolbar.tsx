@@ -1,6 +1,6 @@
-import { ActionIcon, Badge, Button, Group, SegmentedControl, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Text, Tooltip } from '@mantine/core';
 import {
-  IconArrowLeft, IconDeviceFloppy, IconSettings, IconPencil, IconEye,
+  IconArrowLeft, IconDeviceFloppy, IconAdjustments, IconEye,
 } from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
 
@@ -14,17 +14,16 @@ interface Props {
   title: string;
   slug: string;
   status: PageStatus;
-  mode: 'edit' | 'preview';
-  onModeChange: (mode: 'edit' | 'preview') => void;
   saving: boolean;
   onBack: () => void;
-  onOpenSettings: () => void;
+  onOpenDetails: () => void;
+  onPreview: () => void;
   onSave: () => void;
   onPublishToggle: () => void;
 }
 
 export function PageEditorToolbar({
-  title, slug, status, mode, onModeChange, saving, onBack, onOpenSettings, onSave, onPublishToggle,
+  title, slug, status, saving, onBack, onOpenDetails, onPreview, onSave, onPublishToggle,
 }: Props) {
   return (
     // One bar, no breadcrumbs: the back button already says where this goes,
@@ -50,19 +49,15 @@ export function PageEditorToolbar({
       </Group>
 
       <Group gap="xs" wrap="nowrap">
-        <SegmentedControl
-          size="xs"
-          value={mode}
-          onChange={(value) => onModeChange(value as 'edit' | 'preview')}
-          data={[
-            { value: 'edit', label: <ModeLabel icon={<IconPencil size={13} />} text="Edit" /> },
-            { value: 'preview', label: <ModeLabel icon={<IconEye size={13} />} text="Preview" /> },
-          ]}
-        />
+        <Tooltip label="Preview content" withArrow>
+          <ActionIcon variant="default" size="lg" aria-label="Preview content" onClick={onPreview}>
+            <IconEye size={17} />
+          </ActionIcon>
+        </Tooltip>
 
-        <Tooltip label="Page settings" withArrow>
-          <ActionIcon variant="default" size="lg" aria-label="Page settings" onClick={onOpenSettings}>
-            <IconSettings size={17} />
+        <Tooltip label="Page details" withArrow>
+          <ActionIcon variant="default" size="lg" aria-label="Page details" onClick={onOpenDetails}>
+            <IconAdjustments size={17} />
           </ActionIcon>
         </Tooltip>
 
@@ -85,15 +80,6 @@ export function PageEditorToolbar({
           </Button>
         )}
       </Group>
-    </Group>
-  );
-}
-
-function ModeLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <Group gap={6} wrap="nowrap">
-      {icon}
-      <span>{text}</span>
     </Group>
   );
 }

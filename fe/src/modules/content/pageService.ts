@@ -1,6 +1,8 @@
 import { api } from '@/lib/api';
 import type { Page, PageSummary, PageStatus } from '@/types';
 
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
+
 export interface PageListParams {
   status?: PageStatus;
   q?: string;
@@ -18,7 +20,7 @@ export type PagePayload = Partial<
     | 'tags'
     | 'heroImage'
     | 'thumbnailImage'
-    | 'body'
+    | 'content'
     | 'seo'
     | 'status'
   >
@@ -39,6 +41,11 @@ export const pageService = {
 
   get(workspaceId: string, id: string) {
     return api.get<Page>(`${base(workspaceId)}/${id}`);
+  },
+
+  /** URL of the standalone content document, for framing in the preview. */
+  previewUrl(workspaceId: string, id: string) {
+    return `${API_BASE}${base(workspaceId)}/${id}/preview`;
   },
 
   create(workspaceId: string, payload: PagePayload) {

@@ -37,7 +37,7 @@ const pageSchema = z.object({
   tags: z.array(z.string().min(1).max(60)).max(50).default([]),
   heroImage: imageSchema.default({ url: '', alt: '' }),
   thumbnailImage: imageSchema.default({ url: '', alt: '' }),
-  body: z.string().default(''),
+  content: z.string().default(''),
   sections: z.array(sectionSchema).default([]),
   seo: z
     .object({
@@ -70,7 +70,7 @@ interface PageDoc {
   tags?: string[];
   heroImage?: unknown;
   thumbnailImage?: unknown;
-  body?: string;
+  content?: string;
   sections: unknown;
   seo: unknown;
   status: string;
@@ -91,7 +91,7 @@ function toResponse(page: PageDoc) {
     tags: page.tags ?? [],
     heroImage: page.heroImage ?? { url: '', alt: '' },
     thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },
-    body: page.body ?? '',
+    content: page.content ?? '',
     sections: page.sections,
     seo: page.seo,
     status: page.status,
@@ -189,9 +189,9 @@ export const listPages: RequestHandler = async (req, res) => {
   }
 
   const pages = await PageModel.find(filter)
-    // The list shows neither the body nor the blocks, and a page full of rich
+    // The list shows neither the content nor the blocks, and a page full of rich
     // text is by far the heaviest field — excluded so the table stays cheap.
-    .select('-body -sections')
+    .select('-content -sections')
     .populate('createdBy', AUTHOR_FIELDS)
     .populate('updatedBy', AUTHOR_FIELDS)
     .sort({ updatedAt: -1 });
@@ -211,6 +211,64 @@ export const getPage: RequestHandler = async (req, res) => {
     return;
   }
   res.json(toResponse(page as unknown as PageDoc));
+};
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * A standalone HTML document holding just the page's content, for framing
+ * in the editor's preview at each device width. Title, description and hero are
+ * metadata for API consumers, not part of what the preview shows.
+ */
+export const getPagePreview: RequestHandler = async (req, res) => {
+  const { workspaceId, id } = req.params;
+  const page = await PageModel.findOne({ _id: id, workspaceId }).select('title content');
+
+  if (!page) {
+    res.status(404).send('<!doctype html><title>Not found</title><p>Page not found.</p>');
+    return;
+  }
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(page.title)}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a1b1e;
+    background: #fff;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  img { max-width: 100%; height: auto; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 1em 0 .5em; }
+  h2 { font-size: 1.5rem; margin: 2em 0 .5em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .5em; }
+  p { margin: 0 0 1em; }
+  a { color: #1c7ed6; }
+  pre { background: #f1f3f5; padding: 12px 14px; border-radius: 8px; overflow: auto; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+  blockquote { margin: 1em 0; padding-left: 16px; border-left: 3px solid #dee2e6; color: #555; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e9ecef; background: #1a1b1e; }
+    pre { background: #25262b; }
+    blockquote { border-color: #373a40; color: #adb5bd; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    ${page.content ?? ''}
+  </div>
+</body>
+</html>`;
+
+  res.type('html').send(html);
 };
 
 export const updatePage: RequestHandler = async (req, res) => {
@@ -280,7 +338,7 @@ export const workspaceStats: RequestHandler = async (req, res) => {
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
     PageModel.find({ workspaceId })
-      .select('-body -sections')
+      .select('-content -sections')
       .populate('updatedBy', AUTHOR_FIELDS)
       .sort({ updatedAt: -1 })
       .limit(5),

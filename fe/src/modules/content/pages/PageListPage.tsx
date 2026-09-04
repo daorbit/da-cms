@@ -5,12 +5,13 @@ import {
   Title, SegmentedControl, Center, Loader, Modal, Select,
 } from '@mantine/core';
 import {
-  IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconFileText,
+  IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import { CreatePageModal } from '@/modules/content/pages/CreatePageModal';
+import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
 import { ApiError } from '@/lib/api';
 import type { PageSummary, PageStatus } from '@/types';
 
@@ -100,6 +101,9 @@ export function PageListPage() {
   };
 
   const editHref = (page: PageSummary) => `/${workspace?.slug}/content/pages/${page.id}/edit`;
+  const detailsHref = (page: PageSummary) => `/${workspace?.slug}/content/pages/${page.id}/details`;
+
+  const [previewing, setPreviewing] = useState<PageSummary | null>(null);
 
   return (
     <Stack gap="lg">
@@ -243,6 +247,18 @@ export function PageListPage() {
                           Edit
                         </Menu.Item>
                         <Menu.Item
+                          leftSection={<IconEye size={14} />}
+                          onClick={() => setPreviewing(page)}
+                        >
+                          Preview
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconAdjustments size={14} />}
+                          onClick={() => navigate(detailsHref(page))}
+                        >
+                          Details
+                        </Menu.Item>
+                        <Menu.Item
                           color="red"
                           leftSection={<IconTrash size={14} />}
                           onClick={() => setPendingDelete(page)}
@@ -267,6 +283,15 @@ export function PageListPage() {
           navigate(`/${workspace?.slug}/content/pages/${page.id}/edit`);
         }}
       />
+
+      {previewing && workspace && (
+        <ContentPreviewModal
+          opened
+          onClose={() => setPreviewing(null)}
+          title={previewing.title}
+          src={pageService.previewUrl(workspace.id, previewing.id)}
+        />
+      )}
 
       <Modal
         opened={pendingDelete !== null}
