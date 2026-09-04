@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ActionIcon, Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Tooltip,
-  Title, SegmentedControl, Center, Loader, Modal, Select,
+  ActionIcon, Alert, Badge, Button, Card, Checkbox, Group, Menu, Pagination, Stack, Table, Text,
+  TextInput, Tooltip, Title, SegmentedControl, Center, Loader, Modal, Select,
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
+  IconChevronDown,
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { workspaceService } from '@/modules/workspace/workspaceService';
@@ -23,11 +25,17 @@ const STATUS_COLOR: Record<PageStatus, string> = {
   archived: 'orange',
 };
 
+const PER_PAGE = 20;
+
 export function PageListPage() {
   const workspace = useWorkspace();
   const navigate = useNavigate();
 
   const [pages, setPages] = useState<PageSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -36,6 +44,13 @@ export function PageListPage() {
   const [search, setSearch] = useState('');
   const [pendingDelete, setPendingDelete] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [previewing, setPreviewing] = useState<PageSummary | null>(null);
+
+  // Selection is by id so it survives a page's rows changing under it.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   // `?new=1` lets other screens — the dashboard, onboarding — open the create
   // dialog without owning a copy of it.
   const [params, setParams] = useSearchParams();
@@ -64,6 +79,11 @@ export function PageListPage() {
       .catch(() => {});
   }, [workspace]);
 
+  // Any filter change puts us back on page one.
+  useEffect(() => {
+    setPage(1);
+  }, [status, group, query]);
+
   const load = useCallback(async () => {
     if (!workspace) return;
     setLoading(true);
@@ -73,14 +93,21 @@ export function PageListPage() {
         ...(status !== 'all' ? { status } : {}),
         ...(group ? { group } : {}),
         ...(query ? { q: query } : {}),
+        page,
+        perPage: PER_PAGE,
       });
-      setPages(result);
+      setPages(result.items);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+      // A page can go out of range when the underlying set shrinks (a delete,
+      // a tighter filter) — pull back to the last real page.
+      if (result.page > result.totalPages) setPage(result.totalPages);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load pages');
     } finally {
       setLoading(false);
     }
-  }, [workspace, status, group, query]);
+  }, [workspace, status, group, query, page]);
 
   useEffect(() => {
     load();
@@ -100,10 +127,73 @@ export function PageListPage() {
     }
   };
 
-  const editHref = (page: PageSummary) => `/${workspace?.slug}/content/pages/${page.id}/edit`;
-  const detailsHref = (page: PageSummary) => `/${workspace?.slug}/content/pages/${page.id}/details`;
+  const editHref = (p: PageSummary) => `/${workspace?.slug}/content/pages/${p.id}/edit`;
+  const detailsHref = (p: PageSummary) => `/${workspace?.slug}/content/pages/${p.id}/details`;
 
-  const [previewing, setPreviewing] = useState<PageSummary | null>(null);
+  const pageIds = useMemo(() => pages.map((p) => p.id), [pages]);
+  const selectedOnPage = pageIds.filter((id) => selected.has(id));
+  const allOnPageSelected = pageIds.length > 0 && selectedOnPage.length === pageIds.length;
+  const someOnPageSelected = selectedOnPage.length > 0 && !allOnPageSelected;
+
+  const toggleAllOnPage = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const runBulkStatus = async (next: PageStatus) => {
+    if (!workspace || selected.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const { updated } = await pageService.bulkStatus(workspace.id, [...selected], next);
+      notifications.show({ message: `${updated} page${updated === 1 ? '' : 's'} → ${next}`, color: 'teal' });
+      clearSelection();
+      await load();
+    } catch (err) {
+      notifications.show({
+        message: err instanceof ApiError ? err.message : 'Bulk update failed',
+        color: 'red',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const runBulkDelete = async () => {
+    if (!workspace || selected.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const { deleted } = await pageService.bulkDelete(workspace.id, [...selected]);
+      notifications.show({ message: `${deleted} page${deleted === 1 ? '' : 's'} deleted`, color: 'teal' });
+      clearSelection();
+      setBulkDeleteOpen(false);
+      await load();
+    } catch (err) {
+      notifications.show({
+        message: err instanceof ApiError ? err.message : 'Bulk delete failed',
+        color: 'red',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const rangeStart = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
+  const rangeEnd = Math.min(page * PER_PAGE, total);
 
   return (
     <Stack gap="lg">
@@ -127,7 +217,7 @@ export function PageListPage() {
 
       <Group>
         <TextInput
-          placeholder="Search pages"
+          placeholder="Search by name or slug"
           leftSection={<IconSearch size={15} />}
           value={search}
           onChange={(e) => setSearch(e.currentTarget.value)}
@@ -155,6 +245,48 @@ export function PageListPage() {
         />
       </Group>
 
+      {selected.size > 0 && (
+        <Card withBorder radius="md" py="xs" px="md" bg="var(--mantine-color-blue-light)">
+          <Group justify="space-between">
+            <Text size="sm" fw={500}>
+              {selected.size} selected
+            </Text>
+            <Group gap="xs">
+              <Menu position="bottom-end" withArrow>
+                <Menu.Target>
+                  <Button
+                    size="xs"
+                    variant="default"
+                    rightSection={<IconChevronDown size={14} />}
+                    loading={bulkBusy}
+                  >
+                    Set status
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item onClick={() => runBulkStatus('draft')}>Draft</Menu.Item>
+                  <Menu.Item onClick={() => runBulkStatus('published')}>Published</Menu.Item>
+                  <Menu.Item onClick={() => runBulkStatus('archived')}>Archived</Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+              <Button
+                size="xs"
+                color="red"
+                variant="light"
+                leftSection={<IconTrash size={14} />}
+                loading={bulkBusy}
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                Delete
+              </Button>
+              <Button size="xs" variant="subtle" color="gray" onClick={clearSelection}>
+                Clear
+              </Button>
+            </Group>
+          </Group>
+        </Card>
+      )}
+
       <Card withBorder radius="md" p={0}>
         {loading ? (
           <Center py="xl">
@@ -166,11 +298,11 @@ export function PageListPage() {
               <IconFileText size={32} opacity={0.4} />
               <Text fw={600}>No pages yet</Text>
               <Text c="dimmed" size="sm">
-                {query || status !== 'all'
+                {query || status !== 'all' || group
                   ? 'Nothing matches that filter.'
                   : 'Create your first page to get started.'}
               </Text>
-              {!query && status === 'all' && (
+              {!query && status === 'all' && !group && (
                 <Button
                   size="xs"
                   variant="light"
@@ -187,49 +319,64 @@ export function PageListPage() {
           <Table highlightOnHover verticalSpacing="sm">
             <Table.Thead>
               <Table.Tr>
+                <Table.Th w={40}>
+                  <Checkbox
+                    aria-label="Select all on this page"
+                    checked={allOnPageSelected}
+                    indeterminate={someOnPageSelected}
+                    onChange={toggleAllOnPage}
+                  />
+                </Table.Th>
                 <Table.Th>Title</Table.Th>
                 <Table.Th>Slug</Table.Th>
                 <Table.Th>Group</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Updated</Table.Th>
                 <Table.Th>Updated by</Table.Th>
-                <Table.Th w={50} />
+                <Table.Th w={168} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {pages.map((page) => (
-                <Table.Tr key={page.id}>
+              {pages.map((p) => (
+                <Table.Tr key={p.id} bg={selected.has(p.id) ? 'var(--mantine-color-blue-light)' : undefined}>
                   <Table.Td>
-                    <Text component={Link} to={editHref(page)} fw={500} c="inherit" td="none">
-                      {page.title}
+                    <Checkbox
+                      aria-label={`Select ${p.title}`}
+                      checked={selected.has(p.id)}
+                      onChange={() => toggleOne(p.id)}
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <Text component={Link} to={editHref(p)} fw={500} c="inherit" td="none">
+                      {p.title}
                     </Text>
-                    {page.description && (
+                    {p.description && (
                       <Text c="dimmed" size="xs" lineClamp={1}>
-                        {page.description}
+                        {p.description}
                       </Text>
                     )}
                   </Table.Td>
                   <Table.Td>
                     <Text c="dimmed" size="sm" ff="monospace">
-                      /{page.slug}
+                      /{p.slug}
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{page.group}</Text>
+                    <Text size="sm">{p.group}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Badge size="sm" variant="light" color={STATUS_COLOR[page.status]}>
-                      {page.status}
+                    <Badge size="sm" variant="light" color={STATUS_COLOR[p.status]}>
+                      {p.status}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
                     <Text c="dimmed" size="sm">
-                      {page.updatedAt ? new Date(page.updatedAt).toLocaleDateString() : '—'}
+                      {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '—'}
                     </Text>
                   </Table.Td>
                   <Table.Td>
                     <Text c="dimmed" size="sm">
-                      {page.updatedBy?.name ?? '—'}
+                      {p.updatedBy?.name ?? '—'}
                     </Text>
                   </Table.Td>
                   <Table.Td>
@@ -239,7 +386,7 @@ export function PageListPage() {
                           variant="subtle"
                           color="gray"
                           aria-label="Edit"
-                          onClick={() => navigate(editHref(page))}
+                          onClick={() => navigate(editHref(p))}
                         >
                           <IconEdit size={16} />
                         </ActionIcon>
@@ -249,7 +396,7 @@ export function PageListPage() {
                           variant="subtle"
                           color="gray"
                           aria-label="Preview"
-                          onClick={() => setPreviewing(page)}
+                          onClick={() => setPreviewing(p)}
                         >
                           <IconEye size={16} />
                         </ActionIcon>
@@ -259,7 +406,7 @@ export function PageListPage() {
                           variant="subtle"
                           color="gray"
                           aria-label="Details"
-                          onClick={() => navigate(detailsHref(page))}
+                          onClick={() => navigate(detailsHref(p))}
                         >
                           <IconAdjustments size={16} />
                         </ActionIcon>
@@ -269,7 +416,7 @@ export function PageListPage() {
                           variant="subtle"
                           color="red"
                           aria-label="Delete"
-                          onClick={() => setPendingDelete(page)}
+                          onClick={() => setPendingDelete(p)}
                         >
                           <IconTrash size={16} />
                         </ActionIcon>
@@ -283,12 +430,23 @@ export function PageListPage() {
         )}
       </Card>
 
+      {!loading && pages.length > 0 && (
+        <Group justify="space-between">
+          <Text c="dimmed" size="sm">
+            {rangeStart}–{rangeEnd} of {total}
+          </Text>
+          {totalPages > 1 && (
+            <Pagination value={page} onChange={setPage} total={totalPages} size="sm" withEdges />
+          )}
+        </Group>
+      )}
+
       <CreatePageModal
         opened={creating}
         onClose={closeCreate}
-        onCreated={(page) => {
+        onCreated={(created) => {
           closeCreate();
-          navigate(`/${workspace?.slug}/content/pages/${page.id}/edit`);
+          navigate(`/${workspace?.slug}/content/pages/${created.id}/edit`);
         }}
       />
 
@@ -316,6 +474,28 @@ export function PageListPage() {
               Cancel
             </Button>
             <Button color="red" loading={deleting} onClick={confirmDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        title="Delete pages"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Delete <strong>{selected.size}</strong> page{selected.size === 1 ? '' : 's'}? This cannot be
+            undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button color="red" loading={bulkBusy} onClick={runBulkDelete}>
               Delete
             </Button>
           </Group>

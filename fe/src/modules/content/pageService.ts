@@ -8,6 +8,16 @@ export interface PageListParams {
   q?: string;
   group?: string;
   tag?: string;
+  page?: number;
+  perPage?: number;
+}
+
+export interface PageListResult {
+  items: PageSummary[];
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
 }
 
 export type PagePayload = Partial<
@@ -35,8 +45,10 @@ export const pageService = {
     if (params.q?.trim()) query.set('q', params.q.trim());
     if (params.group) query.set('group', params.group);
     if (params.tag) query.set('tag', params.tag);
+    if (params.page) query.set('page', String(params.page));
+    if (params.perPage) query.set('perPage', String(params.perPage));
     const suffix = query.size ? `?${query}` : '';
-    return api.get<PageSummary[]>(`${base(workspaceId)}${suffix}`);
+    return api.get<PageListResult>(`${base(workspaceId)}${suffix}`);
   },
 
   get(workspaceId: string, id: string) {
@@ -58,5 +70,19 @@ export const pageService = {
 
   destroy(workspaceId: string, id: string) {
     return api.delete<void>(`${base(workspaceId)}/${id}`);
+  },
+
+  /** Delete many pages in one request. */
+  bulkDelete(workspaceId: string, ids: string[]) {
+    return api.post<{ deleted: number }>(`${base(workspaceId)}/bulk`, { action: 'delete', ids });
+  },
+
+  /** Move many pages to a status in one request. */
+  bulkStatus(workspaceId: string, ids: string[], status: PageStatus) {
+    return api.post<{ updated: number }>(`${base(workspaceId)}/bulk`, {
+      action: 'status',
+      ids,
+      status,
+    });
   },
 };

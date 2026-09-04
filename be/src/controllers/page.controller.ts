@@ -188,15 +188,31 @@ export const listPages: RequestHandler = async (req, res) => {
     ];
   }
 
-  const pages = await PageModel.find(filter)
-    // The list shows neither the content nor the blocks, and a page full of rich
-    // text is by far the heaviest field — excluded so the table stays cheap.
-    .select('-content -sections')
-    .populate('createdBy', AUTHOR_FIELDS)
-    .populate('updatedBy', AUTHOR_FIELDS)
-    .sort({ updatedAt: -1 });
+  // Page is 1-based; perPage is clamped so a caller cannot ask for the lot.
+  const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
+  const perPageRaw = Number.parseInt(String(req.query.perPage ?? '20'), 10) || 20;
+  const perPage = Math.min(100, Math.max(1, perPageRaw));
 
-  res.json(pages.map((page) => toResponse(page as unknown as PageDoc)));
+  const [items, total] = await Promise.all([
+    PageModel.find(filter)
+      // The list shows neither the content nor the blocks, and a page full of
+      // rich text is by far the heaviest field — excluded so the table stays cheap.
+      .select('-content -sections')
+      .populate('createdBy', AUTHOR_FIELDS)
+      .populate('updatedBy', AUTHOR_FIELDS)
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * perPage)
+      .limit(perPage),
+    PageModel.countDocuments(filter),
+  ]);
+
+  res.json({
+    items: items.map((doc) => toResponse(doc as unknown as PageDoc)),
+    page,
+    perPage,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / perPage)),
+  });
 };
 
 export const getPage: RequestHandler = async (req, res) => {
@@ -324,6 +340,49 @@ export const deletePage: RequestHandler = async (req, res) => {
     return;
   }
   res.status(204).end();
+};
+
+const bulkSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('delete'), ids: z.array(z.string()).min(1).max(200) }),
+  z.object({
+    action: z.literal('status'),
+    ids: z.array(z.string()).min(1).max(200),
+    status: z.enum(['draft', 'published', 'archived']),
+  }),
+]);
+
+/** Delete or re-status many pages of this workspace in one request. */
+export const bulkPages: RequestHandler = async (req, res) => {
+  const parsed = bulkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const body: ApiError = { error: 'invalid_input', message: parsed.error.issues[0].message };
+    res.status(400).json(body);
+    return;
+  }
+
+  const { workspaceId } = req.params;
+  // Scoped to this workspace, so ids from another workspace are silently no-ops.
+  const filter = { _id: { $in: parsed.data.ids }, workspaceId };
+
+  if (parsed.data.action === 'delete') {
+    const { deletedCount } = await PageModel.deleteMany(filter);
+    res.json({ deleted: deletedCount });
+    return;
+  }
+
+  const update: Record<string, unknown> = {
+    status: parsed.data.status,
+    updatedBy: req.userId,
+  };
+  // Stamp the first publish; leave an already-published page's date alone.
+  if (parsed.data.status === 'published') {
+    await PageModel.updateMany(
+      { ...filter, publishedAt: null },
+      { $set: { publishedAt: new Date() } }
+    );
+  }
+  const { modifiedCount } = await PageModel.updateMany(filter, { $set: update });
+  res.json({ updated: modifiedCount });
 };
 
 /** Counts backing the dashboard, in one round trip rather than three. */
