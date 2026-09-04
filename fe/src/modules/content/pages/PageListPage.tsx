@@ -6,13 +6,14 @@ import {
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
-  IconChevronDown,
+  IconChevronDown, IconCode,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { pageService } from '@/modules/content/pageService';
+import { pageService, absoluteApiBase } from '@/modules/content/pageService';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import { CreatePageModal } from '@/modules/content/pages/CreatePageModal';
+import { PageIntegrationModal } from '@/modules/content/pages/PageIntegrationModal';
 import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
 import { ApiError } from '@/lib/api';
 import type { PageSummary, PageStatus } from '@/types';
@@ -45,6 +46,7 @@ export function PageListPage() {
   const [pendingDelete, setPendingDelete] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [previewing, setPreviewing] = useState<PageSummary | null>(null);
+  const [integrationOpen, setIntegrationOpen] = useState(false);
 
   // Selection is by id so it survives a page's rows changing under it.
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -204,9 +206,21 @@ export function PageListPage() {
             Every page in this workspace.
           </Text>
         </div>
-        <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
-          New page
-        </Button>
+        <Group gap="xs">
+          <Tooltip label="Use in your app" withArrow>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              aria-label="Integration code"
+              onClick={() => setIntegrationOpen(true)}
+            >
+              <IconCode size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
+            New page
+          </Button>
+        </Group>
       </Group>
 
       {error && (
@@ -455,7 +469,16 @@ export function PageListPage() {
           opened
           onClose={() => setPreviewing(null)}
           title={previewing.title}
-          src={pageService.previewUrl(workspace.id, previewing.id)}
+          src={pageService.previewUrl(workspace.id, previewing.slug)}
+        />
+      )}
+
+      {workspace && (
+        <PageIntegrationModal
+          opened={integrationOpen}
+          onClose={() => setIntegrationOpen(false)}
+          apiBase={absoluteApiBase()}
+          workspaceId={workspace.id}
         />
       )}
 

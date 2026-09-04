@@ -232,26 +232,62 @@ export const getPage: RequestHandler = async (req, res) => {
 const escapeHtml = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/**
- * A standalone HTML document holding just the page's content, for framing
- * in the editor's preview at each device width. Title, description and hero are
- * metadata for API consumers, not part of what the preview shows.
- */
-export const getPagePreview: RequestHandler = async (req, res) => {
-  const { workspaceId, id } = req.params;
-  const page = await PageModel.findOne({ _id: id, workspaceId }).select('title content');
+/** The whitelist a `?fields=` value can pull from — everything a public
+ *  consumer is allowed to read. Author/internal fields are not on it. */
+const PUBLIC_FIELDS = [
+  'id',
+  'title',
+  'slug',
+  'description',
+  'group',
+  'tags',
+  'heroImage',
+  'thumbnailImage',
+  'content',
+  'seo',
+  'status',
+  'publishedAt',
+  'updatedAt',
+] as const;
 
-  if (!page) {
-    res.status(404).send('<!doctype html><title>Not found</title><p>Page not found.</p>');
-    return;
-  }
+type PublicField = (typeof PUBLIC_FIELDS)[number];
 
-  const html = `<!doctype html>
+function publicResponse(page: PageDoc): Record<string, unknown> {
+  return {
+    id: String(page._id),
+    title: page.title,
+    slug: page.slug,
+    description: page.description ?? '',
+    group: page.group ?? '',
+    tags: page.tags ?? [],
+    heroImage: page.heroImage ?? { url: '', alt: '' },
+    thumbnailImage: page.thumbnailImage ?? { url: '', alt: '' },
+    content: page.content ?? '',
+    seo: page.seo,
+    status: page.status,
+    publishedAt: page.publishedAt ?? null,
+    updatedAt: page.updatedAt,
+  };
+}
+
+/** `?fields=title,content` → ['title','content'], dropping anything not public. */
+function parseFields(raw: unknown): PublicField[] | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const set = new Set(PUBLIC_FIELDS as readonly string[]);
+  const picked = raw
+    .split(',')
+    .map((f) => f.trim())
+    .filter((f) => set.has(f)) as PublicField[];
+  return picked.length ? picked : null;
+}
+
+function contentDocument(title: string, content: string) {
+  return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(page.title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   body {
@@ -279,12 +315,49 @@ export const getPagePreview: RequestHandler = async (req, res) => {
 </head>
 <body>
   <div class="wrap">
-    ${page.content ?? ''}
+    ${content}
   </div>
 </body>
 </html>`;
+}
 
-  res.type('html').send(html);
+/**
+ * Public read of one published page by slug — no auth.
+ *
+ * This is the content API an external site calls to render a page it owns in
+ * this CMS. `?fields=title,content,slug` narrows the JSON to just those keys;
+ * `?format=html` returns the content as a standalone document instead (what
+ * the editor's preview frames).
+ */
+export const getPublicPageBySlug: RequestHandler = async (req, res) => {
+  const { workspaceId, slug } = req.params;
+  const page = await PageModel.findOne({ workspaceId, slug, status: 'published' }).select(
+    '-sections -createdBy -updatedBy'
+  );
+
+  if (!page) {
+    if (req.query.format === 'html') {
+      res.status(404).send('<!doctype html><title>Not found</title><p>Page not found.</p>');
+      return;
+    }
+    const body: ApiError = { error: 'not_found', message: 'Page not found' };
+    res.status(404).json(body);
+    return;
+  }
+
+  const full = publicResponse(page as unknown as PageDoc);
+
+  if (req.query.format === 'html') {
+    res.type('html').send(contentDocument(String(full.title), String(full.content ?? '')));
+    return;
+  }
+
+  const fields = parseFields(req.query.fields);
+  const payload = fields
+    ? Object.fromEntries(fields.map((f) => [f, full[f]]))
+    : full;
+
+  res.json(payload);
 };
 
 export const updatePage: RequestHandler = async (req, res) => {

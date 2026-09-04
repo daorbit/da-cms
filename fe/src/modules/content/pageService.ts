@@ -3,6 +3,10 @@ import type { Page, PageSummary, PageStatus } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 
+/** API base as an absolute URL — for snippets a user copies into another app. */
+export const absoluteApiBase = () =>
+  /^https?:\/\//.test(API_BASE) ? API_BASE : `${window.location.origin}${API_BASE}`;
+
 export interface PageListParams {
   status?: PageStatus;
   q?: string;
@@ -55,9 +59,19 @@ export const pageService = {
     return api.get<Page>(`${base(workspaceId)}/${id}`);
   },
 
+  /** Public content API for one published page. `format: 'html'` returns a
+   *  standalone document (what the preview frames); otherwise JSON. */
+  publicUrl(workspaceId: string, slug: string, opts: { format?: 'html'; fields?: string[] } = {}) {
+    const query = new URLSearchParams();
+    if (opts.format) query.set('format', opts.format);
+    if (opts.fields?.length) query.set('fields', opts.fields.join(','));
+    const suffix = query.size ? `?${query}` : '';
+    return `${API_BASE}/workspaces/${workspaceId}/pagebyslug/${encodeURIComponent(slug)}${suffix}`;
+  },
+
   /** URL of the standalone content document, for framing in the preview. */
-  previewUrl(workspaceId: string, id: string) {
-    return `${API_BASE}${base(workspaceId)}/${id}/preview`;
+  previewUrl(workspaceId: string, slug: string) {
+    return this.publicUrl(workspaceId, slug, { format: 'html' });
   },
 
   create(workspaceId: string, payload: PagePayload) {

@@ -192,7 +192,7 @@ export function PageDetailsPage() {
           opened={previewOpen}
           onClose={() => setPreviewOpen(false)}
           title={editor.title}
-          src={pageService.previewUrl(editor.workspace.id, id)}
+          src={pageService.previewUrl(editor.workspace.id, editor.slug)}
         />
       )}
     </Stack>

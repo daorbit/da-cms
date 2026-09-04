@@ -3,7 +3,6 @@ import {
   createPage,
   listPages,
   getPage,
-  getPagePreview,
   updatePage,
   deletePage,
   bulkPages,
@@ -20,6 +19,5 @@ pageRoutes.get('/', asyncHandler(listPages));
 // Before '/:id' so "bulk" is not parsed as a page id.
 pageRoutes.post('/bulk', asyncHandler(bulkPages));
 pageRoutes.get('/:id', asyncHandler(getPage));
-pageRoutes.get('/:id/preview', asyncHandler(getPagePreview));
 pageRoutes.patch('/:id', asyncHandler(updatePage));
 pageRoutes.delete('/:id', asyncHandler(deletePage));
