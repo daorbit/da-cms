@@ -6,6 +6,50 @@ body {
   margin: 0;
 }
 
+/* ------------------------------------------------------------- scrollbars */
+
+/* Thin, self-colouring scrollbars everywhere, so the app is not littered with
+   the OS's chunky default track and its arrow buttons. Firefox takes the two
+   `scrollbar-*` properties; WebKit/Blink take the pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mantine-color-gray-4) transparent;
+}
+[data-mantine-color-scheme='dark'] * {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: var(--mantine-color-gray-4);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--mantine-color-gray-5);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* No arrow buttons at the ends of the track. */
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+[data-mantine-color-scheme='dark'] *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+[data-mantine-color-scheme='dark'] *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
 /* Mantine's heading font is the serif, which suits page titles but reads as
    decorative on the small headings that are really labels — a card's "SEO" or
    "Details". Those go back to the UI face. */
