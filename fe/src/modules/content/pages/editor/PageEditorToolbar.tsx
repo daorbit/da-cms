@@ -1,20 +1,18 @@
-import { ActionIcon, Badge, Button, Group, Text, Tooltip } from '@mantine/core';
-import {
-  IconArrowLeft, IconDeviceFloppy, IconAdjustments, IconEye,
-} from '@tabler/icons-react';
+import { ActionIcon, Button, Divider, Group, Text, Tooltip } from '@mantine/core';
+import { IconArrowLeft, IconAdjustments, IconEye } from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
 
-const STATUS_COLOR: Record<PageStatus, string> = {
-  draft: 'gray',
-  published: 'teal',
-  archived: 'orange',
+const STATUS_DOT: Record<PageStatus, string> = {
+  draft: 'var(--mantine-color-gray-5)',
+  published: 'var(--mantine-color-teal-6)',
+  archived: 'var(--mantine-color-orange-6)',
 };
 
 interface Props {
   title: string;
-  slug: string;
   status: PageStatus;
-  saving: boolean;
+  /** Which action is in flight, so only that button spins. */
+  savingAction: 'save' | 'publish' | null;
   onBack: () => void;
   onOpenDetails: () => void;
   onPreview: () => void;
@@ -23,62 +21,70 @@ interface Props {
 }
 
 export function PageEditorToolbar({
-  title, slug, status, saving, onBack, onOpenDetails, onPreview, onSave, onPublishToggle,
+  title, status, savingAction, onBack, onOpenDetails, onPreview, onSave, onPublishToggle,
 }: Props) {
+  const busy = savingAction !== null;
+  const published = status === 'published';
+
   return (
-    // One bar, no breadcrumbs: the back button already says where this goes,
-    // and a trail above it repeated the same two words.
+    // One bar, no breadcrumbs: the back button already says where this goes.
     <Group justify="space-between" align="center" wrap="nowrap">
       <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
         <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Back to pages" onClick={onBack}>
           <IconArrowLeft size={18} />
         </ActionIcon>
 
-        <div style={{ minWidth: 0 }}>
-          <Text fw={600} truncate>
-            {title || 'Untitled'}
-          </Text>
-          <Text size="xs" c="dimmed" ff="monospace" truncate>
-            /{slug}
-          </Text>
-        </div>
+        <Text fw={600} truncate>
+          {title || 'Untitled'}
+        </Text>
 
-        <Badge variant="light" color={STATUS_COLOR[status]}>
-          {status}
-        </Badge>
+        <Tooltip label={status} withArrow>
+          <span
+            aria-label={status}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: STATUS_DOT[status],
+              flexShrink: 0,
+            }}
+          />
+        </Tooltip>
       </Group>
 
       <Group gap="xs" wrap="nowrap">
         <Tooltip label="Preview content" withArrow>
-          <ActionIcon variant="default" size="lg" aria-label="Preview content" onClick={onPreview}>
-            <IconEye size={17} />
+          <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Preview content" onClick={onPreview}>
+            <IconEye size={18} />
           </ActionIcon>
         </Tooltip>
 
         <Tooltip label="Page details" withArrow>
-          <ActionIcon variant="default" size="lg" aria-label="Page details" onClick={onOpenDetails}>
-            <IconAdjustments size={17} />
+          <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Page details" onClick={onOpenDetails}>
+            <IconAdjustments size={18} />
           </ActionIcon>
         </Tooltip>
 
+        <Divider orientation="vertical" my={6} />
+
         <Button
           variant="default"
-          loading={saving}
-          leftSection={<IconDeviceFloppy size={16} />}
+          loading={savingAction === 'save'}
+          disabled={busy && savingAction !== 'save'}
           onClick={onSave}
         >
           Save
         </Button>
 
-        {status === 'published' ? (
-          <Button variant="light" color="orange" loading={saving} onClick={onPublishToggle}>
-            Unpublish
-          </Button>
-        ) : (
-          <Button loading={saving} onClick={onPublishToggle}>
-            Publish
-          </Button>
-        )}
+        <Button
+          variant={published ? 'subtle' : 'filled'}
+          color={published ? 'gray' : undefined}
+          loading={savingAction === 'publish'}
+          disabled={busy && savingAction !== 'publish'}
+          onClick={onPublishToggle}
+        >
+          {published ? 'Unpublish' : 'Publish'}
+        </Button>
       </Group>
     </Group>
   );

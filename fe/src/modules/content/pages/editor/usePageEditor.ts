@@ -33,7 +33,8 @@ export function usePageEditor(id: string | undefined) {
   const [status, setStatus] = useState<PageStatus>('draft');
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // Which button is in flight, so each shows its own spinner instead of both.
+  const [savingAction, setSavingAction] = useState<'save' | 'publish' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,14 +68,14 @@ export function usePageEditor(id: string | undefined) {
     };
   }, [workspace, id]);
 
-  const save = async (nextStatus: PageStatus) => {
+  const save = async (nextStatus: PageStatus, action: 'save' | 'publish' = 'save') => {
     if (!workspace || !id) return;
     if (!title.trim()) {
       setError('A title is required');
       return;
     }
 
-    setSaving(true);
+    setSavingAction(action);
     setError(null);
     try {
       const saved = await pageService.update(workspace.id, id, {
@@ -93,7 +94,7 @@ export function usePageEditor(id: string | undefined) {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save the page');
     } finally {
-      setSaving(false);
+      setSavingAction(null);
     }
   };
 
@@ -110,7 +111,10 @@ export function usePageEditor(id: string | undefined) {
     legacySections,
     seo, setSeo,
     status,
-    loading, saving, error,
+    loading,
+    savingAction,
+    saving: savingAction !== null,
+    error,
     save,
   };
 }

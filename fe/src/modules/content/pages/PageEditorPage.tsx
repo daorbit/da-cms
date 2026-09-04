@@ -32,14 +32,15 @@ export function PageEditorPage() {
     <Stack gap="lg">
       <PageEditorToolbar
         title={editor.title}
-        slug={editor.slug}
         status={editor.status}
-        saving={editor.saving}
+        savingAction={editor.savingAction}
         onBack={() => navigate(`/${editor.workspace?.slug}/content/pages`)}
         onOpenDetails={() => navigate(`/${editor.workspace?.slug}/content/pages/${id}/details`)}
         onPreview={() => setPreviewOpen(true)}
-        onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft')}
-        onPublishToggle={() => editor.save(editor.status === 'published' ? 'draft' : 'published')}
+        onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft', 'save')}
+        onPublishToggle={() =>
+          editor.save(editor.status === 'published' ? 'draft' : 'published', 'publish')
+        }
       />
 
       {editor.error && (
