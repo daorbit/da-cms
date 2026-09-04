@@ -2,18 +2,17 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Center, Loader, Stack, Tabs, Text, Title } from '@mantine/core';
 import {
-  IconAdjustments, IconUsers, IconCategory, IconTags, IconLink,
+  IconAdjustments, IconCategory, IconTags, IconLink,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import type { WorkspaceSettings } from '@/types';
 import { GeneralTab } from './settings/GeneralTab';
-import { MembersTab } from './settings/MembersTab';
 import { TermsTab } from './settings/TermsTab';
 import { SiteLinksTab } from './settings/SiteLinksTab';
 
-const TABS = ['general', 'members', 'groups', 'tags', 'links'] as const;
+const TABS = ['general', 'groups', 'tags', 'links'] as const;
 type TabValue = (typeof TABS)[number];
 
 /**
@@ -58,7 +57,7 @@ export function SettingsPage() {
       <div>
         <Title order={2}>Settings</Title>
         <Text c="dimmed" size="sm" mt={4}>
-          Manage this workspace, its team, and how pages are organised.
+          Manage this workspace and how pages are organised.
         </Text>
       </div>
 
@@ -73,9 +72,7 @@ export function SettingsPage() {
           <Tabs.Tab value="general" leftSection={<IconAdjustments size={15} />}>
             General
           </Tabs.Tab>
-          <Tabs.Tab value="members" leftSection={<IconUsers size={15} />}>
-            Members
-          </Tabs.Tab>
+       
           <Tabs.Tab value="groups" leftSection={<IconCategory size={15} />}>
             Groups
           </Tabs.Tab>
@@ -98,9 +95,7 @@ export function SettingsPage() {
                 <GeneralTab workspace={workspace} canManage={canManage} />
               </Tabs.Panel>
 
-              <Tabs.Panel value="members">
-                <MembersTab workspace={workspace} canManage={canManage} />
-              </Tabs.Panel>
+     
 
               <Tabs.Panel value="groups">
                 <TermsTab

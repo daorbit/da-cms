@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ActionIcon, Alert, Badge, Button, Card, Group, Menu, Stack, Table, Text, TextInput,
+  ActionIcon, Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Tooltip,
   Title, SegmentedControl, Center, Loader, Modal, Select,
 } from '@mantine/core';
 import {
-  IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
+  IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
@@ -233,40 +233,48 @@ export function PageListPage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Menu shadow="md" width={160} position="bottom-end">
-                      <Menu.Target>
-                        <ActionIcon variant="subtle" color="gray">
-                          <IconDots size={16} />
-                        </ActionIcon>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        <Menu.Item
-                          leftSection={<IconEdit size={14} />}
+                    <Group gap={4} justify="flex-end" wrap="nowrap">
+                      <Tooltip label="Edit" withArrow>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Edit"
                           onClick={() => navigate(editHref(page))}
                         >
-                          Edit
-                        </Menu.Item>
-                        <Menu.Item
-                          leftSection={<IconEye size={14} />}
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Preview" withArrow>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Preview"
                           onClick={() => setPreviewing(page)}
                         >
-                          Preview
-                        </Menu.Item>
-                        <Menu.Item
-                          leftSection={<IconAdjustments size={14} />}
+                          <IconEye size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Details" withArrow>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Details"
                           onClick={() => navigate(detailsHref(page))}
                         >
-                          Details
-                        </Menu.Item>
-                        <Menu.Item
+                          <IconAdjustments size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Delete" withArrow>
+                        <ActionIcon
+                          variant="subtle"
                           color="red"
-                          leftSection={<IconTrash size={14} />}
+                          aria-label="Delete"
                           onClick={() => setPendingDelete(page)}
                         >
-                          Delete
-                        </Menu.Item>
-                      </Menu.Dropdown>
-                    </Menu>
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))}
