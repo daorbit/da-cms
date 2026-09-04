@@ -2,6 +2,7 @@ import { AppShell, Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledBu
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
+  IconUsers,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -11,6 +12,7 @@ import { ThemeToggle } from './ThemeToggle';
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
   { label: 'Pages', to: 'content/pages', icon: IconFileText },
+  { label: 'Teams', to: 'teams', icon: IconUsers },
   { label: 'Settings', to: 'settings', icon: IconSettings },
 ];
 

@@ -11,6 +11,7 @@ import { DashboardPage } from '@/modules/dashboard/DashboardPage';
 import { PageListPage } from '@/modules/content/pages/PageListPage';
 import { PageEditorPage } from '@/modules/content/pages/PageEditorPage';
 import { SettingsPage } from '@/modules/workspace/SettingsPage';
+import { TeamsPage } from '@/modules/workspace/TeamsPage';
 import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
 import { WorkspacesPage } from '@/modules/workspace/WorkspacesPage';
 
@@ -52,6 +53,7 @@ export function App() {
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
                 </Route>
 
+                <Route path="teams" element={<TeamsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>

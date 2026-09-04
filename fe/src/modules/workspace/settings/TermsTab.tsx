@@ -22,21 +22,19 @@ const COPY = {
     hint: 'Every page belongs to exactly one group — Blog, Case study, and so on.',
     key: 'groups' as const,
     min: 1,
-    hosts: true,
   },
   tag: {
     title: 'Page tags',
     hint: 'Optional labels for filtering pages within a group.',
     key: 'tags' as const,
     min: 0,
-    hosts: false,
   },
 };
 
 const DEFAULT_COLOR = '#868e96';
 
 function blankTerm(): Term {
-  return { name: '', color: DEFAULT_COLOR, previewHost: '', productionHost: '' };
+  return { name: '', color: DEFAULT_COLOR };
 }
 
 /** Editable list of group or tag records. Each is replaced wholesale on save. */
@@ -52,13 +50,7 @@ export function TermsTab({ kind, workspaceId, terms, canManage, onSaved }: Props
 
   const dirty =
     rows.length !== terms.length ||
-    rows.some(
-      (r, i) =>
-        r.name !== terms[i]?.name ||
-        r.color !== terms[i]?.color ||
-        r.previewHost !== terms[i]?.previewHost ||
-        r.productionHost !== terms[i]?.productionHost
-    );
+    rows.some((r, i) => r.name !== terms[i]?.name || r.color !== terms[i]?.color);
 
   const save = async () => {
     const cleaned = rows
@@ -85,7 +77,7 @@ export function TermsTab({ kind, workspaceId, terms, canManage, onSaved }: Props
   };
 
   return (
-    <Card withBorder radius="md" maw={copy.hosts ? 780 : 520}>
+    <Card withBorder radius="md" maw={520}>
       <Stack>
         <div>
           <Text fw={600}>{copy.title}</Text>
@@ -105,15 +97,13 @@ export function TermsTab({ kind, workspaceId, terms, canManage, onSaved }: Props
             <Table.Tr>
               <Table.Th>Name</Table.Th>
               <Table.Th w={150}>Colour</Table.Th>
-              {copy.hosts && <Table.Th>Preview host</Table.Th>}
-              {copy.hosts && <Table.Th>Production host</Table.Th>}
               {canManage && <Table.Th w={40} />}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {rows.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={5}>
+                <Table.Td colSpan={3}>
                   <Text c="dimmed" size="sm">
                     None yet.
                   </Text>
@@ -139,26 +129,6 @@ export function TermsTab({ kind, workspaceId, terms, canManage, onSaved }: Props
                     size="sm"
                   />
                 </Table.Td>
-                {copy.hosts && (
-                  <Table.Td>
-                    <TextInput
-                      value={row.previewHost}
-                      onChange={(e) => update(i, { previewHost: e.currentTarget.value })}
-                      disabled={!canManage}
-                      placeholder="preview.example.com"
-                    />
-                  </Table.Td>
-                )}
-                {copy.hosts && (
-                  <Table.Td>
-                    <TextInput
-                      value={row.productionHost}
-                      onChange={(e) => update(i, { productionHost: e.currentTarget.value })}
-                      disabled={!canManage}
-                      placeholder="example.com"
-                    />
-                  </Table.Td>
-                )}
                 {canManage && (
                   <Table.Td>
                     <ActionIcon variant="subtle" color="red" onClick={() => remove(i)} aria-label="Remove">

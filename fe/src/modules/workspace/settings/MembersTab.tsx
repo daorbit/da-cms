@@ -115,7 +115,7 @@ export function MembersTab({ workspace, canManage }: { workspace: Workspace; can
   };
 
   return (
-    <Stack gap="lg" maw={720}>
+    <Stack gap="lg">
       {error && (
         <Alert color="red" variant="light">
           {error}

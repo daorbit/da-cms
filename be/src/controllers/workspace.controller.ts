@@ -100,8 +100,6 @@ export const updateWorkspace: RequestHandler = async (req, res) => {
 const termSchema = z.object({
   name: z.string().min(1).max(40),
   color: z.string().max(20).optional(),
-  previewHost: z.string().max(255).optional(),
-  productionHost: z.string().max(255).optional(),
 });
 const siteLinkSchema = z.object({
   label: z.string().min(1).max(60),
@@ -181,8 +179,6 @@ export const updateSettings: RequestHandler = async (req, res) => {
 interface Term {
   name: string;
   color?: string;
-  previewHost?: string;
-  productionHost?: string;
 }
 
 /* Loose shapes — the callers pass Mongoose documents, whose subdocument types
@@ -194,8 +190,6 @@ function settingsResponse(w: any) {
   const term = (t: Term) => ({
     name: t.name,
     color: t.color ?? '',
-    previewHost: t.previewHost ?? '',
-    productionHost: t.productionHost ?? '',
   });
   return {
     configuration: {

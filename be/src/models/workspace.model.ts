@@ -1,13 +1,11 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 
 /** A page group or tag stored in workspace settings. Pages reference it by
- *  `name`. Groups also carry the hosts the published site uses. */
+ *  `name`. */
 const termSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     color: { type: String, trim: true, default: '' },
-    previewHost: { type: String, trim: true, default: '' },
-    productionHost: { type: String, trim: true, default: '' },
   },
   { _id: false }
 );

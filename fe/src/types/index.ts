@@ -38,8 +38,6 @@ export interface WorkspaceMember {
 export interface Term {
   name: string;
   color: string;
-  previewHost: string;
-  productionHost: string;
 }
 
 export interface SiteLink {
