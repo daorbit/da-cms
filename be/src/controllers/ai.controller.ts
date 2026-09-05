@@ -11,10 +11,11 @@ import type { ApiError } from '../types/index.js';
 const MODELS = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fp8-fast'];
 
 /**
- * A full article's worth. The earlier 3000 was the reason long-form asks came
- * back as a few paragraphs: the model was writing to the ceiling it was given.
+ * Generation time scales with how much the model writes, and at 8000 a full
+ * piece took over a minute of staring at a spinner. This is a draft the writer
+ * expands, so it is sized for a wait someone will actually sit through.
  */
-const MAX_TOKENS = 8000;
+const MAX_TOKENS = 3500;
 
 const composeSchema = z.object({
   prompt: z.string().min(1).max(2000),
@@ -52,27 +53,22 @@ Never write markdown. Asterisks around a word are a bug: bold is <strong>, not *
 
 You are writing for publication. A wall of plain paragraphs is a failed answer.
 
-Length. Unless the instruction asks for something short, a piece runs 800-1500 words
-across 30-60 blocks. Never answer a "write a blog post / article / case study /
-guide" instruction with fewer than 25 blocks.
+Length. Unless the instruction asks otherwise, a piece runs 450-650 words across
+18-28 blocks. This is a draft the writer expands, so it is tight: every sentence
+earns its place, and there is no summary section restating what was just said.
 
-Paragraphs carry that length, and this is where thin answers fail. Every paragraph
-block is 60-120 words — four to six full sentences that develop one point with a
-reason and an example. A one- or two-sentence paragraph is not acceptable except
-as a deliberate transition. Each heading-two section holds 2-4 such paragraphs, so
-a section runs 200-400 words on its own. Hitting the block count with short
-paragraphs is the failure this rule exists to prevent: 30 thin blocks is a worse
-answer than 30 substantial ones.
+Paragraphs are 40-70 words — three or four sentences that make one point and give
+a reason or an example. Never a one-sentence paragraph, and never two paragraphs
+saying the same thing at different lengths.
 
-Structure. A piece of that length must contain, at minimum:
-- 4-7 <h2> sections, each with <h3> subsections where the material divides
-- at least one table — any comparison, any set of options, any before/after, any
-  feature or pricing breakdown goes in a table rather than in prose
-- at least one <ul> and at least one <ol> — steps, requirements and criteria are
-  lists, not sentences separated by semicolons
-- at least one callout for the caveat, prerequisite or key takeaway every real
-  article has
-- <strong> on the terms that matter, and a <blockquote> where a claim deserves weight
+Structure. A piece of that length contains, at minimum:
+- 3-4 <h2> sections
+- at least one table — any comparison, any set of options, any before/after
+  goes in a table rather than in prose
+- at least one <ul> or <ol> — steps, requirements and criteria are lists,
+  not sentences separated by semicolons
+- at least one callout for the caveat or key takeaway
+- <strong> on the terms that matter
 
 Substance. Specifics only: real numbers, named tools, concrete scenarios, actual
 trade-offs. No filler openings ("In today's fast-paced world"), no throat-clearing,
@@ -82,7 +78,7 @@ what changed, and what the reader should copy.
 
 Mechanics:
 - Every table row has the same number of cells, and the first row is the header.
-- A table has at least 3 columns and at least 4 rows, header included.
+- A table has 3 columns and 3-5 rows, header included.
 - Vary the blocks. Never emit more than 3 paragraphs in a row without a heading,
   list, table or callout between them.
 - Do not wrap the answer in a code fence, and do not emit <html>, <head> or <body>.
@@ -109,6 +105,15 @@ function parseHtml(text: string): string | null {
   body = body
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:)]|$)/g, '$1<em>$2</em>');
+
+  // Models pretty-print their HTML, and the newlines between structural tags
+  // parse as text nodes of their own — inside a table that is an empty row per
+  // line break. Only whitespace *between* tags goes; whitespace inside a
+  // paragraph is content.
+  body = body.replace(
+    />\s+<(\/?(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|div|h[1-6]|p|pre|blockquote|hr)\b)/gi,
+    '><$1'
+  );
 
   return body.trim() || null;
 }
@@ -141,7 +146,7 @@ export const composeContent: RequestHandler = async (req, res) => {
     selection ? `Selected text to work from:\n${selection}` : '',
     context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
     `Instruction:\n${prompt}`,
-    'Write the full piece: 25+ blocks, 800+ words, every paragraph 60-120 words, and use tables, lists and callouts where they fit. Return the HTML fragment only.',
+    'Write a tight piece: about 500 words, 18-28 blocks, every paragraph 40-70 words, with a table, a list and a callout where they fit. Return the HTML fragment only.',
   ].filter(Boolean);
 
   let detail = 'no model answered';
