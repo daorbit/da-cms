@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { PageModel, SECTION_TYPES } from '../models/page.model.js';
 import { WorkspaceModel } from '../models/workspace.model.js';
 import { slugify } from '../lib/slugify.js';
+import { editorStyles } from '../lib/editor-styles.js';
 import type { ApiError } from '../types/index.js';
 
 /** The group/tag names a workspace currently allows, from its settings blob. */
@@ -288,35 +289,32 @@ function contentDocument(title: string, content: string) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(title)}</title>
+<style>${editorStyles}</style>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #1a1b1e;
-    background: #fff;
-  }
+  body { margin: 0; background: var(--da-bg, #fff); }
+  /* The editor's own frame belongs to the editing UI, not to a published
+     page, so the reader gets the block styles without the box around them. */
+  .da-editor { border: none; border-radius: 0; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
   img { max-width: 100%; height: auto; }
-  h1 { font-size: 2rem; line-height: 1.2; margin: 1em 0 .5em; }
-  h2 { font-size: 1.5rem; margin: 2em 0 .5em; }
-  h3 { font-size: 1.2rem; margin: 1.8em 0 .5em; }
-  p { margin: 0 0 1em; }
-  a { color: #1c7ed6; }
-  pre { background: #f1f3f5; padding: 12px 14px; border-radius: 8px; overflow: auto; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
-  blockquote { margin: 1em 0; padding-left: 16px; border-left: 3px solid #dee2e6; color: #555; }
-  @media (prefers-color-scheme: dark) {
-    body { color: #e9ecef; background: #1a1b1e; }
-    pre { background: #25262b; }
-    blockquote { border-color: #373a40; color: #adb5bd; }
-  }
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="da-editor da-editor--readonly wrap">
     ${content}
   </div>
+  <script>
+    // The stylesheet keys dark mode off a data attribute rather than a media
+    // query, so mirror the reader's OS preference onto the wrapper.
+    (function () {
+      var el = document.querySelector('.da-editor');
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var sync = function () { el.setAttribute('data-theme', mq.matches ? 'dark' : 'light'); };
+      sync();
+      mq.addEventListener('change', sync);
+    })();
+  </script>
 </body>
 </html>`;
 }

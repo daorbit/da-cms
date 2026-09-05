@@ -1,4 +1,5 @@
-import { AppShell, Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledButton, Divider } from '@mantine/core';
+import { Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledButton, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
@@ -22,6 +23,9 @@ export function WorkspaceLayout() {
   const { pathname } = useLocation();
   const { user, workspaces, clearSession } = useAuth();
   const [opened, { toggle, close }] = useDisclosure(false);
+  // Matches the CSS breakpoint: below it the rail is a drawer, above it a
+  // permanent panel that ignores `opened` entirely.
+  const mobile = useMediaQuery('(max-width: 48em)');
 
   const workspace = workspaces.find((w) => w.slug === workspaceSlug);
 
@@ -37,15 +41,11 @@ export function WorkspaceLayout() {
   };
 
   return (
-    <AppShell
-      // No header: the brand, the workspace switcher and the account menu all
-      // live in the sidebar, which leaves the content area starting at the top
-      // of the window instead of under a bar that held three things.
-      header={{ height: 52, collapsed: true }}
-      navbar={{ width: 248, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-      padding="xl"
-    >
-      <AppShell.Navbar p="sm" className="app-nav">
+    // A flex row of two panels: the rail and the content surface. No header —
+    // the brand, the workspace switcher and the account menu all live in the
+    // sidebar, so the content starts at the top of the window.
+    <div className="app-shell">
+      <nav className="app-nav" data-hidden={mobile && !opened}>
         <Stack gap="xs" h="100%">
           {/* Workspace switcher, doubling as the brand mark. */}
           <Menu shadow="md" width={220} position="bottom-start">
@@ -140,14 +140,14 @@ export function WorkspaceLayout() {
             </Menu>
           </Stack>
         </Stack>
-      </AppShell.Navbar>
+      </nav>
 
-      <AppShell.Main>
+      <main className="app-main">
         {/* The only thing left of the header: without it there is no way to
             open the sidebar on a phone. */}
         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" mb="md" />
         <Outlet />
-      </AppShell.Main>
-    </AppShell>
+      </main>
+    </div>
   );
 }

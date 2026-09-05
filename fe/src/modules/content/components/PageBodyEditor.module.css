@@ -1,0 +1,18 @@
+/* The page shell already provides the surface, so the editor drops its own
+   frame and blends into the background instead of drawing a second box. */
+.editor {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  /* Wide blocks scroll within the editor rather than stretching the panel that
+     holds it. */
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The panel around the editor already insets the content, so the editor's own
+   horizontal padding would read as a second margin. */
+.editor :global(.da-editor__container) {
+  padding-left: 0;
+  padding-right: 0;
+}

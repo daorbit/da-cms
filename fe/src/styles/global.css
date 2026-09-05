@@ -80,8 +80,7 @@ body {
    darkest step so the content area is near-black rather than the charcoal the
    default ramp lands on — and so the rail and cards, which are lighter, have
    something to sit on. */
-[data-mantine-color-scheme='dark'] body,
-[data-mantine-color-scheme='dark'] .mantine-AppShell-main {
+[data-mantine-color-scheme='dark'] body {
   background: #0a0a0b;
 }
 
@@ -147,14 +146,26 @@ body {
    so signing in and using the app read as one product.
    Dark in both schemes, for the same reason it is there: it is chrome, and a
    white rail beside white content needs a border to exist at all. */
+/* Two panels side by side in a flex row that fills the viewport. Each panel
+   scrolls its own content, so neither the window nor the shell ever scrolls
+   and nothing needs to be positioned by hand. */
+.app-shell {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .app-nav {
-  top: 10px;
-  bottom: 10px;
-  left: 10px;
-  height: auto;
+  flex: 0 0 248px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
   overflow: hidden;
   border: 0;
   border-radius: 16px;
+  padding: var(--mantine-spacing-sm);
   background: #fff;
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.08),
@@ -201,26 +212,49 @@ body {
   z-index: 1;
 }
 
-/* The content area is inset to match, so the rail's rounded corners have a
-   ground to sit on rather than butting against the window. */
-.mantine-AppShell-main {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-right: 20px;
+/* The content panel mirrors the rail: same radius, same hairline, same lift.
+   `min-width: 0` is what keeps a wide child — an editor table, a code block —
+   scrolling inside it rather than stretching the row. */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  border-radius: 16px;
+  padding: var(--mantine-spacing-lg);
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 12px 32px rgba(16, 24, 40, 0.06);
+}
+[data-mantine-color-scheme='dark'] .app-main {
+  background: #17171a;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 @media (max-width: 48em) {
-  /* Inset framing costs real width on a phone, and the rail is a drawer there
-     rather than a permanent panel. */
+  /* Inset framing costs real width on a phone, so both panels go full-bleed
+     and the rail becomes a drawer the burger toggles. */
+  .app-shell {
+    gap: 0;
+    padding: 0;
+  }
   .app-nav {
-    top: 0;
-    bottom: 0;
-    left: 0;
-    height: 100%;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 200;
     border-radius: 0;
   }
-  .mantine-AppShell-main {
+  .app-nav[data-hidden='true'] {
+    display: none;
+  }
+  .app-main {
+    border-radius: 0;
     padding: 1rem;
+    box-shadow: none;
   }
 }
 
