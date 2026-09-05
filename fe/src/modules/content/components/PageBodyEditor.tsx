@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMantineColorScheme } from '@mantine/core';
 import { Editor, Transforms, type Node as SlateNode } from 'slate';
-import { DaEditor, type DaEditorHandle } from 'da-text-editor';
+import { DaEditor, deserializeHtml, type DaEditorHandle } from 'da-text-editor';
 import 'da-text-editor/styles.css';
 import { AskAiModal } from './AskAiModal';
 import classes from './PageBodyEditor.module.css';
@@ -52,15 +52,19 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
   };
 
   /**
-   * Generated blocks land at the cursor, replacing the selection when the
+   * Generated content lands at the cursor, replacing the selection when the
    * writer had one â€” the same shape as pasting, which is what "write this for
-   * me" turns out to mean in use.
+   * me" turns out to mean in use. The editor's own parser turns the fragment
+   * into nodes, so headings, tables and marks arrive intact.
    */
-  const insertBlocks = (blocks: unknown[]) => {
+  const insertHtml = (html: string) => {
     const editor = ref.current?.editor;
     if (!editor) return;
 
-    Transforms.insertNodes(editor, blocks as SlateNode[]);
+    const nodes = deserializeHtml(html);
+    if (!nodes.length) return;
+
+    Transforms.insertNodes(editor, nodes as SlateNode[]);
     emitChange();
     ref.current?.focus();
   };
@@ -82,7 +86,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
         onClose={() => setAiOpen(false)}
         selection={selection}
         context={ref.current?.getText().slice(0, CONTEXT_LIMIT)}
-        onInsert={insertBlocks}
+        onInsert={insertHtml}
       />
     </>
   );

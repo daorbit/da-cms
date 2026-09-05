@@ -25,30 +25,30 @@ const composeSchema = z.object({
 });
 
 /**
- * The model answers with Slate JSON rather than HTML.
+ * The model answers with HTML, which the editor parses itself.
  *
- * The editor's HTML serializer currently loses links, images, table cells and
- * to-do state, so asking for HTML would mean generating good content and then
- * dropping half of it on the way in. Slate JSON is what `setValue` takes, so it
- * goes into the document exactly as written.
+ * An earlier version asked for the editor's own Slate JSON, on the theory that
+ * it skipped a lossy conversion. It did the opposite: the node type names have
+ * to be described in the prompt, and a name the editor does not recognise —
+ * `heading-two` where it wanted `h2` — silently degrades to a plain paragraph.
+ * HTML is a vocabulary the model already knows, and the editor's own parser
+ * maps it correctly, marks and tables included.
  */
-const SYSTEM = `You write content for a CMS editor. You reply with JSON only — no prose, no markdown fences.
+const SYSTEM = `You write content for a CMS editor. You reply with an HTML fragment only — no prose before or after it, no markdown, no code fence.
 
-Reply with an object: {"blocks": [ ... ]}, where each block is a Slate node.
+Use exactly these tags:
+<h1> <h2> <h3> for headings
+<p> for paragraphs
+<ul><li> and <ol><li> for lists
+<blockquote> for a pulled-out claim
+<pre><code class="language-ts"> for code
+<table><thead><tr><th> then <tbody><tr><td> for tables
+<div data-callout="info"> (also warning, success, danger) wrapping <p> for asides
+<hr> for a section break
+<strong> <em> <u> <s> <code> for inline emphasis
+<a href="https://..."> for links
 
-Available blocks:
-{"type":"paragraph","children":[{"text":"..."}]}
-{"type":"heading-one"|"heading-two"|"heading-three","children":[{"text":"..."}]}
-{"type":"bulleted-list"|"numbered-list","children":[{"type":"list-item","children":[{"text":"..."}]}]}
-{"type":"block-quote","children":[{"text":"..."}]}
-{"type":"code-block","language":"ts","children":[{"text":"..."}]}
-{"type":"callout","variant":"info"|"warning"|"success"|"danger","children":[{"type":"paragraph","children":[{"text":"..."}]}]}
-{"type":"todo","checked":false,"children":[{"text":"..."}]}
-{"type":"divider","children":[{"text":""}]}
-{"type":"table","children":[{"type":"table-row","children":[{"type":"table-cell","children":[{"type":"paragraph","children":[{"text":"..."}]}]}]}]}
-
-Text marks go on the leaf: {"text":"bold bit","bold":true}. Also italic, underline, strikethrough, code — all booleans.
-Links are inline: {"type":"link","url":"https://...","children":[{"text":"label"}]}
+Never write markdown. Asterisks around a word are a bug: bold is <strong>, not **word**.
 
 You are writing for publication. A wall of plain paragraphs is a failed answer.
 
@@ -65,14 +65,14 @@ paragraphs is the failure this rule exists to prevent: 30 thin blocks is a worse
 answer than 30 substantial ones.
 
 Structure. A piece of that length must contain, at minimum:
-- 4-7 heading-two sections, each with heading-three subsections where the material divides
+- 4-7 <h2> sections, each with <h3> subsections where the material divides
 - at least one table — any comparison, any set of options, any before/after, any
   feature or pricing breakdown goes in a table rather than in prose
-- at least one bulleted-list and at least one numbered-list — steps, requirements
-  and criteria are lists, not sentences separated by semicolons
+- at least one <ul> and at least one <ol> — steps, requirements and criteria are
+  lists, not sentences separated by semicolons
 - at least one callout for the caveat, prerequisite or key takeaway every real
   article has
-- bold on the terms that matter, and a block-quote where a claim deserves weight
+- <strong> on the terms that matter, and a <blockquote> where a claim deserves weight
 
 Substance. Specifics only: real numbers, named tools, concrete scenarios, actual
 trade-offs. No filler openings ("In today's fast-paced world"), no throat-clearing,
@@ -85,24 +85,32 @@ Mechanics:
 - A table has at least 3 columns and at least 4 rows, header included.
 - Vary the blocks. Never emit more than 3 paragraphs in a row without a heading,
   list, table or callout between them.
-- Never wrap the JSON in a code fence.
+- Do not wrap the answer in a code fence, and do not emit <html>, <head> or <body>.
 - Return the whole piece in one reply. Do not stop early or offer to continue.`;
 
-/** Pulls the JSON object out of a reply that may still carry a fence or prose. */
-function parseBlocks(text: string): unknown[] | null {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const body = fenced ? fenced[1] : text;
+/**
+ * Pulls the fragment out of a reply that may still carry a fence or a sentence
+ * of preamble, and strips the markdown emphasis that leaks through even with
+ * the prompt forbidding it.
+ */
+function parseHtml(text: string): string | null {
+  const fenced = text.match(/```(?:html)?\s*([\s\S]*?)```/);
+  let body = fenced ? fenced[1] : text;
 
-  const start = body.indexOf('{');
-  const end = body.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
+  // Anything before the first tag is the model talking to us, not content.
+  const start = body.search(/<(h[1-6]|p|ul|ol|table|blockquote|pre|div|hr|img)\b/i);
+  if (start === -1) return null;
 
-  try {
-    const parsed = JSON.parse(body.slice(start, end + 1)) as { blocks?: unknown };
-    return Array.isArray(parsed.blocks) && parsed.blocks.length ? parsed.blocks : null;
-  } catch {
-    return null;
-  }
+  const end = body.lastIndexOf('>');
+  if (end <= start) return null;
+  body = body.slice(start, end + 1);
+
+  // `**word**` renders as literal asterisks in the editor.
+  body = body
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:)]|$)/g, '$1<em>$2</em>');
+
+  return body.trim() || null;
 }
 
 /**
@@ -133,7 +141,7 @@ export const composeContent: RequestHandler = async (req, res) => {
     selection ? `Selected text to work from:\n${selection}` : '',
     context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
     `Instruction:\n${prompt}`,
-    'Write the full piece: 25+ blocks, 800+ words, every paragraph 60-120 words, and use tables, lists and callouts where they fit. Return JSON only.',
+    'Write the full piece: 25+ blocks, 800+ words, every paragraph 60-120 words, and use tables, lists and callouts where they fit. Return the HTML fragment only.',
   ].filter(Boolean);
 
   let detail = 'no model answered';
@@ -154,13 +162,13 @@ export const composeContent: RequestHandler = async (req, res) => {
       continue;
     }
 
-    const blocks = parseBlocks(result.text);
-    if (!blocks) {
+    const html = parseHtml(result.text);
+    if (!html) {
       detail = 'model returned unparseable content';
       continue;
     }
 
-    res.json({ blocks });
+    res.json({ html });
     return;
   }
 

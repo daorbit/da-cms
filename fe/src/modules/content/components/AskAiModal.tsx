@@ -22,8 +22,8 @@ interface Props {
   selection?: string;
   /** The document so far, so the model matches its voice. */
   context?: string;
-  /** Slate nodes, handed to the editor as-is. */
-  onInsert: (blocks: unknown[]) => void;
+  /** An HTML fragment, which the editor parses itself. */
+  onInsert: (html: string) => void;
 }
 
 export function AskAiModal({ opened, onClose, selection, context, onInsert }: Props) {
@@ -57,12 +57,12 @@ export function AskAiModal({ opened, onClose, selection, context, onInsert }: Pr
     setError(null);
 
     try {
-      const { blocks } = await api.post<{ blocks: unknown[] }>('/ai/compose', {
+      const { html } = await api.post<{ html: string }>('/ai/compose', {
         prompt,
         selection: selection || undefined,
         context: context || undefined,
       });
-      onInsert(blocks);
+      onInsert(html);
       close();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not generate content');
