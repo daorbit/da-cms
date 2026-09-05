@@ -29,7 +29,8 @@ export function PageEditorPage() {
   }
 
   return (
-    <Stack gap="lg">
+  
+    <Stack gap="lg" h="100%">
       <PageEditorToolbar
         title={editor.title}
         status={editor.status}

@@ -146,7 +146,9 @@ export function WorkspaceLayout() {
         {/* The only thing left of the header: without it there is no way to
             open the sidebar on a phone. */}
         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" mb="md" />
-        <Outlet />
+        <div className="app-outlet">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

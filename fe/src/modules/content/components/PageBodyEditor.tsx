@@ -35,7 +35,6 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
       defaultHtml={value}
       theme={colorScheme === 'auto' ? 'system' : colorScheme}
       placeholder={placeholder}
-      minHeight="480px"
       onChange={() => {
         const html = ref.current?.getHTML() ?? '';
         lastHtml.current = html;
