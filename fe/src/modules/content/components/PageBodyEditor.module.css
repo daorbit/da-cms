@@ -1,24 +1,22 @@
-/* The page shell already provides the surface, so the editor drops its own
-   frame and blends into the background instead of drawing a second box. */
+
 .editor {
-  border: none;
   border-radius: 0;
   background: transparent;
 
-  height: 100%;
+
+  flex: 1;
+  min-height: 0;
   min-width: 0;
   max-width: 100%;
 }
 
-/* The editor itself runs edge to edge, so the text needs its own breathing
-   room — narrower than the package default, which assumes a framed editor. */
+
 .editor :global(.da-editor__container) {
   padding-left: 24px;
   padding-right: 24px;
 }
 
-/* The toolbar would otherwise start hard against the card's edge, which reads
-   as clipped rather than as a toolbar. Matches the content inset above. */
+
 .editor :global(.da-tb--fixed) {
   padding-left: 24px;
   padding-right: 24px;

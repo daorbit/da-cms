@@ -31,7 +31,7 @@ export function PageEditorPage() {
   // The shell runs this route flush so the editor reaches both edges; the
   // header and any error above it take back the inset for themselves.
   return (
-    <Stack gap="md" h="100%" pt="lg">
+    <Stack gap="md" h="100%" pt="lg" miw={0} style={{ overflow: 'hidden' }}>
       <Box px="lg">
         <PageEditorToolbar
           title={editor.title}

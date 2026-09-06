@@ -1,6 +1,17 @@
 /* The shell runs this route flush to the edges, so the surface only has to fill
-   the space it is given — the editor supplies its own padding. */
+   the space it is given — the editor supplies its own padding.
+
+   A flex column rather than a block: the editor sizes itself to this box, so
+   the box needs a definite height to give it. Left as a block it has none, and
+   the editor's `height: 100%` resolves against nothing. */
 .surface {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
+  /* The toolbar is a nowrap row that collapses into its overflow menu as space
+     runs out. Without this the row's intrinsic width sets the column's, and the
+     whole editor is laid out wider than the shell that contains it. */
+  min-width: 0;
+  overflow: hidden;
 }

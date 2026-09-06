@@ -431,9 +431,9 @@ export function PageIntegrationModal({ opened, onClose, apiBase, workspaceId }: 
               language={active.language}
               withCopyButton={false}
               withBorder={false}
-              style={{ background: 'transparent' }}
+              // The root has no styles key of its own, so its own props carry it.
+              style={{ border: 0, borderRadius: 0, background: 'transparent' }}
               styles={{
-                root: { border: 0, borderRadius: 0, background: 'transparent' },
                 pre: {
                   fontSize: 13,
                   lineHeight: 1.75,

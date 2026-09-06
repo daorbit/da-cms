@@ -48,6 +48,15 @@ export function PageListPage() {
   const [previewing, setPreviewing] = useState<PageSummary | null>(null);
   const [integrationOpen, setIntegrationOpen] = useState(false);
 
+  // The list query leaves out `content` — it is the heaviest field and no row
+  // shows it — so the preview fetches the one page it is about to render.
+  const previewingId = previewing?.id;
+  const fetchPreviewContent = useCallback(async () => {
+    if (!workspace || !previewingId) return '';
+    const page = await pageService.get(workspace.id, previewingId);
+    return page.content ?? '';
+  }, [workspace, previewingId]);
+
   // Selection is by id so it survives a page's rows changing under it.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -469,6 +478,7 @@ export function PageListPage() {
           opened
           onClose={() => setPreviewing(null)}
           title={previewing.title}
+          fetchContent={fetchPreviewContent}
           src={pageService.previewUrl(workspace.id, previewing.slug)}
         />
       )}

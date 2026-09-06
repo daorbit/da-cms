@@ -233,6 +233,10 @@ body {
 .app-outlet {
   flex: 1;
   min-height: 0;
+  /* A route whose content is a nowrap row — the editor's toolbar — would
+     otherwise set this column's width from its own intrinsic size and lay out
+     wider than the shell. */
+  min-width: 0;
 }
 
 /* A route that is a surface rather than a panel — the page editor — supplies
@@ -241,9 +245,11 @@ body {
    padding, because this is the scroll container the margin lives inside. */
 .app-main--flush {
   padding: 0;
-  /* The surface fills the column corner to corner, so the rounding that frames
-     a padded panel would just clip it. */
-  border-radius: 0;
+  /* The card keeps its corners; the surface inside runs to the edges, so it has
+     to be clipped to the curve rather than squaring it off. Safe to drop the
+     column's own scrolling with it: on this route the editor scrolls its own
+     content, and the header above it is a fixed-height row. */
+  overflow: hidden;
 }
 
 /* The burger is the only shell chrome inside the main column, so under a flush
