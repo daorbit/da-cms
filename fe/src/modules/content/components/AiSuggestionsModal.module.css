@@ -1,19 +1,19 @@
 .modal {
-  display: flex;
-  flex-direction: column;
-  height: min(32rem, calc(100dvh - 8rem));
-  max-height: min(32rem, calc(100dvh - 8rem));
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(60rem, calc(100vw - 4rem)) !important;
+  height: min(40rem, calc(100dvh - 6rem)) !important;
+  max-height: min(40rem, calc(100dvh - 6rem)) !important;
+  overflow: hidden !important;
 }
 
 .body {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
-  padding: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
 }
 
 .searchRow {
@@ -35,9 +35,9 @@
 }
 
 .list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
   padding: 6px;
 }
 

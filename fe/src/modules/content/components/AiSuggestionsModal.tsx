@@ -90,48 +90,48 @@ export function AiSuggestionsModal({ opened, onClose, hasSelection, onPick }: Pr
         />
       </div>
 
-      <div className={classes.list} ref={listRef}>
-        {flat.length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="xl">
-            Nothing matches “{query}”.
-          </Text>
-        ) : (
-          groups.map((group) => (
-            <div key={group.label}>
-              <div className={classes.groupLabel}>{group.label}</div>
-              {group.prompts.map((prompt) => {
-                index += 1;
-                const at = index;
-                return (
-                  <button
-                    key={prompt}
-                    type="button"
-                    className={classes.item}
-                    data-active={at === active || undefined}
-                    onMouseEnter={() => setActive(at)}
-                    onClick={() => choose(prompt)}
-                  >
-                    <span className={classes.itemText}>
-                      {prompt.endsWith(' ') ? `${prompt.trim()}…` : prompt}
-                    </span>
-                    {at === active && <IconCornerDownLeft size={13} />}
-                  </button>
-                );
-              })}
-            </div>
-          ))
-        )}
-      </div>
+        <div className={classes.list} ref={listRef}>
+          {flat.length === 0 ? (
+            <Text size="sm" c="dimmed" ta="center" py="xl">
+              Nothing matches “{query}”.
+            </Text>
+          ) : (
+            groups.map((group) => (
+              <div key={group.label}>
+                <div className={classes.groupLabel}>{group.label}</div>
+                {group.prompts.map((prompt) => {
+                  index += 1;
+                  const at = index;
+                  return (
+                    <button
+                      key={prompt}
+                      type="button"
+                      className={classes.item}
+                      data-active={at === active || undefined}
+                      onMouseEnter={() => setActive(at)}
+                      onClick={() => choose(prompt)}
+                    >
+                      <span className={classes.itemText}>
+                        {prompt.endsWith(' ') ? `${prompt.trim()}…` : prompt}
+                      </span>
+                      {at === active && <IconCornerDownLeft size={13} />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
 
-      <Group className={classes.footer} gap={14}>
-        <Text size="xs" c="dimmed">
-          ↑↓ to move · ↵ to pick · esc to close
-        </Text>
-        {!hasSelection && (
-          <Text size="xs" c="dimmed" ml="auto">
-            Select text to see rewrite prompts
+        <Group className={classes.footer} gap={14}>
+          <Text size="xs" c="dimmed">
+            ↑↓ to move · ↵ to pick · esc to close
           </Text>
-        )}
+          {!hasSelection && (
+            <Text size="xs" c="dimmed" ml="auto">
+              Select text to see rewrite prompts
+            </Text>
+          )}
       </Group>
     </Modal>
   );
