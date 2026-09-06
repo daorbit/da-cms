@@ -36,7 +36,8 @@
       "Bash(grep -o \"closest[^;]\\\\{0,60\\\\}\" node_modules/da-text-editor/dist/index.js)",
       "Bash(sort -k1 -n -r)",
       "WebFetch(domain:iconsax.io)",
-      "WebFetch(domain:phosphoricons.com)"
+      "WebFetch(domain:phosphoricons.com)",
+      "WebFetch(domain:github.com)"
     ],
     "additionalDirectories": [
       "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\lib",
