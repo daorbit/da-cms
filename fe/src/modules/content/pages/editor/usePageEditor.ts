@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { ApiError } from '@/lib/api';
@@ -33,6 +33,30 @@ export function usePageEditor(id: string | undefined) {
   const [status, setStatus] = useState<PageStatus>('draft');
 
   const [loading, setLoading] = useState(true);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+
+  /**
+   * The last values written to the server, so "has this changed?" is a
+   * comparison rather than a flag every setter has to remember to raise.
+   */
+  const saved = useRef<string>('');
+  const snapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title,
+        slug,
+        description,
+        group,
+        tags,
+        heroImage,
+        thumbnailImage,
+        content,
+        seo,
+      }),
+    [title, slug, description, group, tags, heroImage, thumbnailImage, content, seo]
+  );
+  const dirty = !loading && snapshot !== saved.current;
+
   // Which button is in flight, so each shows its own spinner instead of both.
   const [savingAction, setSavingAction] = useState<'save' | 'publish' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +80,20 @@ export function usePageEditor(id: string | undefined) {
         setLegacySections(page.sections ?? []);
         setSeo(page.seo ?? EMPTY_SEO);
         setStatus(page.status);
+        // The loaded page is by definition unmodified, so it becomes the
+        // baseline everything after is compared against.
+        saved.current = JSON.stringify({
+          title: page.title,
+          slug: page.slug,
+          description: page.description ?? '',
+          group: page.group ?? '',
+          tags: page.tags ?? [],
+          heroImage: page.heroImage ?? EMPTY_IMAGE,
+          thumbnailImage: page.thumbnailImage ?? EMPTY_IMAGE,
+          content: page.content ?? '',
+          seo: page.seo ?? EMPTY_SEO,
+        });
+        setSavedAt(page.updatedAt ? new Date(page.updatedAt) : null);
       } catch (err) {
         if (!cancelled) setError(err instanceof ApiError ? err.message : 'Could not load the page');
       } finally {
@@ -68,7 +106,7 @@ export function usePageEditor(id: string | undefined) {
     };
   }, [workspace, id]);
 
-  const save = async (nextStatus: PageStatus, action: 'save' | 'publish' = 'save') => {
+  const save = useCallback(async (nextStatus: PageStatus, action: 'save' | 'publish' = 'save') => {
     if (!workspace || !id) return;
     if (!title.trim()) {
       setError('A title is required');
@@ -78,7 +116,7 @@ export function usePageEditor(id: string | undefined) {
     setSavingAction(action);
     setError(null);
     try {
-      const saved = await pageService.update(workspace.id, id, {
+      const page = await pageService.update(workspace.id, id, {
         title: title.trim(),
         slug: slug || slugify(title),
         description,
@@ -90,13 +128,52 @@ export function usePageEditor(id: string | undefined) {
         seo,
         status: nextStatus,
       });
-      setStatus(saved.status);
+      setStatus(page.status);
+      // Taken from the response rather than from local state, so a value the
+      // server normalised — a slug derived from the title, say — is what the
+      // next comparison is made against.
+      saved.current = JSON.stringify({
+        title: page.title,
+        slug: page.slug,
+        description: page.description ?? '',
+        group: page.group ?? '',
+        tags: page.tags ?? [],
+        heroImage: page.heroImage ?? EMPTY_IMAGE,
+        thumbnailImage: page.thumbnailImage ?? EMPTY_IMAGE,
+        content: page.content ?? '',
+        seo: page.seo ?? EMPTY_SEO,
+      });
+      setSlug(page.slug);
+      setSavedAt(new Date());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save the page');
     } finally {
       setSavingAction(null);
     }
-  };
+  }, [workspace, id, title, slug, description, group, tags, heroImage, thumbnailImage, content, seo]);
+
+  /*
+   * The browser's own "leave site?" prompt. It is the only thing that can stop
+   * a tab close or a reload — a router guard covers in-app navigation, but
+   * cannot reach either of those.
+   */
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  /* Cmd/Ctrl+S saves, keeping the page's current published state. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.key === 's' && (e.metaKey || e.ctrlKey))) return;
+      e.preventDefault();
+      if (dirty) void save(status === 'published' ? 'published' : 'draft');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dirty, save, status]);
 
   return {
     workspace,
@@ -116,6 +193,8 @@ export function usePageEditor(id: string | undefined) {
     saving: savingAction !== null,
     error,
     save,
+    dirty,
+    savedAt,
   };
 }
 

@@ -6,7 +6,7 @@ import {
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
-  IconChevronDown, IconCode, IconRefresh,
+  IconChevronDown, IconCode, IconRefresh, IconCopy,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -48,6 +48,7 @@ export function PageListPage() {
   const [deleting, setDeleting] = useState(false);
   const [previewing, setPreviewing] = useState<PageSummary | null>(null);
   const [integrationOpen, setIntegrationOpen] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   // The list query leaves out `content` — it is the heaviest field and no row
   // shows it — so the preview fetches the one page it is about to render.
@@ -124,6 +125,29 @@ export function PageListPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /**
+   * Copies a page and opens the copy.
+   *
+   * Opening it is the point: a duplicate exists to be edited, and leaving the
+   * user on the list to find it is a step with no purpose.
+   */
+  const duplicate = async (p: PageSummary) => {
+    if (!workspace) return;
+    setDuplicatingId(p.id);
+    try {
+      const copy = await pageService.duplicate(workspace.id, p.id);
+      notifications.show({ color: 'teal', message: `Duplicated "${p.title}"` });
+      navigate(`/${workspace.slug}/content/pages/${copy.id}/edit`);
+    } catch (err) {
+      notifications.show({
+        color: 'red',
+        message: err instanceof ApiError ? err.message : 'Could not duplicate the page',
+      });
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!workspace || !pendingDelete) return;
@@ -455,6 +479,17 @@ export function PageListPage() {
                           onClick={() => navigate(detailsHref(p))}
                         >
                           <IconAdjustments size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Duplicate" withArrow>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Duplicate"
+                          loading={duplicatingId === p.id}
+                          onClick={() => duplicate(p)}
+                        >
+                          <IconCopy size={16} />
                         </ActionIcon>
                       </Tooltip>
                       <Tooltip label="Delete" withArrow>

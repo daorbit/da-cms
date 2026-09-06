@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { PageModel, SECTION_TYPES } from "../models/page.model.js";
+import { RevisionModel } from "../models/revision.model.js";
 import { WorkspaceModel } from "../models/workspace.model.js";
 import { slugify } from "../lib/slugify.js";
 import type { ApiError } from "../types/index.js";
@@ -450,6 +451,202 @@ export const listPublicPages: RequestHandler = async (req, res) => {
   res.json({ items: payload, total, page, perPage });
 };
 
+/** How many revisions one page keeps. Older ones are pruned on each save. */
+const REVISION_LIMIT = 30;
+
+/**
+ * Stores the page's current state as a revision, then trims the history.
+ *
+ * Never allowed to fail a save: losing a history entry is a much smaller
+ * problem than refusing to store the edit a writer just made.
+ */
+async function snapshotRevision(page: PageDoc, workspaceId: string, userId?: string) {
+  // `PageDoc._id` is `unknown` by design — it is whatever the caller passed —
+  // so it is narrowed here, where it is used as a query value.
+  const pageId = String(page._id);
+  try {
+    await RevisionModel.create({
+      pageId,
+      workspaceId,
+      title: page.title,
+      slug: page.slug,
+      description: page.description ?? "",
+      group: page.group ?? "",
+      tags: page.tags ?? [],
+      heroImage: page.heroImage ?? {},
+      thumbnailImage: page.thumbnailImage ?? {},
+      content: page.content ?? "",
+      seo: page.seo ?? {},
+      author: page.author ?? {},
+      readingMinutes: page.readingMinutes ?? 0,
+      createdBy: userId,
+    });
+
+    const stale = await RevisionModel.find({ pageId })
+      .sort({ createdAt: -1 })
+      .skip(REVISION_LIMIT)
+      .select("_id");
+
+    if (stale.length) {
+      await RevisionModel.deleteMany({ _id: { $in: stale.map((r) => r._id) } });
+    }
+  } catch (err) {
+    console.error("[revisions] snapshot failed:", err);
+  }
+}
+
+/** The history of one page, newest first. Content is excluded — a list of
+ *  thirty revisions would otherwise carry thirty full page bodies. */
+export const listRevisions: RequestHandler = async (req, res) => {
+  const { workspaceId, id } = req.params;
+
+  const items = await RevisionModel.find({ pageId: id, workspaceId })
+    .sort({ createdAt: -1 })
+    .select("-content -seo -heroImage -thumbnailImage")
+    .populate("createdBy", AUTHOR_FIELDS)
+    .limit(REVISION_LIMIT);
+
+  res.json({
+    items: items.map((r) => ({
+      id: String(r._id),
+      title: r.title,
+      slug: r.slug,
+      description: r.description,
+      createdAt: r.createdAt,
+      createdBy: toAuthor(r.createdBy as AuthorRef),
+    })),
+  });
+};
+
+/** One revision in full, for previewing before restoring it. */
+export const getRevision: RequestHandler = async (req, res) => {
+  const { workspaceId, id, revisionId } = req.params;
+
+  const revision = await RevisionModel.findOne({
+    _id: revisionId,
+    pageId: id,
+    workspaceId,
+  });
+
+  if (!revision) {
+    const body: ApiError = { error: "not_found", message: "Revision not found" };
+    res.status(404).json(body);
+    return;
+  }
+
+  res.json({
+    id: String(revision._id),
+    title: revision.title,
+    slug: revision.slug,
+    description: revision.description,
+    group: revision.group,
+    tags: revision.tags,
+    heroImage: revision.heroImage,
+    thumbnailImage: revision.thumbnailImage,
+    content: revision.content,
+    seo: revision.seo,
+    createdAt: revision.createdAt,
+  });
+};
+
+/**
+ * Restores a revision's content onto the page.
+ *
+ * The page's status, slug and publication date are left alone: rolling back a
+ * body should not un-publish a live page or change the URL it is served at,
+ * both of which break links rather than fixing content.
+ */
+export const restoreRevision: RequestHandler = async (req, res) => {
+  const { workspaceId, id, revisionId } = req.params;
+
+  const [page, revision] = await Promise.all([
+    PageModel.findOne({ _id: id, workspaceId }),
+    RevisionModel.findOne({ _id: revisionId, pageId: id, workspaceId }),
+  ]);
+
+  if (!page || !revision) {
+    const body: ApiError = { error: "not_found", message: "Revision not found" };
+    res.status(404).json(body);
+    return;
+  }
+
+  // The current state is itself snapshotted, so restoring is undoable.
+  await snapshotRevision(page as unknown as PageDoc, workspaceId, req.userId);
+
+  const restored = await PageModel.findOneAndUpdate(
+    { _id: id, workspaceId },
+    {
+      title: revision.title,
+      description: revision.description,
+      group: revision.group,
+      tags: revision.tags,
+      heroImage: revision.heroImage,
+      thumbnailImage: revision.thumbnailImage,
+      content: revision.content,
+      seo: revision.seo,
+      updatedBy: req.userId,
+    },
+    { new: true }
+  )
+    .populate("createdBy", AUTHOR_FIELDS)
+    .populate("updatedBy", AUTHOR_FIELDS);
+
+  res.json(toResponse(restored as unknown as PageDoc));
+};
+
+/**
+ * Copies a page as a new draft.
+ *
+ * Always a draft, whatever the original was: a duplicate is a starting point,
+ * and publishing a half-edited copy of a live page is not something anyone
+ * means to do in one click.
+ */
+export const duplicatePage: RequestHandler = async (req, res) => {
+  const { workspaceId, id } = req.params;
+
+  const source = await PageModel.findOne({ _id: id, workspaceId });
+  if (!source) {
+    const body: ApiError = { error: "not_found", message: "Page not found" };
+    res.status(404).json(body);
+    return;
+  }
+
+  const title = `${source.title} (copy)`;
+  // Slugs are unique per workspace, so the first free suffix is found rather
+  // than letting the insert fail on a duplicate key.
+  const base = slugify(title);
+  let slug = base;
+  for (let n = 2; await PageModel.exists({ workspaceId, slug }); n += 1) {
+    slug = `${base}-${n}`;
+  }
+
+  const page = await PageModel.create({
+    workspaceId,
+    title,
+    slug,
+    description: source.description,
+    group: source.group,
+    tags: source.tags,
+    heroImage: source.heroImage,
+    thumbnailImage: source.thumbnailImage,
+    content: source.content,
+    seo: source.seo,
+    author: source.author,
+    readingMinutes: source.readingMinutes,
+    status: "draft",
+    publishedAt: null,
+    createdBy: req.userId,
+    updatedBy: req.userId,
+  });
+
+  await page.populate([
+    { path: "createdBy", select: AUTHOR_FIELDS },
+    { path: "updatedBy", select: AUTHOR_FIELDS },
+  ]);
+
+  res.status(201).json(toResponse(page as unknown as PageDoc));
+};
+
 export const updatePage: RequestHandler = async (req, res) => {
   const parsed = pageSchema.partial().safeParse(req.body);
   if (!parsed.success) {
@@ -468,6 +665,10 @@ export const updatePage: RequestHandler = async (req, res) => {
     res.status(404).json(body);
     return;
   }
+
+  // Taken before the write: a revision is the state an edit replaced, which is
+  // what someone restoring after a bad edit is looking for.
+  await snapshotRevision(existing as unknown as PageDoc, workspaceId, req.userId);
 
   const taxonomyError = await checkTaxonomy(
     workspaceId,

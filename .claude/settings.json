@@ -28,7 +28,10 @@
       "Bash(awk 'NR>=800 && NR<=830' src/app/globals.css)",
       "Bash(cd d:/personal-code/da-cms/be)",
       "Bash(curl -s -X POST http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/media -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"file\":\"__TRACKED_VAR__\",\"name\":\"Test swatch\",\"alt\":\"a red square\"}')",
-      "Bash(curl -s -o /dev/null -w 'delete: %{http_code}\\\\n' -X DELETE http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/media/6a9d0f58e5998235030141a2 -H 'Authorization: Bearer __TRACKED_VAR__')"
+      "Bash(curl -s -o /dev/null -w 'delete: %{http_code}\\\\n' -X DELETE http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/media/6a9d0f58e5998235030141a2 -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -X PATCH http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages/__TRACKED_VAR__ -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"title\":\"Edited title\"}' -o /dev/null -w 'patch: %{http_code}\\\\n')",
+      "Bash(echo \"revisions:\")",
+      "Bash(curl -s http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages/__TRACKED_VAR__/revisions -H 'Authorization: Bearer __TRACKED_VAR__')"
     ],
     "additionalDirectories": [
       "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\lib",

@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { ActionIcon, Button, Divider, Group, Text, Tooltip } from '@mantine/core';
-import { IconArrowLeft, IconAdjustments, IconEye } from '@tabler/icons-react';
+import { IconArrowLeft, IconAdjustments, IconEye, IconHistory } from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
 
 const STATUS_DOT: Record<PageStatus, string> = {
@@ -13,15 +14,21 @@ interface Props {
   status: PageStatus;
   /** Which action is in flight, so only that button spins. */
   savingAction: 'save' | 'publish' | null;
+  /** Whether there are edits the server has not seen. */
+  dirty: boolean;
+  /** When the page was last written, for the save indicator. */
+  savedAt: Date | null;
   onBack: () => void;
   onOpenDetails: () => void;
   onPreview: () => void;
+  onOpenHistory: () => void;
   onSave: () => void;
   onPublishToggle: () => void;
 }
 
 export function PageEditorToolbar({
-  title, status, savingAction, onBack, onOpenDetails, onPreview, onSave, onPublishToggle,
+  title, status, savingAction, dirty, savedAt, onBack, onOpenDetails, onPreview,
+  onOpenHistory, onSave, onPublishToggle,
 }: Props) {
   const busy = savingAction !== null;
   const published = status === 'published';
@@ -53,9 +60,25 @@ export function PageEditorToolbar({
       </Group>
 
       <Group gap="xs" wrap="nowrap">
+        {/* Says whether the work is safe. A spinner alone left it ambiguous
+            whether a save had actually landed. */}
+        <SaveState busy={busy} dirty={dirty} savedAt={savedAt} />
+
         <Tooltip label="Preview content" withArrow>
           <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Preview content" onClick={onPreview}>
             <IconEye size={18} />
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip label="Version history" withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="lg"
+            aria-label="Version history"
+            onClick={onOpenHistory}
+          >
+            <IconHistory size={18} />
           </ActionIcon>
         </Tooltip>
 
@@ -67,14 +90,16 @@ export function PageEditorToolbar({
 
         <Divider orientation="vertical" my={6} />
 
-        <Button
-          variant="default"
-          loading={savingAction === 'save'}
-          disabled={busy && savingAction !== 'save'}
-          onClick={onSave}
-        >
-          Save
-        </Button>
+        <Tooltip label={dirty ? 'Save (Ctrl+S)' : 'No changes to save'} withArrow>
+          <Button
+            variant="default"
+            loading={savingAction === 'save'}
+            disabled={(busy && savingAction !== 'save') || !dirty}
+            onClick={onSave}
+          >
+            Save
+          </Button>
+        </Tooltip>
 
         <Button
           variant={published ? 'subtle' : 'filled'}
@@ -88,4 +113,72 @@ export function PageEditorToolbar({
       </Group>
     </Group>
   );
+}
+
+/** Unsaved / saving / last-saved, in one line of quiet text. */
+function SaveState({
+  busy,
+  dirty,
+  savedAt,
+}: {
+  busy: boolean;
+  dirty: boolean;
+  savedAt: Date | null;
+}) {
+  // Re-rendered on a timer so "2 minutes ago" does not go stale while the
+  // writer is sitting on the page.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (busy) {
+    return (
+      <Text size="xs" c="dimmed">
+        Saving…
+      </Text>
+    );
+  }
+
+  if (dirty) {
+    return (
+      <Group gap={5} wrap="nowrap">
+        <span
+          aria-hidden="true"
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: 'var(--mantine-color-orange-6)',
+          }}
+        />
+        <Text size="xs" c="dimmed">
+          Unsaved changes
+        </Text>
+      </Group>
+    );
+  }
+
+  if (!savedAt) return null;
+
+  return (
+    <Text size="xs" c="dimmed">
+      Saved {relativeTime(savedAt)}
+    </Text>
+  );
+}
+
+/** "just now" / "5 minutes ago" — enough to answer "did that save?". */
+function relativeTime(at: Date): string {
+  const seconds = Math.round((Date.now() - at.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+
+  return at.toLocaleDateString();
 }

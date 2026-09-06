@@ -7,6 +7,19 @@ const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 export const absoluteApiBase = () =>
   /^https?:\/\//.test(API_BASE) ? API_BASE : `${window.location.origin}${API_BASE}`;
 
+export interface PageRevisionSummary {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  createdAt: string;
+  createdBy: { id: string; name: string | null; email?: string | null } | null;
+}
+
+export interface PageRevision extends Omit<PageRevisionSummary, 'createdBy'> {
+  content: string;
+}
+
 export interface PageListParams {
   status?: PageStatus;
   q?: string;
@@ -72,6 +85,25 @@ export const pageService = {
   /** URL of the standalone content document, for framing in the preview. */
   previewUrl(workspaceId: string, slug: string) {
     return this.publicUrl(workspaceId, slug, { format: 'html' });
+  },
+
+  /** Copies a page as a new draft. */
+  duplicate(workspaceId: string, id: string) {
+    return api.post<Page>(`${base(workspaceId)}/${id}/duplicate`, {});
+  },
+
+  revisions(workspaceId: string, id: string) {
+    return api.get<{ items: PageRevisionSummary[] }>(
+      `${base(workspaceId)}/${id}/revisions`
+    );
+  },
+
+  revision(workspaceId: string, id: string, revisionId: string) {
+    return api.get<PageRevision>(`${base(workspaceId)}/${id}/revisions/${revisionId}`);
+  },
+
+  restoreRevision(workspaceId: string, id: string, revisionId: string) {
+    return api.post<Page>(`${base(workspaceId)}/${id}/revisions/${revisionId}/restore`, {});
   },
 
   create(workspaceId: string, payload: PagePayload) {
