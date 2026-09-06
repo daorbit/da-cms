@@ -131,9 +131,19 @@
  * so it keeps its own colour and only the cursor says so.
  */
 .input:disabled {
+  --input-disabled-color: var(--mantine-color-text);
+  --input-disabled-bg: transparent;
   color: var(--mantine-color-text);
+  background: transparent;
   opacity: 1;
+  -webkit-text-fill-color: var(--mantine-color-text);
   cursor: default;
+}
+
+.input:disabled::placeholder {
+  color: var(--mantine-color-dimmed);
+  -webkit-text-fill-color: var(--mantine-color-dimmed);
+  opacity: 1;
 }
 
 .inputWrap:has(.input:disabled) {
