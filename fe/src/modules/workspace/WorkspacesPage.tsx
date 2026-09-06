@@ -1,25 +1,48 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  ActionIcon, Badge, Button, Card, Center, CopyButton, Group, Modal, Stack, Text,
-  TextInput, Title, Tooltip,
-} from '@mantine/core';
+  ActionIcon,
+  Badge,
+  Box,
+  Button,
+  Card,
+  CopyButton,
+  Group,
+  Modal,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from "@mantine/core";
 import {
-  IconPlus, IconCheck, IconCopy, IconArrowRight, IconEdit, IconArrowLeft,
-} from '@tabler/icons-react';
-import { notifications } from '@mantine/notifications';
-import { useAuth } from '@/hooks/useAuth';
-import { api, ApiError } from '@/lib/api';
-import { workspaceService } from '@/modules/workspace/workspaceService';
-import type { Workspace } from '@/types';
+  IconPlus,
+  IconCheck,
+  IconCopy,
+  IconArrowRight,
+  IconEdit,
+} from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
+import { useAuth } from "@/hooks/useAuth";
+import { api, ApiError } from "@/lib/api";
+import { workspaceService } from "@/modules/workspace/workspaceService";
+import type { Workspace } from "@/types";
 
 const slugify = (input: string) =>
-  input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 /**
  * Manage every workspace this account belongs to: switch between them, create
- * new ones, rename the ones you can. Lives outside the `/:workspaceSlug` shell
- * so it works even when no workspace is "current".
+ * new ones, rename the ones you can, and read the workspace id the content API
+ * is addressed by.
+ *
+ * Routed twice: inside the `/:workspaceSlug` shell, where the sidebar links to
+ * it, and bare at `/workspaces` for the post-login landing, which has no
+ * workspace to scope to yet.
  */
 export function WorkspacesPage() {
   const navigate = useNavigate();
@@ -31,8 +54,8 @@ export function WorkspacesPage() {
   const enter = (w: Workspace) => navigate(`/${w.slug}/dashboard`);
 
   return (
-    <Center py="xl" px="md">
-      <Stack gap="lg" w="100%" maw={720}>
+    <Box py="xl" px="md">
+      <Stack gap="lg">
         <Group justify="space-between" align="flex-end">
           <div>
             <Title order={2}>Workspaces</Title>
@@ -41,16 +64,10 @@ export function WorkspacesPage() {
             </Text>
           </div>
           <Group gap="xs">
-            {workspaces.length > 0 && (
-              <Button
-                variant="default"
-                leftSection={<IconArrowLeft size={15} />}
-                onClick={() => navigate(`/${workspaces[0].slug}/dashboard`)}
-              >
-                Back to app
-              </Button>
-            )}
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setCreateOpen(true)}
+            >
               New workspace
             </Button>
           </Group>
@@ -70,7 +87,7 @@ export function WorkspacesPage() {
                         {w.role}
                       </Badge>
                     )}
-                    {(w.role === 'owner' || w.role === 'admin') && (
+                    {(w.role === "owner" || w.role === "admin") && (
                       <Tooltip label="Rename">
                         <ActionIcon
                           variant="subtle"
@@ -83,15 +100,35 @@ export function WorkspacesPage() {
                       </Tooltip>
                     )}
                   </Group>
-                  <Group gap={4} mt={2}>
+                  <Group gap={4} mt={2} wrap="nowrap">
                     <Text c="dimmed" size="xs" ff="monospace">
                       /{w.slug}
                     </Text>
+                    <Text c="dimmed" size="xs">
+                      ·
+                    </Text>
+                    {/* Shown rather than only copyable: the id is what the
+                        content API calls are addressed to, so someone wiring a
+                        site up needs to read it, not just paste it blind. */}
+                    <Text c="dimmed" size="xs" ff="monospace" truncate>
+                      {w.id}
+                    </Text>
                     <CopyButton value={w.id}>
                       {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : 'Copy workspace ID'}>
-                          <ActionIcon variant="subtle" color="gray" size="xs" onClick={copy}>
-                            {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                        <Tooltip
+                          label={copied ? "Copied" : "Copy workspace ID"}
+                        >
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="xs"
+                            onClick={copy}
+                          >
+                            {copied ? (
+                              <IconCheck size={12} />
+                            ) : (
+                              <IconCopy size={12} />
+                            )}
                           </ActionIcon>
                         </Tooltip>
                       )}
@@ -103,7 +140,7 @@ export function WorkspacesPage() {
                   rightSection={<IconArrowRight size={15} />}
                   onClick={() => enter(w)}
                 >
-                  Open
+                  Switch
                 </Button>
               </Group>
             </Card>
@@ -116,7 +153,11 @@ export function WorkspacesPage() {
                 <Text c="dimmed" size="sm">
                   Create one to start adding content.
                 </Text>
-                <Button mt="xs" leftSection={<IconPlus size={15} />} onClick={() => setCreateOpen(true)}>
+                <Button
+                  mt="xs"
+                  leftSection={<IconPlus size={15} />}
+                  onClick={() => setCreateOpen(true)}
+                >
                   New workspace
                 </Button>
               </Stack>
@@ -136,7 +177,7 @@ export function WorkspacesPage() {
       />
 
       <RenameWorkspaceModal
-        key={renaming?.id ?? 'none'}
+        key={renaming?.id ?? "none"}
         workspace={renaming}
         onClose={() => setRenaming(null)}
         onRenamed={async () => {
@@ -144,7 +185,7 @@ export function WorkspacesPage() {
           await refresh();
         }}
       />
-    </Center>
+    </Box>
   );
 }
 
@@ -157,16 +198,16 @@ function CreateWorkspaceModal({
   onClose: () => void;
   onCreated: (w: Workspace) => void;
 }) {
-  const [name, setName] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [name, setName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const nameError = name.trim() ? null : 'Give your workspace a name';
+  const nameError = name.trim() ? null : "Give your workspace a name";
   const urlError =
     !websiteUrl.trim() || /^https?:\/\/\S+\.\S+/.test(websiteUrl.trim())
       ? null
-      : 'Enter a full URL, including https://';
+      : "Enter a full URL, including https://";
 
   const submit = async () => {
     if (nameError || urlError) {
@@ -176,15 +217,19 @@ function CreateWorkspaceModal({
     setBusy(true);
     setError(null);
     try {
-      const created = await api.post<Workspace>('/workspaces', {
+      const created = await api.post<Workspace>("/workspaces", {
         name: name.trim(),
         websiteUrl: websiteUrl.trim(),
       });
-      setName('');
-      setWebsiteUrl('');
+      setName("");
+      setWebsiteUrl("");
       onCreated(created);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create the workspace');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not create the workspace",
+      );
     } finally {
       setBusy(false);
     }
@@ -202,7 +247,7 @@ function CreateWorkspaceModal({
         />
         {name.trim() && (
           <Text size="xs" c="dimmed" ff="monospace">
-            /{slugify(name) || 'workspace'}
+            /{slugify(name) || "workspace"}
           </Text>
         )}
         <TextInput
@@ -236,7 +281,7 @@ function RenameWorkspaceModal({
 }) {
   // `key` on this component (the workspace id) resets state per open, so the
   // field can start seeded with the current name.
-  const [name, setName] = useState(workspace?.name ?? '');
+  const [name, setName] = useState(workspace?.name ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -247,10 +292,10 @@ function RenameWorkspaceModal({
     setError(null);
     try {
       await workspaceService.update(workspace.id, { name: next });
-      notifications.show({ message: 'Workspace renamed', color: 'teal' });
+      notifications.show({ message: "Workspace renamed", color: "teal" });
       onRenamed();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not rename');
+      setError(err instanceof ApiError ? err.message : "Could not rename");
     } finally {
       setBusy(false);
     }
@@ -260,7 +305,7 @@ function RenameWorkspaceModal({
     <Modal
       opened={workspace !== null}
       onClose={() => {
-        setName('');
+        setName("");
         onClose();
       }}
       title="Rename workspace"
@@ -282,7 +327,7 @@ function RenameWorkspaceModal({
           <Button
             variant="default"
             onClick={() => {
-              setName('');
+              setName("");
               onClose();
             }}
           >

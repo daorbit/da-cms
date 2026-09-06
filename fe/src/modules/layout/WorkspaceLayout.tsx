@@ -3,7 +3,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
-  IconUsers,
+  IconUsers, IconBuilding,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -84,7 +84,7 @@ export function WorkspaceLayout() {
               <Menu.Divider />
               <Menu.Item
                 leftSection={<IconPlus size={14} />}
-                onClick={() => navigate('/workspaces')}
+                onClick={() => go('workspaces')}
               >
                 Manage workspaces
               </Menu.Item>
@@ -105,6 +105,16 @@ export function WorkspaceLayout() {
                 onClick={() => go(item.to)}
               />
             ))}
+
+            {/* Lists every workspace, with its id and rename. It was reachable
+                only from inside the switcher dropdown before, which is a thing
+                you have to already know about to find. */}
+            <NavLink
+              label="Workspaces"
+              leftSection={<IconBuilding size={18} stroke={1.6} />}
+              active={pathname === `/${workspaceSlug}/workspaces`}
+              onClick={() => go('workspaces')}
+            />
           </Stack>
 
           {/* Pushed to the bottom: theme and account are settings, not

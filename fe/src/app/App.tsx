@@ -57,6 +57,11 @@ export function App() {
 
                 <Route path="teams" element={<TeamsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                {/* The same screen as the top-level /workspaces, but inside the
+                    shell: reached from the sidebar, it should keep the sidebar.
+                    The bare route stays for the post-login landing, which has no
+                    workspace to scope to yet. */}
+                <Route path="workspaces" element={<WorkspacesPage />} />
               </Route>
             </Route>
           </Route>
