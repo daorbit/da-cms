@@ -62,14 +62,41 @@
   overflow-y: auto;
   overflow-x: hidden;
   background-color: #ffffff;
-  /* The mock stands in for hardware — a desktop scrollbar drawn down its
-     screen edge reads as chrome, not as part of the previewed page. */
+  /* A scrollbar is a desktop affordance: on the phone and tablet mocks it draws
+     a square bar across the screen's rounded corner and reads as a rendering
+     fault rather than as part of the device. Those two hide it; the laptop,
+     whose screen is square-cornered and which really does show one, keeps it. */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .screen::-webkit-scrollbar {
   display: none;
+}
+
+.macbookScreen {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.macbookScreen::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.macbookScreen::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.macbookScreen::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+.macbookScreen::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 /* ---- Desktop: a MacBook Air ---- */

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Center, Loader, Stack } from '@mantine/core';
+import { Alert, Box, Center, Loader, Stack } from '@mantine/core';
 import { usePageEditor } from '@/modules/content/pages/editor/usePageEditor';
 import { PageEditorToolbar } from '@/modules/content/pages/editor/PageEditorToolbar';
 import { EditorSurface } from '@/modules/content/pages/editor/EditorSurface';
@@ -28,24 +28,27 @@ export function PageEditorPage() {
     );
   }
 
+  // The shell runs this route flush so the editor reaches both edges; the
+  // header and any error above it take back the inset for themselves.
   return (
-  
-    <Stack gap="lg" h="100%">
-      <PageEditorToolbar
-        title={editor.title}
-        status={editor.status}
-        savingAction={editor.savingAction}
-        onBack={() => navigate(`/${editor.workspace?.slug}/content/pages`)}
-        onOpenDetails={() => navigate(`/${editor.workspace?.slug}/content/pages/${id}/details`)}
-        onPreview={() => setPreviewOpen(true)}
-        onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft', 'save')}
-        onPublishToggle={() =>
-          editor.save(editor.status === 'published' ? 'draft' : 'published', 'publish')
-        }
-      />
+    <Stack gap="md" h="100%" pt="lg">
+      <Box px="lg">
+        <PageEditorToolbar
+          title={editor.title}
+          status={editor.status}
+          savingAction={editor.savingAction}
+          onBack={() => navigate(`/${editor.workspace?.slug}/content/pages`)}
+          onOpenDetails={() => navigate(`/${editor.workspace?.slug}/content/pages/${id}/details`)}
+          onPreview={() => setPreviewOpen(true)}
+          onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft', 'save')}
+          onPublishToggle={() =>
+            editor.save(editor.status === 'published' ? 'draft' : 'published', 'publish')
+          }
+        />
+      </Box>
 
       {editor.error && (
-        <Alert color="red" variant="light">
+        <Alert color="red" variant="light" mx="lg">
           {editor.error}
         </Alert>
       )}
@@ -57,6 +60,7 @@ export function PageEditorPage() {
           opened={previewOpen}
           onClose={() => setPreviewOpen(false)}
           title={editor.title}
+          content={editor.content}
           src={pageService.previewUrl(editor.workspace.id, editor.slug)}
         />
       )}

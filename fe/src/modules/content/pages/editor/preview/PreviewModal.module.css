@@ -223,3 +223,19 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+
+/* The page inside the device screen. The content carries its own inline
+   styling, so this only supplies the reading margin a published page would
+   have and the white ground it sits on. */
+.page {
+  min-height: 100%;
+  padding: 32px 20px 64px;
+  background: #fff;
+  color: #1f2328;
+}
+
+.page :global(img),
+.page :global(video) {
+  max-width: 100%;
+  height: auto;
+}

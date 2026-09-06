@@ -235,6 +235,23 @@ body {
   min-height: 0;
 }
 
+/* A route that is a surface rather than a panel — the page editor — supplies
+   its own padding and runs to the edges. Dropping the inset here is what lets
+   it do that: a negative margin on the route cannot paint over this element's
+   padding, because this is the scroll container the margin lives inside. */
+.app-main--flush {
+  padding: 0;
+  /* The surface fills the column corner to corner, so the rounding that frames
+     a padded panel would just clip it. */
+  border-radius: 0;
+}
+
+/* The burger is the only shell chrome inside the main column, so under a flush
+   route it needs the inset the column no longer provides. */
+.app-main--flush > .mantine-Burger-root {
+  margin: var(--mantine-spacing-sm) 0 0 var(--mantine-spacing-sm);
+}
+
 [data-mantine-color-scheme='dark'] .app-main {
   background: #17171a;
   box-shadow:

@@ -9,7 +9,9 @@ interface Props {
   opened: boolean;
   onClose: () => void;
   title: string;
-  /** URL of the standalone content document to frame. */
+  /** The page's serialized content, carrying its own inline styling. */
+  content: string;
+  /** The standalone document, for opening the preview in its own tab. */
   src: string;
 }
 
@@ -19,10 +21,12 @@ interface Props {
  * a phone layout whatever room the modal has.
  *
  * Adapted from the forms builder's PreviewModal: same frame, switch and
- * fit-to-stage behaviour, with an iframe on the screen in place of a live
- * component render.
+ * fit-to-stage behaviour, rendering the content directly onto the screen the
+ * way the forms builder renders its form. An iframe would be its own document
+ * with its own OS-drawn scrollbar, which reads as chrome on a device mock; the
+ * content is self-styled, so it needs no document of its own to render.
  */
-export function ContentPreviewModal({ opened, onClose, title, src }: Props) {
+export function ContentPreviewModal({ opened, onClose, title, content, src }: Props) {
   const [device, setDevice] = useState<DeviceId>('macbook');
 
   const size = frameSize(device);
@@ -61,12 +65,14 @@ export function ContentPreviewModal({ opened, onClose, title, src }: Props) {
       <Box className={classes.body}>
         <Box className={classes.stage} ref={stageRef}>
           <DeviceFrame device={device} scale={scale} hidden={!measured}>
-          
-            <iframe
+            {/* Remounted per device and per open so each preview starts fresh
+                at that device's width. The markup is the editor's own
+                serialized output — its text is escaped and its URLs sanitized
+                on the way out, and it is the author's own page. */}
+            <div
               key={`${device}-${opened}`}
-              src={src}
-              title={`${title} preview`}
-              style={{ width: '100%', height: '100%', border: 0, display: 'block', background: '#fff' }}
+              className={classes.page}
+              dangerouslySetInnerHTML={{ __html: content }}
             />
           </DeviceFrame>
         </Box>

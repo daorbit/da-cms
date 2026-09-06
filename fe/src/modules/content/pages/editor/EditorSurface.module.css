@@ -1,17 +1,6 @@
-/* The writing surface is meant to run edge to edge, but the app shell insets
-   every route by its own padding. Pulling back by that inset lets the editor
-   reach both edges without removing the padding the rest of the app relies on. */
+/* The shell runs this route flush to the edges, so the surface only has to fill
+   the space it is given — the editor supplies its own padding. */
 .surface {
   flex: 1;
   min-height: 0;
-  margin-left: calc(-1 * var(--mantine-spacing-lg));
-  margin-right: calc(-1 * var(--mantine-spacing-lg));
-}
-
-@media (max-width: 48em) {
-  /* The shell drops to a smaller inset on a phone, so the pull-back follows. */
-  .surface {
-    margin-left: -1rem;
-    margin-right: -1rem;
-  }
 }

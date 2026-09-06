@@ -29,6 +29,12 @@ export function WorkspaceLayout() {
 
   const workspace = workspaces.find((w) => w.slug === workspaceSlug);
 
+  // The page editor is a writing surface rather than a panel of content: it
+  // supplies its own padding and runs to the edges, so the shell drops the
+  // inset it gives every other route instead of the route clawing it back with
+  // a negative margin it cannot paint over.
+  const fullBleed = /\/content\/pages\/[^/]+\/edit$/.test(pathname);
+
   const handleLogout = async () => {
     await api.post('/auth/logout');
     clearSession();
@@ -142,7 +148,7 @@ export function WorkspaceLayout() {
         </Stack>
       </nav>
 
-      <main className="app-main">
+      <main className={`app-main${fullBleed ? ' app-main--flush' : ''}`}>
         {/* The only thing left of the header: without it there is no way to
             open the sidebar on a phone. */}
         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" mb="md" />

@@ -12,19 +12,9 @@ interface Props {
   placeholder?: string;
 }
 
-/** How much of the document the model gets as context, in characters. */
 const CONTEXT_LIMIT = 6000;
 
-/**
- * Rich body field backed by `da-text-editor`. It keeps the same
- * `value` / `onChange` HTML string contract every caller and the preview
- * already expect, so nothing downstream changes.
- *
- * Content is serialized with `inlineStyles`, so the saved HTML carries its own
- * styling and renders identically anywhere it is published â€” the preview, a
- * customer's site, an email. Nothing downstream has to load the editor's
- * stylesheet, which is what keeps the editor a frontend-only dependency.
- */
+ 
 export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€¦' }: Props) {
   const ref = useRef<DaEditorHandle>(null);
   const lastHtml = useRef(value);
@@ -33,8 +23,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
   const [aiOpen, setAiOpen] = useState(false);
   const [selection, setSelection] = useState('');
 
-  // The editor owns its document, so only push in changes that did not
-  // originate here (page load, discard, switching pages).
+ 
   useEffect(() => {
     if (value === lastHtml.current) return;
     lastHtml.current = value;
@@ -47,8 +36,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
     onChange(html);
   };
 
-  // Read the selection before the modal opens: focus moves to the dialog, and
-  // by the time the request is sent the editor no longer has one.
+ 
   const openAi = () => {
     const editor = ref.current?.editor;
     const selected = editor?.selection ? Editor.string(editor, editor.selection) : '';
@@ -56,12 +44,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
     setAiOpen(true);
   };
 
-  /**
-   * Generated content lands at the cursor, replacing the selection when the
-   * writer had one â€” the same shape as pasting, which is what "write this for
-   * me" turns out to mean in use. The editor's own parser turns the fragment
-   * into nodes, so headings, tables and marks arrive intact.
-   */
+ 
   const insertHtml = (html: string) => {
     const editor = ref.current?.editor;
     if (!editor) return;
