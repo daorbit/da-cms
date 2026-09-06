@@ -1,22 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, useMantineColorScheme } from '@mantine/core';
 import { Editor, Transforms, type Node as SlateNode } from 'slate';
-import { DaEditor, deserializeHtml, type DaEditorHandle } from 'da-text-editor';
+import {
+  DaEditor,
+  deserializeHtml,
+  type DaEditorHandle,
+  type MediaKind as EditorMediaKind,
+} from 'da-text-editor';
 import 'da-text-editor/styles.css';
 import { AskAiBar } from './AskAiBar';
+import { MediaPickerModal } from '@/modules/media/MediaPickerModal';
+import type { MediaKind } from '@/modules/media/mediaService';
 import classes from './PageBodyEditor.module.css';
 
 interface Props {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
-  /** Raised while Orbit is writing, so the page can lock saving. */
   onGeneratingChange?: (generating: boolean) => void;
 }
 
 const CONTEXT_LIMIT = 6000;
 
-/** How long each generated block takes to appear. Fast enough not to be a wait. */
+ 
+function toLibraryKind(kind: EditorMediaKind): MediaKind {
+  if (kind === 'image') return 'image';
+  if (kind === 'video' || kind === 'audio') return 'video';
+  return 'raw';
+}
+
 const BLOCK_INTERVAL_MS = 90;
 
 export function PageBodyEditor({
@@ -29,9 +41,21 @@ export function PageBodyEditor({
   const lastHtml = useRef(value);
   const { colorScheme } = useMantineColorScheme();
 
-  const [aiOpen, setAiOpen] = useState(false);
+ 
+  const [aiOpen, setAiOpen] = useState(true);
   const [selection, setSelection] = useState('');
   const [typing, setTyping] = useState(false);
+
+ 
+  const [picking, setPicking] = useState<{
+    kind: MediaKind;
+    resolve: (v: { url: string; name?: string } | null) => void;
+  } | null>(null);
+
+  const pickMedia = (kind: EditorMediaKind) =>
+    new Promise<{ url: string; name?: string } | null>((resolve) => {
+      setPicking({ kind: toLibraryKind(kind), resolve });
+    });
 
   useEffect(() => {
     if (value === lastHtml.current) return;
@@ -52,15 +76,7 @@ export function PageBodyEditor({
     setAiOpen(true);
   };
 
-  /**
-   * Types the generated content in a block at a time.
-   *
-   * The model answers all at once, so this is presentation rather than real
-   * streaming — but dropping a finished article in on one frame reads as a
-   * paste and gives no sense that anything was written. Block by block, the
-   * document fills the way someone would write it, and the writer can read what
-   * is arriving while it arrives.
-   */
+ 
   const insertHtml = (html: string) => {
     const editor = ref.current?.editor;
     if (!editor) return;
@@ -78,8 +94,6 @@ export function PageBodyEditor({
 
       if (node) {
         Transforms.insertNodes(editor, node as SlateNode);
-        // Keeps the newest block in view, so a long piece does not write itself
-        // off the bottom of the screen.
         ref.current?.focus();
       }
 
@@ -104,9 +118,24 @@ export function PageBodyEditor({
           theme={colorScheme === 'auto' ? 'system' : colorScheme}
           placeholder={placeholder}
           onAskAi={openAi}
+          onPickMedia={pickMedia}
           onChange={emitChange}
         />
       </Box>
+
+      <MediaPickerModal
+        opened={picking !== null}
+        kind={picking?.kind ?? 'image'}
+        title={`Choose ${picking?.kind === 'image' ? 'an image' : 'a file'}`}
+        onClose={() => {
+          picking?.resolve(null);
+          setPicking(null);
+        }}
+        onSelect={(asset) => {
+          picking?.resolve({ url: asset.url, name: asset.name });
+          setPicking(null);
+        }}
+      />
 
       <AskAiBar
         opened={aiOpen}
