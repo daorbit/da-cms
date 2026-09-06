@@ -10,10 +10,8 @@ import {
 import { getPublicPageBySlug } from '../controllers/page.controller.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { requireAuth } from '../middleware/require-auth.js';
-import {
-  requireWorkspaceMember,
-  requireWorkspaceRole,
-} from '../middleware/require-workspace-member.js';
+import { requireApiAuth } from '../middleware/require-api-auth.js';
+import { requireWorkspaceRole } from '../middleware/require-workspace-member.js';
 import { pageRoutes } from './page.route.js';
 import { dashboardRoutes } from './dashboard.route.js';
 import { memberRoutes } from './member.route.js';
@@ -21,38 +19,34 @@ import { memberRoutes } from './member.route.js';
 export const workspaceRoutes = Router();
 
 // Public, no auth — the content API an external site calls to render a page it
-// owns here. Declared before `requireAuth` so it stays open.
+// owns here. Declared before any auth so it stays open.
 workspaceRoutes.get('/:workspaceId/pagebyslug/:slug', asyncHandler(getPublicPageBySlug));
 
-workspaceRoutes.use(requireAuth);
-
-workspaceRoutes.post('/', asyncHandler(createWorkspace));
-workspaceRoutes.get('/', asyncHandler(listWorkspaces));
-
-workspaceRoutes.get(
-  '/:workspaceId',
-  requireWorkspaceMember,
-  asyncHandler(getWorkspace)
-);
+/* Everything scoped to a workspace authenticates the same way, whether the
+   caller is the editor in a browser or a script: `requireApiAuth` takes the
+   session cookie or the same token as an Authorization: Bearer header, then
+   checks the caller's membership of this workspace. */
+workspaceRoutes.get('/:workspaceId', requireApiAuth, asyncHandler(getWorkspace));
 workspaceRoutes.patch(
   '/:workspaceId',
-  requireWorkspaceMember,
+  requireApiAuth,
   requireWorkspaceRole('owner', 'admin'),
   asyncHandler(updateWorkspace)
 );
 
-workspaceRoutes.get(
-  '/:workspaceId/settings',
-  requireWorkspaceMember,
-  asyncHandler(getSettings)
-);
+workspaceRoutes.get('/:workspaceId/settings', requireApiAuth, asyncHandler(getSettings));
 workspaceRoutes.patch(
   '/:workspaceId/settings',
-  requireWorkspaceMember,
+  requireApiAuth,
   requireWorkspaceRole('owner', 'admin'),
   asyncHandler(updateSettings)
 );
 
-workspaceRoutes.use('/:workspaceId/pages', pageRoutes);
-workspaceRoutes.use('/:workspaceId/dashboard', dashboardRoutes);
-workspaceRoutes.use('/:workspaceId/members', memberRoutes);
+workspaceRoutes.use('/:workspaceId/pages', requireApiAuth, pageRoutes);
+workspaceRoutes.use('/:workspaceId/dashboard', requireApiAuth, dashboardRoutes);
+workspaceRoutes.use('/:workspaceId/members', requireApiAuth, memberRoutes);
+
+/* Not workspace-scoped, so there is no `:workspaceId` to check a membership
+   against — these are gated on the session alone. */
+workspaceRoutes.post('/', requireAuth, asyncHandler(createWorkspace));
+workspaceRoutes.get('/', requireAuth, asyncHandler(listWorkspaces));

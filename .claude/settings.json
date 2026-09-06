@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp /tmp/check.mjs ./check.mjs)",
+      "Bash(node check.mjs)",
+      "Bash(rm -f check.mjs)",
+      "Bash(node push-posts.mjs posts.json \"http://localhost:8081/api\" 6a9cfdb839090e083196fcaa \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMWU4YjJmOGY2OTdhNDE0ZGE2NDc0MyIsImlhdCI6MTc4ODU5MDE1NywiZXhwIjoxNzg5MTk0OTU3fQ.c8zXWulwrgYNEDRSiSHPrwLXWbSrysaME1JLqUNoxXs\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa\" -H \"Authorization: Bearer dak_SVaRjWFnBGf6ytTbJWkjge21HicntwjiiHLVGeEIcf0\")",
+      "Bash(sed -i 's/Cookie: `da_cms_token=${token}`/Authorization: `Bearer ${token}`/' push-posts.mjs)",
+      "Bash(node push-posts.mjs posts.json \"http://localhost:8081/api\" 6a9cfdb839090e083196fcaa \"dak_SVaRjWFnBGf6ytTbJWkjge21HicntwjiiHLVGeEIcf0\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug/introducing-quantalog?fields=title,slug,description,content\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages?group=blogs&perPage=3\" -H \"Authorization: Bearer dak_SVaRjWFnBGf6ytTbJWkjge21HicntwjiiHLVGeEIcf0\")",
+      "Bash(echo \"-- bearer workspace:\")",
+      "Bash(curl -s http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTljZmQ5ZTM5MDkwZTA4MzE5NmZjYTkiLCJpYXQiOjE3ODg2NzU1MDEsImV4cCI6MTc5MTI2NzUwMX0.FUa0uismqSyQy6FnMfD03a-u3jbcQsRgZ0dH8UtCTlE')",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug/introducing-quantalog?fields=title\")"
+    ]
+  }
+}

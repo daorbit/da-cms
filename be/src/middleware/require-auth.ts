@@ -16,9 +16,18 @@ declare global {
 }
 
 export const requireAuth: RequestHandler = (req, res, next) => {
-  const token = req.cookies?.[env.cookieName];
+  // The browser sends the session in an httpOnly cookie; a script or another
+  // server sends the same token as a bearer header. One credential, two
+  // transports — so API callers get exactly the access the user has.
+  const header = req.get('authorization');
+  const bearer = header ? /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1] : null;
+  const token = bearer ?? req.cookies?.[env.cookieName];
+
   if (!token) {
-    const body: ApiError = { error: 'unauthorized', message: 'Not signed in' };
+    const body: ApiError = {
+      error: 'unauthorized',
+      message: 'Sign in, or send your token as an Authorization: Bearer header',
+    };
     res.status(401).json(body);
     return;
   }
