@@ -4,10 +4,14 @@ import { cloudflareChat, cloudflareReady } from '../lib/cloudflare-ai.js';
 import type { ApiError } from '../types/index.js';
 
  
-const MODELS = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fp8-fast'];
+ 
+const MODELS = [
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/mistralai/mistral-small-3.1-24b-instruct',
+];
 
  
-const MAX_TOKENS = 3500;
+const MAX_TOKENS = 1800;
 
 const MODEL_TIMEOUT_MS = 45_000;
 
@@ -39,21 +43,20 @@ Never write markdown. Asterisks around a word are a bug: bold is <strong>, not *
 
 You are writing for publication. A wall of plain paragraphs is a failed answer.
 
-Length. Unless the instruction asks otherwise, a piece runs 450-650 words across
-18-28 blocks. This is a draft the writer expands, so it is tight: every sentence
-earns its place, and there is no summary section restating what was just said.
+Length. Match the instruction. A request for a line returns a line, a request for
+a section returns a section. Absent any steer, write 250-350 words across 10-16
+blocks. This is a draft the writer expands, so it is tight: every sentence earns
+its place, and there is no summary section restating what was just said.
 
 Paragraphs are 40-70 words — three or four sentences that make one point and give
 a reason or an example. Never a one-sentence paragraph, and never two paragraphs
 saying the same thing at different lengths.
 
-Structure. A piece of that length contains, at minimum:
-- 3-4 <h2> sections
-- at least one table — any comparison, any set of options, any before/after
-  goes in a table rather than in prose
-- at least one <ul> or <ol> — steps, requirements and criteria are lists,
-  not sentences separated by semicolons
-- at least one callout for the caveat or key takeaway
+Structure. Use the block that fits the content, never one that does not:
+- <h2> to separate genuinely distinct sections
+- a table when there is something to compare, and only then
+- a list for steps, requirements or criteria
+- a callout for a real caveat, not for emphasis
 - <strong> on the terms that matter
 
 Substance. Specifics only: real numbers, named tools, concrete scenarios, actual
@@ -139,7 +142,7 @@ export const composeContent: RequestHandler = async (req, res) => {
     : [
         context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
         `Instruction:\n${prompt}`,
-        'Write a tight piece: about 500 words, 18-28 blocks, every paragraph 40-70 words, with a table, a list and a callout where they fit. Return the HTML fragment only.',
+        'Follow the instruction exactly, including any length it asks for. Return the HTML fragment only.',
       ].filter(Boolean);
 
  
