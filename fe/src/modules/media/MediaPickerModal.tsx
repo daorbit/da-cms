@@ -5,6 +5,7 @@ import {
   Group,
   Loader,
   Modal,
+  Pagination,
   Stack,
   Text,
   TextInput,
@@ -16,6 +17,9 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid } from './MediaGrid';
+
+/** Matches the library page, so the two feel like one wall. */
+const PER_PAGE = 12;
 
 interface Props {
   opened: boolean;
@@ -50,6 +54,8 @@ export function MediaPickerModal({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<MediaKind | 'all'>(kind);
   const [selected, setSelected] = useState<MediaAsset | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -60,9 +66,11 @@ export function MediaPickerModal({
       const res = await mediaService.list(workspaceId, {
         kind: filter === 'all' ? undefined : filter,
         q: query,
-        perPage: 100,
+        page,
+        perPage: PER_PAGE,
       });
       setItems(res.items);
+      setTotal(res.total);
     } catch (err) {
       notifications.show({
         color: 'red',
@@ -71,7 +79,7 @@ export function MediaPickerModal({
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, opened, filter, query]);
+  }, [workspaceId, opened, filter, query, page]);
 
   useEffect(() => {
     const timer = setTimeout(load, query ? 300 : 0);
@@ -84,8 +92,14 @@ export function MediaPickerModal({
       setSelected(null);
       setQuery('');
       setFilter(kind);
+      setPage(1);
     }
   }, [opened, kind]);
+
+  // A narrowed result set may be shorter than the page being viewed.
+  useEffect(() => {
+    setPage(1);
+  }, [filter, query]);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length || !workspaceId) return;
@@ -94,6 +108,8 @@ export function MediaPickerModal({
     try {
       const asset = await mediaService.upload(workspaceId, files[0]);
       // Picked straight away: uploading here is almost always "use this one".
+      // Shown on the first page too, which is where a new upload sorts to.
+      setPage(1);
       setItems((prev) => [asset, ...prev]);
       setSelected(asset);
     } catch (err) {
@@ -111,6 +127,8 @@ export function MediaPickerModal({
     onSelect(selected);
     onClose();
   };
+
+  const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <Modal opened={opened} onClose={onClose} title={title} size="xl" centered>
@@ -173,6 +191,12 @@ export function MediaPickerModal({
             <MediaGrid items={items} selectedId={selected?.id} onSelect={setSelected} />
           )}
         </div>
+
+        {pageCount > 1 && (
+          <Group justify="center">
+            <Pagination size="sm" value={page} onChange={setPage} total={pageCount} />
+          </Group>
+        )}
 
         <Group justify="space-between">
           <Text size="xs" c="dimmed">

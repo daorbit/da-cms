@@ -8,6 +8,7 @@ import {
   Group,
   Loader,
   Modal,
+  Pagination,
   SegmentedControl,
   Stack,
   Text,
@@ -23,13 +24,18 @@ import {
   IconPencil,
   IconRefresh,
   IconPhotoOff,
+  IconEye,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid, TileAction } from './MediaGrid';
+import { MediaPreviewModal } from './MediaPreviewModal';
 
 type Filter = 'all' | MediaKind;
+
+/** Assets per page. A wall of twelve fills the columns without endless scroll. */
+const PER_PAGE = 12;
 
 /**
  * The workspace's media library: everything uploaded, in one wall.
@@ -51,6 +57,10 @@ export function MediaPage() {
   const [query, setQuery] = useState('');
   const [renaming, setRenaming] = useState<MediaAsset | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MediaAsset | null>(null);
+  const [previewing, setPreviewing] = useState<MediaAsset | null>(null);
+
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -62,21 +72,29 @@ export function MediaPage() {
       const res = await mediaService.list(workspaceId, {
         kind: filter === 'all' ? undefined : filter,
         q: query,
-        perPage: 100,
+        page,
+        perPage: PER_PAGE,
       });
       setItems(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load the library');
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, filter, query]);
+  }, [workspaceId, filter, query, page]);
 
   // Debounced so typing in the search box is not a request per keystroke.
   useEffect(() => {
     const timer = setTimeout(load, query ? 300 : 0);
     return () => clearTimeout(timer);
   }, [load, query]);
+
+  // A narrowed result set is shorter, so the page a user was on may no longer
+  // exist — start again from the first rather than showing an empty wall.
+  useEffect(() => {
+    setPage(1);
+  }, [filter, query]);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length || !workspaceId) return;
@@ -114,8 +132,11 @@ export function MediaPage() {
     if (!pendingDelete || !workspaceId) return;
     try {
       await mediaService.remove(workspaceId, pendingDelete.id);
-      setItems((prev) => prev.filter((a) => a.id !== pendingDelete.id));
       notifications.show({ color: 'teal', message: `Deleted ${pendingDelete.name}` });
+      // Reloaded rather than spliced: the page is a window onto a longer list,
+      // so removing one row should pull the next one up into it.
+      if (items.length === 1 && page > 1) setPage(page - 1);
+      else await load();
     } catch (err) {
       notifications.show({
         color: 'red',
@@ -125,6 +146,8 @@ export function MediaPage() {
       setPendingDelete(null);
     }
   };
+
+  const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <Stack gap="lg">
@@ -227,6 +250,9 @@ export function MediaPage() {
             items={items}
             renderActions={(asset) => (
               <>
+                <TileAction label="Preview" onClick={() => setPreviewing(asset)}>
+                  <IconEye size={14} />
+                </TileAction>
                 <TileAction label="Rename" onClick={() => setRenaming(asset)}>
                   <IconPencil size={14} />
                 </TileAction>
@@ -238,6 +264,23 @@ export function MediaPage() {
           />
         </Box>
       )}
+
+      {pageCount > 1 && (
+        <Group justify="space-between" mt="xs">
+          <Text size="xs" c="dimmed">
+            {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
+          </Text>
+          <Pagination
+            size="sm"
+            value={page}
+            onChange={setPage}
+            total={pageCount}
+            withEdges={pageCount > 5}
+          />
+        </Group>
+      )}
+
+      <MediaPreviewModal asset={previewing} onClose={() => setPreviewing(null)} />
 
       <RenameModal
         // Keyed so the form resets to the asset being renamed each time.
