@@ -4,7 +4,6 @@ import { z } from "zod";
 import { PageModel, SECTION_TYPES } from "../models/page.model.js";
 import { WorkspaceModel } from "../models/workspace.model.js";
 import { slugify } from "../lib/slugify.js";
-import { editorStyles } from "../lib/editor-styles.js";
 import type { ApiError } from "../types/index.js";
 
 /** The group/tag names a workspace currently allows, from its settings blob. */
@@ -308,6 +307,15 @@ function parseFields(raw: unknown): PublicField[] | null {
   return picked.length ? picked : null;
 }
 
+/**
+ * Wraps stored content as a standalone document for the preview frame.
+ *
+ * The editor serializes with its styling inlined on every element, so the
+ * content is self-contained: no stylesheet to ship, and therefore no reason for
+ * the API to know which editor produced it. That keeps the editor a frontend
+ * dependency, and keeps a published page renderable by any site that fetches
+ * this content and drops it into a page of its own.
+ */
 function contentDocument(title: string, content: string) {
   return `<!doctype html>
 <html lang="en">
@@ -315,26 +323,14 @@ function contentDocument(title: string, content: string) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(title)}</title>
-<style>${editorStyles}</style>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  body { margin: 0}
+  body { margin: 0; background: #fff; }
+  img, video { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
-  <div class="da-editor da-editor--readonly wrap">
-    ${content}
-  </div>
-  <script>
-
-    (function () {
-      var el = document.querySelector('.da-editor');
-      var mq = window.matchMedia('(prefers-color-scheme: dark)');
-      var sync = function () { el.setAttribute('data-theme', mq.matches ? 'dark' : 'light'); };
-      sync();
-      mq.addEventListener('change', sync);
-    })();
-  </script>
+${content}
 </body>
 </html>`;
 }

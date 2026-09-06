@@ -19,6 +19,11 @@ const CONTEXT_LIMIT = 6000;
  * Rich body field backed by `da-text-editor`. It keeps the same
  * `value` / `onChange` HTML string contract every caller and the preview
  * already expect, so nothing downstream changes.
+ *
+ * Content is serialized with `inlineStyles`, so the saved HTML carries its own
+ * styling and renders identically anywhere it is published — the preview, a
+ * customer's site, an email. Nothing downstream has to load the editor's
+ * stylesheet, which is what keeps the editor a frontend-only dependency.
  */
 export function PageBodyEditor({ value, onChange, placeholder = 'Start writing…' }: Props) {
   const ref = useRef<DaEditorHandle>(null);
@@ -37,7 +42,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writing�
   }, [value]);
 
   const emitChange = () => {
-    const html = ref.current?.getHTML() ?? '';
+    const html = ref.current?.getHTML({ inlineStyles: true }) ?? '';
     lastHtml.current = html;
     onChange(html);
   };
