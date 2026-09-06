@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, useMantineColorScheme } from '@mantine/core';
-import { Editor, Transforms, type Node as SlateNode } from 'slate';
+import {
+  Editor,
+  Transforms,
+  type Node as SlateNode,
+  type Range as SlateRange,
+} from 'slate';
 import {
   DaEditor,
   deserializeHtml,
@@ -39,6 +44,7 @@ export function PageBodyEditor({
 }: Props) {
   const ref = useRef<DaEditorHandle>(null);
   const lastHtml = useRef(value);
+  const aiRange = useRef<SlateRange | null>(null);
   const { colorScheme } = useMantineColorScheme();
 
  
@@ -72,17 +78,35 @@ export function PageBodyEditor({
   const openAi = () => {
     const editor = ref.current?.editor;
     const selected = editor?.selection ? Editor.string(editor, editor.selection) : '';
+    // The range is kept, not just its text: focus moves to the AI bar while the
+    // request runs, and `editor.selection` is stale or null by the time the
+    // reply needs somewhere to land.
+    aiRange.current = editor?.selection ?? null;
     setSelection(selected);
     setAiOpen(true);
   };
 
  
-  const insertHtml = (html: string) => {
+  const insertHtml = (html: string, mode: 'insert' | 'replace' = 'insert') => {
     const editor = ref.current?.editor;
     if (!editor) return;
 
     const nodes = deserializeHtml(html);
     if (!nodes.length) return;
+ 
+    if (mode === 'replace') {
+      const at = aiRange.current ?? editor.selection;
+      if (at) {
+        Transforms.select(editor, at);
+        Transforms.delete(editor, { at });
+        Transforms.insertFragment(editor, nodes as SlateNode[]);
+      } else {
+        Transforms.insertFragment(editor, nodes as SlateNode[]);
+      }
+      ref.current?.focus();
+      emitChange();
+      return;
+    }
 
     setTyping(true);
     onGeneratingChange?.(true);

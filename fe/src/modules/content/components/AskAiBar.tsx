@@ -24,33 +24,18 @@ import { OrbitMark } from '@/modules/content/components/OrbitMark';
 import { AiSuggestionsModal } from './AiSuggestionsModal';
 import classes from './AskAiBar.module.css';
 
-/** Reference images are sent inline, so they have to stay small. */
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 interface Props {
   opened: boolean;
   onClose: () => void;
-  /** The text the writer had selected, when there was one. */
   selection?: string;
-  /** The document so far, so the model matches its voice. */
   context?: string;
-  /** An HTML fragment, which the editor parses itself. */
-  onInsert: (html: string) => void;
-  /** Raised while the model is writing, so the page can lock saving. */
+  onInsert: (html: string, mode?: 'insert' | 'replace') => void;
   onGeneratingChange: (generating: boolean) => void;
 }
 
-/**
- * Orbit AI, as a bar across the foot of the editor.
- *
- * Not a drawer and not a dialog: the brief is written *about* the document, so
- * anything that covers it makes the writer compose from memory. A bar takes a
- * strip of height and leaves the page in view.
- *
- * The generated content is typed into the editor as it arrives rather than
- * appearing whole, which is what makes it read as writing rather than as a
- * paste — and gives the writer something to watch while the model works.
- */
+ 
 export function AskAiBar({
   opened,
   onClose,
@@ -68,7 +53,6 @@ export function AskAiBar({
 
   const fileRef = useRef<HTMLInputElement>(null);
 
-  /** Puts the caret after a lead-in, so the writer types the topic straight in. */
   const applyPrompt = (value: string) => {
     setPrompt(value);
     requestAnimationFrame(() => {
@@ -79,8 +63,7 @@ export function AskAiBar({
     });
   };
 
-  // Dictation writes into the same box as the keyboard, so a sentence can be
-  // started by voice and finished by hand.
+ 
   const speech = useSpeechInput({
     onTranscript: (text, final) => {
       if (final) setPrompt((p) => (p ? `${p} ${text}` : text));
@@ -130,13 +113,16 @@ export function AskAiBar({
     onGeneratingChange(true);
 
     try {
-      const { html } = await api.post<{ html: string }>('/ai/compose', {
-        prompt,
-        selection: selection || undefined,
-        context: context || undefined,
-        images: images.length ? images.map((i) => i.dataUrl) : undefined,
-      });
-      onInsert(html);
+      const { html, mode } = await api.post<{ html: string; mode?: 'insert' | 'replace' }>(
+        '/ai/compose',
+        {
+          prompt,
+          selection: selection || undefined,
+          context: context || undefined,
+          images: images.length ? images.map((i) => i.dataUrl) : undefined,
+        }
+      );
+      onInsert(html, mode ?? 'insert');
       setPrompt('');
       setImages([]);
     } catch (err) {
@@ -224,8 +210,6 @@ export function AskAiBar({
               disabled={loading}
               style={{ flex: 1 }}
               classNames={{ input: classes.input }}
-              // Enter sends, Shift+Enter breaks the line: the box is a command,
-              // not a document.
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -260,9 +244,6 @@ export function AskAiBar({
                 </ActionIcon>
               </Tooltip>
 
-              {/* Hidden rather than disabled where the browser has no
-                  recogniser: a mic that does nothing when pressed is worse than
-                  no mic at all. */}
               {speech.supported && (
                 <Tooltip label={speech.listening ? 'Stop dictating' : 'Dictate'} withArrow>
                   <ActionIcon
@@ -281,8 +262,6 @@ export function AskAiBar({
                 </Tooltip>
               )}
 
-              {/* Orbit's own green rather than the CMS accent: this control
-                  belongs to the assistant, not to the page around it. */}
               <ActionIcon
                 radius="xl"
                 size="md"
@@ -305,8 +284,7 @@ export function AskAiBar({
               : speech.error || 'Enter to send · Shift+Enter for a new line'}
           </Text>
 
-          {/* A link rather than a row of chips: three chips only ever showed a
-              fraction of what Orbit can do, and took the width to do it. */}
+   
           <UnstyledButton
             className={classes.suggestLink}
             disabled={loading}

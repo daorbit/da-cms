@@ -3,48 +3,24 @@ import { z } from 'zod';
 import { cloudflareChat, cloudflareReady } from '../lib/cloudflare-ai.js';
 import type { ApiError } from '../types/index.js';
 
-/**
- * Two models, tried in order. The 70b writes markedly better structured
- * content; the 8b is there so a busy or failing large model degrades to a
- * slower-but-working answer rather than to an error.
- */
+ 
 const MODELS = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fp8-fast'];
 
-/**
- * Generation time scales with how much the model writes, and at 8000 a full
- * piece took over a minute of staring at a spinner. This is a draft the writer
- * expands, so it is sized for a wait someone will actually sit through.
- */
+ 
 const MAX_TOKENS = 3500;
+
+const MODEL_TIMEOUT_MS = 45_000;
+
+const TOTAL_BUDGET_MS = 60_000;
 
 const composeSchema = z.object({
   prompt: z.string().min(1).max(2000),
-  /** What the writer had selected, when the request is "rewrite this". */
   selection: z.string().max(20000).optional(),
-  /** Surrounding document, so the model matches its voice and does not repeat it. */
   context: z.string().max(20000).optional(),
-  /**
-   * Reference images, as data URLs.
-   *
-   * Accepted and bounded here, but not yet forwarded: the text models this
-   * runs on have no vision input, so passing them through would only inflate
-   * the request. Taking them now means the composer's UI is honest about what
-   * it collects, and wiring a vision model in later is a change to this file
-   * alone.
-   */
   images: z.array(z.string().max(6_000_000)).max(4).optional(),
 });
 
-/**
- * The model answers with HTML, which the editor parses itself.
- *
- * An earlier version asked for the editor's own Slate JSON, on the theory that
- * it skipped a lossy conversion. It did the opposite: the node type names have
- * to be described in the prompt, and a name the editor does not recognise —
- * `heading-two` where it wanted `h2` — silently degrades to a plain paragraph.
- * HTML is a vocabulary the model already knows, and the editor's own parser
- * maps it correctly, marks and tables included.
- */
+ 
 const SYSTEM = `You write content for a CMS editor. You reply with an HTML fragment only — no prose before or after it, no markdown, no code fence.
 
 Use exactly these tags:
@@ -94,16 +70,25 @@ Mechanics:
 - Do not wrap the answer in a code fence, and do not emit <html>, <head> or <body>.
 - Return the whole piece in one reply. Do not stop early or offer to continue.`;
 
-/**
- * Pulls the fragment out of a reply that may still carry a fence or a sentence
- * of preamble, and strips the markdown emphasis that leaks through even with
- * the prompt forbidding it.
- */
+ 
+const EDIT_SYSTEM = `You edit a fragment of a document. You reply with an HTML fragment only — no prose before or after it, no markdown, no code fence, no explanation of what you changed.
+
+You are given a passage and an instruction. Return that passage rewritten, and nothing else.
+
+Rules:
+- Return only the passage. Never add headings, tables, callouts or sections that were not there.
+- Match the length of the original unless the instruction asks for shorter or longer. A one-line input returns roughly one line.
+- Keep the original voice, tense and person.
+- Preserve the inline markup that was there: <strong> <em> <u> <s> <code> <a href>.
+- If the passage was plain text with no tags, return a single <p> and nothing more.
+- If it was several paragraphs, return the same number of <p> blocks.
+- Never write markdown. Bold is <strong>, not **word**.`;
+
+ 
 function parseHtml(text: string): string | null {
   const fenced = text.match(/```(?:html)?\s*([\s\S]*?)```/);
   let body = fenced ? fenced[1] : text;
 
-  // Anything before the first tag is the model talking to us, not content.
   const start = body.search(/<(h[1-6]|p|ul|ol|table|blockquote|pre|div|hr|img)\b/i);
   if (start === -1) return null;
 
@@ -111,15 +96,11 @@ function parseHtml(text: string): string | null {
   if (end <= start) return null;
   body = body.slice(start, end + 1);
 
-  // `**word**` renders as literal asterisks in the editor.
   body = body
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:)]|$)/g, '$1<em>$2</em>');
 
-  // Models pretty-print their HTML, and the newlines between structural tags
-  // parse as text nodes of their own — inside a table that is an empty row per
-  // line break. Only whitespace *between* tags goes; whitespace inside a
-  // paragraph is content.
+ 
   body = body.replace(
     />\s+<(\/?(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|div|h[1-6]|p|pre|blockquote|hr)\b)/gi,
     '><$1'
@@ -128,13 +109,7 @@ function parseHtml(text: string): string | null {
   return body.trim() || null;
 }
 
-/**
- * Writes document content from a prompt.
- *
- * Both models get one attempt each: a reply we cannot parse is as useless as no
- * reply, so an unparseable answer falls through to the next model rather than
- * reaching the editor as an error the writer cannot act on.
- */
+ 
 export const composeContent: RequestHandler = async (req, res) => {
   if (!cloudflareReady()) {
     const body: ApiError = { error: 'unavailable', message: 'AI is not configured' };
@@ -151,26 +126,51 @@ export const composeContent: RequestHandler = async (req, res) => {
 
   const { prompt, selection, context } = parsed.data;
 
+ 
+  const editing = Boolean(selection?.trim());
 
-  const parts = [
-    selection ? `Selected text to work from:\n${selection}` : '',
-    context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
-    `Instruction:\n${prompt}`,
-    'Write a tight piece: about 500 words, 18-28 blocks, every paragraph 40-70 words, with a table, a list and a callout where they fit. Return the HTML fragment only.',
-  ].filter(Boolean);
+  const parts = editing
+    ? [
+        `Passage to rewrite:\n${selection}`,
+        context ? `Surrounding document, for voice only:\n${context}` : '',
+        `Instruction:\n${prompt}`,
+        'Return only the rewritten passage as an HTML fragment.',
+      ].filter(Boolean)
+    : [
+        context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
+        `Instruction:\n${prompt}`,
+        'Write a tight piece: about 500 words, 18-28 blocks, every paragraph 40-70 words, with a table, a list and a callout where they fit. Return the HTML fragment only.',
+      ].filter(Boolean);
+
+ 
+  const maxTokens = editing
+    ? Math.min(MAX_TOKENS, Math.max(300, Math.ceil((selection?.length ?? 0) / 2) + 300))
+    : MAX_TOKENS;
 
   let detail = 'no model answered';
 
+  const startedAt = Date.now();
+
   for (const model of MODELS) {
+    const spent = Date.now() - startedAt;
+    if (spent > TOTAL_BUDGET_MS) break;
+
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      Math.min(MODEL_TIMEOUT_MS, TOTAL_BUDGET_MS - spent)
+    );
+
     const result = await cloudflareChat({
       model,
       messages: [
-        { role: 'system', content: SYSTEM },
+        { role: 'system', content: editing ? EDIT_SYSTEM : SYSTEM },
         { role: 'user', content: parts.join('\n\n') },
       ],
-      maxTokens: MAX_TOKENS,
-      temperature: 0.7,
-    });
+      maxTokens,
+      temperature: editing ? 0.3 : 0.7,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
 
     if (!result.ok) {
       detail = result.detail;
@@ -183,7 +183,7 @@ export const composeContent: RequestHandler = async (req, res) => {
       continue;
     }
 
-    res.json({ html });
+    res.json({ html, mode: editing ? 'replace' : 'insert' });
     return;
   }
 
