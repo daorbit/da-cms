@@ -3,7 +3,6 @@ import {
   Button,
   Center,
   Group,
-  Loader,
   Modal,
   Pagination,
   Stack,
@@ -17,6 +16,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid } from './MediaGrid';
+import { MediaGridSkeleton } from '@/components/Skeletons';
 
 /** Matches the library page, so the two feel like one wall. */
 const PER_PAGE = 12;
@@ -175,9 +175,7 @@ export function MediaPickerModal({
 
         <div style={{ maxHeight: '52vh', overflowY: 'auto' }}>
           {loading ? (
-            <Center py={50}>
-              <Loader size="sm" />
-            </Center>
+            <MediaGridSkeleton count={PER_PAGE} />
           ) : items.length === 0 ? (
             <Center py={50}>
               <Stack align="center" gap="xs">

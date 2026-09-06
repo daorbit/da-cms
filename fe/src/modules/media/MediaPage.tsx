@@ -6,7 +6,6 @@ import {
   Button,
   Center,
   Group,
-  Loader,
   Modal,
   Pagination,
   SegmentedControl,
@@ -31,6 +30,7 @@ import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid, TileAction } from './MediaGrid';
 import { MediaPreviewModal } from './MediaPreviewModal';
+import { MediaGridSkeleton } from '@/components/Skeletons';
 
 type Filter = 'all' | MediaKind;
 
@@ -219,9 +219,7 @@ export function MediaPage() {
       </Group>
 
       {loading ? (
-        <Center py={60}>
-          <Loader size="sm" />
-        </Center>
+        <MediaGridSkeleton count={PER_PAGE} />
       ) : items.length === 0 ? (
         <Center py={60}>
           <Stack align="center" gap="xs">

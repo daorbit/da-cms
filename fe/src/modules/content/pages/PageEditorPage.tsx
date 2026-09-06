@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Box, Center, Loader, Stack } from '@mantine/core';
+import { Alert, Box, Stack } from '@mantine/core';
 import { usePageEditor } from '@/modules/content/pages/editor/usePageEditor';
 import { PageEditorToolbar } from '@/modules/content/pages/editor/PageEditorToolbar';
 import { EditorSurface } from '@/modules/content/pages/editor/EditorSurface';
 import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
 import { pageService } from '@/modules/content/pageService';
+import { Skeleton } from '@mantine/core';
+import { HeaderSkeleton } from '@/components/Skeletons';
 
 /**
  * Shell only: wires the editor state hook to the toolbar and the writing
@@ -22,9 +24,11 @@ export function PageEditorPage() {
 
   if (editor.loading) {
     return (
-      <Center py={80}>
-        <Loader size="sm" />
-      </Center>
+      <Stack gap="md" p="lg">
+        <HeaderSkeleton />
+        <Skeleton height={44} radius="sm" />
+        <Skeleton height={420} radius="sm" />
+      </Stack>
     );
   }
 

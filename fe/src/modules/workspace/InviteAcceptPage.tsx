@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
-  Alert, Button, Card, Center, Group, Loader, Stack, Text, Title,
+  Alert, Button, Card, Center, Group, Skeleton, Stack, Text, Title,
 } from '@mantine/core';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/lib/api';
@@ -63,7 +63,14 @@ export function InviteAcceptPage() {
   if (loading || authLoading) {
     return (
       <Center h="100vh">
-        <Loader />
+        <Card withBorder radius="md" padding="xl" w={380}>
+          <Stack gap="md">
+            <Skeleton height={20} width="60%" radius="sm" />
+            <Skeleton height={13} radius="sm" />
+            <Skeleton height={13} width="80%" radius="sm" />
+            <Skeleton height={36} mt="xs" radius="sm" />
+          </Stack>
+        </Card>
       </Center>
     );
   }

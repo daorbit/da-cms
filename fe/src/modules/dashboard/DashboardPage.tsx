@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert, Badge, Button, Card, Center, Grid, Group, Loader, Stack, Table, Text, Title, ThemeIcon,
+  Alert, Badge, Button, Card, Center, Grid, Group, Stack, Table, Text, Title, ThemeIcon,
 } from '@mantine/core';
 import { IconFileText, IconPencil, IconWorld, IconPlus, IconArrowRight } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +9,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { dashboardService } from '@/modules/dashboard/dashboardService';
 import { ApiError } from '@/lib/api';
 import type { DashboardStats, PageStatus } from '@/types';
+import { DashboardSkeleton } from '@/components/Skeletons';
 
 const TILES = [
   { key: 'total', label: 'Total pages', icon: IconFileText, color: 'blue' },
@@ -55,11 +56,7 @@ export function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] ?? '';
 
   if (loading) {
-    return (
-      <Center py={80}>
-        <Loader size="sm" />
-      </Center>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

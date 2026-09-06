@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ActionIcon, Alert, Badge, Button, Card, Checkbox, Group, Menu, Pagination, Stack, Table, Text,
-  TextInput, Tooltip, Title, SegmentedControl, Center, Loader, Modal, Select,
+  TextInput, Tooltip, Title, SegmentedControl, Center, Modal, Select,
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
@@ -17,6 +17,7 @@ import { PageIntegrationModal } from '@/modules/content/pages/PageIntegrationMod
 import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
 import { ApiError } from '@/lib/api';
 import type { PageSummary, PageStatus } from '@/types';
+import { TableSkeleton } from '@/components/Skeletons';
 
 type StatusFilter = 'all' | PageStatus;
 
@@ -326,9 +327,7 @@ export function PageListPage() {
 
       <Card withBorder radius="md" p={0}>
         {loading ? (
-          <Center py="xl">
-            <Loader size="sm" />
-          </Center>
+          <TableSkeleton rows={10} columns={7} />
         ) : pages.length === 0 ? (
           <Center py={64}>
             <Stack align="center" gap="xs">

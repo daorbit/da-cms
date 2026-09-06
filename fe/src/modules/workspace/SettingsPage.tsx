@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, Center, Loader, Stack, Tabs, Text, Title } from '@mantine/core';
+import { Alert, Stack, Tabs, Text, Title } from '@mantine/core';
 import {
   IconAdjustments, IconCategory, IconTags, IconLink,
 } from '@tabler/icons-react';
@@ -11,6 +11,7 @@ import type { WorkspaceSettings } from '@/types';
 import { GeneralTab } from './settings/GeneralTab';
 import { TermsTab } from './settings/TermsTab';
 import { SiteLinksTab } from './settings/SiteLinksTab';
+import { FormSkeleton } from '@/components/Skeletons';
 
 const TABS = ['general', 'groups', 'tags', 'links'] as const;
 type TabValue = (typeof TABS)[number];
@@ -86,9 +87,7 @@ export function SettingsPage() {
 
         <div style={{ paddingTop: 'var(--mantine-spacing-lg)' }}>
           {loading ? (
-            <Center py="xl">
-              <Loader size="sm" />
-            </Center>
+            <FormSkeleton sections={2} />
           ) : (
             <>
               <Tabs.Panel value="general">

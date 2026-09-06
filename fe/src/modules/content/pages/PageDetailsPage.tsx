@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionIcon, Alert, Button, Card, Center, Divider, Group, Loader, MultiSelect, Select,
+  ActionIcon, Alert, Button, Card, Divider, Group, MultiSelect, Select,
   Stack, Switch, Text, TextInput, Textarea, Title, Tooltip,
 } from '@mantine/core';
 import { IconArrowLeft, IconEye } from '@tabler/icons-react';
@@ -11,6 +11,7 @@ import { ImageField } from '@/modules/content/components/ImageField';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import { pageService } from '@/modules/content/pageService';
 import type { Term } from '@/types';
+import { FormSkeleton, HeaderSkeleton } from '@/components/Skeletons';
 
 /**
  * Page metadata on its own screen — title, slug, description, taxonomy, media
@@ -39,9 +40,10 @@ export function PageDetailsPage() {
 
   if (editor.loading) {
     return (
-      <Center py={80}>
-        <Loader size="sm" />
-      </Center>
+      <Stack gap="lg">
+        <HeaderSkeleton />
+        <FormSkeleton />
+      </Stack>
     );
   }
 
