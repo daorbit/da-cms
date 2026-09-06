@@ -6,7 +6,7 @@ import {
 } from '@mantine/core';
 import {
   IconPlus, IconSearch, IconEdit, IconTrash, IconFileText, IconEye, IconAdjustments,
-  IconChevronDown, IconCode,
+  IconChevronDown, IconCode, IconRefresh,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -26,7 +26,7 @@ const STATUS_COLOR: Record<PageStatus, string> = {
   archived: 'orange',
 };
 
-const PER_PAGE = 20;
+const PER_PAGE = 10;
 
 export function PageListPage() {
   const workspace = useWorkspace();
@@ -216,6 +216,20 @@ export function PageListPage() {
           </Text>
         </div>
         <Group gap="xs">
+          {/* Pages can change from outside this tab — another editor, a script
+              writing through the API — so the list needs a way to catch up
+              without a full reload. */}
+          <Tooltip label="Refresh" withArrow>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              aria-label="Refresh pages"
+              loading={loading}
+              onClick={() => load()}
+            >
+              <IconRefresh size={18} />
+            </ActionIcon>
+          </Tooltip>
           <Tooltip label="Use in your app" withArrow>
             <ActionIcon
               variant="default"
@@ -369,12 +383,22 @@ export function PageListPage() {
                       onChange={() => toggleOne(p.id)}
                     />
                   </Table.Td>
-                  <Table.Td>
-                    <Text component={Link} to={editHref(p)} fw={500} c="inherit" td="none">
+                  {/* Capped so a long title or description cannot push the
+                      columns that follow off the side of the table. */}
+                  <Table.Td style={{ maxWidth: 340 }}>
+                    <Text
+                      component={Link}
+                      to={editHref(p)}
+                      fw={500}
+                      c="inherit"
+                      td="none"
+                      lineClamp={1}
+                      title={p.title}
+                    >
                       {p.title}
                     </Text>
                     {p.description && (
-                      <Text c="dimmed" size="xs" lineClamp={1}>
+                      <Text c="dimmed" size="xs" lineClamp={1} title={p.description}>
                         {p.description}
                       </Text>
                     )}
