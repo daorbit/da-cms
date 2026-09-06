@@ -1,5 +1,17 @@
-import { ActionIcon, Group, Image, Paper, Stack, Text, TextInput, Center } from '@mantine/core';
-import { IconPhoto, IconX } from '@tabler/icons-react';
+import { useState } from 'react';
+import {
+  ActionIcon,
+  Button,
+  Group,
+  Image,
+  Paper,
+  Stack,
+  Text,
+  TextInput,
+  Center,
+} from '@mantine/core';
+import { IconPhoto, IconX, IconLibraryPhoto } from '@tabler/icons-react';
+import { MediaPickerModal } from '@/modules/media/MediaPickerModal';
 import type { PageImage } from '@/types';
 
 interface Props {
@@ -11,7 +23,16 @@ interface Props {
   ratio?: number;
 }
 
+/**
+ * A page's hero or thumbnail.
+ *
+ * Chosen from the workspace's media library, which is also where a new file is
+ * uploaded — the picker uploads in place, so setting an image never means
+ * leaving the page being edited. The URL field stays for an image hosted
+ * somewhere else entirely.
+ */
 export function ImageField({ label, description, value, onChange, ratio = 16 / 9 }: Props) {
+  const [picking, setPicking] = useState(false);
   const set = (patch: Partial<PageImage>) => onChange({ ...value, ...patch });
 
   return (
@@ -53,15 +74,34 @@ export function ImageField({ label, description, value, onChange, ratio = 16 / 9
           </div>
         ) : (
           <Center style={{ aspectRatio: ratio }}>
-            <Stack align="center" gap={4}>
+            <Stack align="center" gap={6}>
               <IconPhoto size={26} opacity={0.35} />
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconLibraryPhoto size={14} />}
+                onClick={() => setPicking(true)}
+              >
+                Choose from library
+              </Button>
               <Text size="xs" c="dimmed">
-                Paste an image URL below
+                or paste a URL below
               </Text>
             </Stack>
           </Center>
         )}
       </Paper>
+
+      {value.url && (
+        <Button
+          size="xs"
+          variant="light"
+          leftSection={<IconLibraryPhoto size={14} />}
+          onClick={() => setPicking(true)}
+        >
+          Change image
+        </Button>
+      )}
 
       <Group grow gap="xs" align="flex-start">
         <TextInput
@@ -77,6 +117,16 @@ export function ImageField({ label, description, value, onChange, ratio = 16 / 9
           onChange={(e) => set({ alt: e.currentTarget.value })}
         />
       </Group>
+
+      <MediaPickerModal
+        opened={picking}
+        onClose={() => setPicking(false)}
+        title={`Choose ${label.toLowerCase()}`}
+        kind="image"
+        // The library's alt text is the asset's own description, so it carries
+        // across — a caller can still override it in the field below.
+        onSelect={(asset) => onChange({ url: asset.url, alt: asset.alt || value.alt })}
+      />
     </Stack>
   );
 }

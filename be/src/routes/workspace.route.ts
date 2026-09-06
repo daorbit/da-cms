@@ -15,6 +15,7 @@ import { requireWorkspaceRole } from '../middleware/require-workspace-member.js'
 import { pageRoutes } from './page.route.js';
 import { dashboardRoutes } from './dashboard.route.js';
 import { memberRoutes } from './member.route.js';
+import { mediaRoutes } from './media.route.js';
 
 export const workspaceRoutes = Router();
 
@@ -48,6 +49,7 @@ workspaceRoutes.patch(
 workspaceRoutes.use('/:workspaceId/pages', requireApiAuth, pageRoutes);
 workspaceRoutes.use('/:workspaceId/dashboard', requireApiAuth, dashboardRoutes);
 workspaceRoutes.use('/:workspaceId/members', requireApiAuth, memberRoutes);
+workspaceRoutes.use('/:workspaceId/media', requireApiAuth, mediaRoutes);
 
 /* Not workspace-scoped, so there is no `:workspaceId` to check a membership
    against — these are gated on the session alone. */

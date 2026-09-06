@@ -15,6 +15,7 @@ import { SettingsPage } from '@/modules/workspace/SettingsPage';
 import { TeamsPage } from '@/modules/workspace/TeamsPage';
 import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
 import { WorkspacesPage } from '@/modules/workspace/WorkspacesPage';
+import { MediaPage } from '@/modules/media/MediaPage';
 
 function HomeRedirect() {
   const { user, workspaces, loading } = useAuth();
@@ -55,6 +56,7 @@ export function App() {
                   <Route path="pages/:id/edit" element={<PageEditorPage />} />
                 </Route>
 
+                <Route path="media" element={<MediaPage />} />
                 <Route path="teams" element={<TeamsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 {/* The same screen as the top-level /workspaces, but inside the

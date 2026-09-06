@@ -20,10 +20,20 @@
       "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&fields=title,slug&perPage=2\")",
       "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/page-details/introducing-quantalog?fields=title\")",
       "Bash(node push-posts.mjs posts.json \"http://localhost:8081/api\" 6a9cfdb839090e083196fcaa \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTljZmQ5ZTM5MDkwZTA4MzE5NmZjYTkiLCJpYXQiOjE3ODg2NzU1MDEsImV4cCI6MTc5MTI2NzUwMX0.FUa0uismqSyQy6FnMfD03a-u3jbcQsRgZ0dH8UtCTlE\")",
-      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&fields=slug,publishedAt,author,readingMinutes&perPage=4\")"
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&fields=slug,publishedAt,author,readingMinutes&perPage=4\")",
+      "Bash(NEXT_PUBLIC_CMS_API_URL=\"http://localhost:8081/api\" npm run build)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" \"https://cms.daorbit.in/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&perPage=1\")",
+      "Bash(curl -s \"https://cms.daorbit.in/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&perPage=1\")",
+      "Bash(curl -s \"https://da-cms.vercel.app/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&fields=title,slug&perPage=2\" --max-time 15)",
+      "Bash(awk 'NR>=800 && NR<=830' src/app/globals.css)",
+      "Bash(cd d:/personal-code/da-cms/be)",
+      "Bash(curl -s -X POST http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/media -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"file\":\"__TRACKED_VAR__\",\"name\":\"Test swatch\",\"alt\":\"a red square\"}')",
+      "Bash(curl -s -o /dev/null -w 'delete: %{http_code}\\\\n' -X DELETE http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/media/6a9d0f58e5998235030141a2 -H 'Authorization: Bearer __TRACKED_VAR__')"
     ],
     "additionalDirectories": [
-      "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\lib"
+      "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\lib",
+      "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp",
+      "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\components"
     ]
   }
 }

@@ -15,7 +15,8 @@ export function createApp() {
   // (frontend and backend are separate origins in dev).
   app.use(cors({ origin: true, credentials: true }));
   app.use(cookieParser());
-  app.use(express.json());
+
+  app.use(express.json({ limit: '36mb' }));
 
   // Serverless has no startup phase to connect in, so every request makes sure
   // the connection is up. After the first one this resolves immediately — see

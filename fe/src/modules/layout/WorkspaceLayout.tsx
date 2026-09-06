@@ -3,7 +3,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
-  IconUsers, IconBuilding,
+  IconUsers, IconBuilding, IconPhoto,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -13,6 +13,7 @@ import { ThemeToggle } from './ThemeToggle';
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
   { label: 'Pages', to: 'content/pages', icon: IconFileText },
+  { label: 'Media', to: 'media', icon: IconPhoto },
   { label: 'Teams', to: 'teams', icon: IconUsers },
   { label: 'Settings', to: 'settings', icon: IconSettings },
 ];
