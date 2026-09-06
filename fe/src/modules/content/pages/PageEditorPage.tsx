@@ -93,11 +93,6 @@ export function PageEditorPage() {
             pageTitle={editor.title}
             pageDescription={editor.description}
             heroImage={editor.heroImage}
-            publicUrl={
-              editor.workspace?.websiteUrl
-                ? `${editor.workspace.websiteUrl.replace(/\/$/, '')}/${editor.slug}`
-                : ''
-            }
           />
         )}
       </Box>
@@ -113,7 +108,9 @@ export function PageEditorPage() {
             This page has changes that have not been saved. Leaving now discards
             them.
           </Text>
-          <Group justify="flex-end">
+          {/* One row: three choices of equal standing, and wrapping split them
+              into what read as two separate decisions. */}
+          <Group justify="flex-end" gap="xs" wrap="nowrap">
             <Button variant="default" onClick={() => setPendingRoute(null)}>
               Keep editing
             </Button>

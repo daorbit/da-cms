@@ -3,7 +3,6 @@ import {
   Box,
   Divider,
   Group,
-  ScrollArea,
   Select,
   Stack,
   Switch,
@@ -21,12 +20,10 @@ interface Props {
   seo: PageSeo;
   onChange: (seo: PageSeo) => void;
   onClose: () => void;
-  /** Fall-backs, so the panel can preview what a search result actually shows. */
+  /** Fall-backs, so each field's placeholder shows what would be used instead. */
   pageTitle: string;
   pageDescription: string;
   heroImage: PageImage;
-  /** The URL the page is served at, for the result preview. */
-  publicUrl: string;
 }
 
 /** Google truncates around here; past it the tail is replaced with an ellipsis. */
@@ -46,14 +43,8 @@ export function SeoPanel({
   pageTitle,
   pageDescription,
   heroImage,
-  publicUrl,
 }: Props) {
   const set = (patch: Partial<PageSeo>) => onChange({ ...seo, ...patch });
-
-  // Every field falls back to the page's own copy, so the preview shows what a
-  // result would actually render rather than an empty row.
-  const title = seo.title || pageTitle || 'Untitled page';
-  const description = seo.description || pageDescription;
 
   return (
     <Box className={classes.panel}>
@@ -71,28 +62,8 @@ export function SeoPanel({
         </Tooltip>
       </Group>
 
-      <ScrollArea style={{ flex: 1 }}>
+      <Box style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <Stack gap="md" p="md">
-          {/* What the page looks like in a result, before any of it is typed. */}
-          <div>
-            <Label>Search preview</Label>
-            <Box className={classes.preview} mt={6}>
-              <Text size="xs" c="dimmed" truncate>
-                {publicUrl || 'yoursite.com/page'}
-              </Text>
-              <Text size="sm" c="blue" fw={500} lineClamp={1} mt={2}>
-                {truncate(title, TITLE_LIMIT)}
-              </Text>
-              <Text size="xs" c="dimmed" lineClamp={2} mt={2}>
-                {description
-                  ? truncate(description, DESCRIPTION_LIMIT)
-                  : 'No description — search engines will pick their own text from the page.'}
-              </Text>
-            </Box>
-          </div>
-
-          <Divider />
-
           <Stack gap="xs">
             <Label>Search engines</Label>
 
@@ -224,7 +195,7 @@ export function SeoPanel({
             />
           </Stack>
         </Stack>
-      </ScrollArea>
+      </Box>
     </Box>
   );
 }
@@ -255,6 +226,3 @@ function CharCount({ value, limit }: { value: string; limit: number }) {
   );
 }
 
-function truncate(text: string, limit: number): string {
-  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
-}

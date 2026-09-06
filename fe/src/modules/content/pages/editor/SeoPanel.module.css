@@ -20,15 +20,6 @@
   flex: 0 0 auto;
 }
 
-/* The search-result preview: a quiet inset, so it reads as a rendering of the
-   fields below rather than as another field. */
-.preview {
-  padding: 10px 12px;
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  background: var(--mantine-color-default-hover);
-}
-
 /* Below this the editor and a 22rem rail cannot both be usable, so the panel
    becomes an overlay pinned to the right edge instead of a column. */
 @media (max-width: 68em) {

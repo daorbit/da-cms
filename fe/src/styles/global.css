@@ -434,3 +434,49 @@ body {
 [data-mantine-color-scheme='dark'] .page-details-header {
   border-bottom-color: rgba(255, 255, 255, 0.09);
 }
+
+/* ------------------------------------------------------- Mantine ScrollArea */
+
+/*
+ * ScrollArea draws its own scrollbar over the content, which sat beside the
+ * thin native one the app already defines — two bars for one overflow. These
+ * bring it down to the same weight, so a scroll area looks like every other
+ * scrolling surface rather than like a component with its own opinion.
+ */
+.mantine-ScrollArea-scrollbar {
+  padding: 2px;
+  background: transparent;
+  transition: opacity 140ms ease;
+}
+
+.mantine-ScrollArea-scrollbar[data-orientation='vertical'] {
+  width: 10px;
+}
+
+.mantine-ScrollArea-scrollbar[data-orientation='horizontal'] {
+  height: 10px;
+}
+
+.mantine-ScrollArea-thumb {
+  background-color: var(--mantine-color-gray-4);
+}
+
+.mantine-ScrollArea-scrollbar:hover .mantine-ScrollArea-thumb {
+  background-color: var(--mantine-color-gray-5);
+}
+
+[data-mantine-color-scheme='dark'] .mantine-ScrollArea-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-mantine-color-scheme='dark']
+  .mantine-ScrollArea-scrollbar:hover
+  .mantine-ScrollArea-thumb {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+/* The corner between two scrollbars is chrome for a case that does not arise
+   here — both bars overlay the content rather than taking a gutter. */
+.mantine-ScrollArea-corner {
+  display: none;
+}
