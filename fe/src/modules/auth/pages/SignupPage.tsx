@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { TextInput, PasswordInput, Button, Text, Alert, Stack, Anchor, Group } from '@mantine/core';
+import {
+  TextInput, PasswordInput, PinInput, Button, Text, Alert, Stack, Anchor, Group, Center,
+} from '@mantine/core';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthBrand } from '@/modules/auth/components/AuthBrand';
@@ -20,6 +22,21 @@ export function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Signup is two stages in one panel: the details, then the code that proves
+  // the address is the requester's. The account exists only after the second.
+  const [stage, setStage] = useState<'details' | 'code'>('details');
+  const [code, setCode] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Counts the resend cooldown down so the button says when it is usable again
+  // rather than just refusing.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   // A field shows its error only once it has been left or the form submitted —
   // validating as someone types their first character is just nagging.
@@ -47,16 +64,56 @@ export function SignupPage() {
     try {
       // The API takes a single `name`, so the split fields are joined here.
       const name = `${firstName.trim()} ${lastName.trim()}`.trim();
-      const res = await api.post<{ user: User }>('/auth/signup', {
-        name,
+      await api.post('/auth/signup', { name, email: email.trim(), password });
+      // No session yet — the account is not created until the code comes back.
+      setStage('code');
+      setNotice(`We sent a code to ${email.trim()}.`);
+      setCooldown(60);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Signup failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const enter = async (value: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.post<{ user: User }>('/auth/signup/verify', {
         email: email.trim(),
-        password,
+        code: value,
       });
       setSession(res.user);
       await refresh();
       navigate(next && next.startsWith('/') ? next : '/onboarding');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Signup failed. Please try again.');
+      setCode('');
+      setError(err instanceof ApiError ? err.message : 'Could not verify that code.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (code.length !== 6) {
+      setError('Enter the six-digit code from your email');
+      return;
+    }
+    await enter(code);
+  };
+
+  const resend = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.post('/auth/signup/resend', { email: email.trim() });
+      setNotice('We sent another code.');
+      setCooldown(60);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not send another code.');
     } finally {
       setBusy(false);
     }
@@ -70,6 +127,93 @@ export function SignupPage() {
       />
 
       <div className="auth-panel">
+        {stage === 'code' ? (
+          <form className="auth-form" onSubmit={verify} noValidate>
+            <Stack gap="lg">
+              <div>
+                <h1 className="auth-title">Check your email</h1>
+                <p className="auth-subtitle">
+                  Enter the six-digit code we sent to {email.trim()}.
+                </p>
+              </div>
+
+              {error && (
+                <Alert color="red" variant="light">
+                  {error}
+                </Alert>
+              )}
+
+              {!error && notice && (
+                <Alert color="blue" variant="light">
+                  {notice}
+                </Alert>
+              )}
+
+              <Center>
+                <PinInput
+                  length={6}
+                  type="number"
+                  inputMode="numeric"
+                  oneTimeCode
+                  autoFocus
+                  size="md"
+                  value={code}
+                  onChange={setCode}
+                  // Submits itself on the last digit: with a fixed-length code
+                  // there is nothing left to decide once it is filled in.
+                  onComplete={enter}
+                  aria-label="Verification code"
+                />
+              </Center>
+
+              <Button
+                type="submit"
+                className="auth-submit"
+                loading={busy}
+                fullWidth
+                size="md"
+                radius="md"
+              >
+                Verify and continue
+              </Button>
+
+              <Group justify="center" gap="xs">
+                <Text size="sm" c="dimmed">
+                  Didn't get it?
+                </Text>
+                <Anchor
+                  component="button"
+                  type="button"
+                  size="sm"
+                  underline="always"
+                  c={cooldown > 0 ? 'dimmed' : undefined}
+                  onClick={resend}
+                  disabled={busy || cooldown > 0}
+                >
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Send another code'}
+                </Anchor>
+              </Group>
+
+              <Text ta="center">
+                <Anchor
+                  component="button"
+                  type="button"
+                  size="sm"
+                  underline="always"
+                  c="dimmed"
+                  onClick={() => {
+                    setStage('details');
+                    setCode('');
+                    setError(null);
+                    setNotice(null);
+                  }}
+                >
+                  Use a different email
+                </Anchor>
+              </Text>
+            </Stack>
+          </form>
+        ) : (
         <form className="auth-form" onSubmit={submit} noValidate>
           <Stack gap="lg">
             <div>
@@ -140,6 +284,7 @@ export function SignupPage() {
             </Text>
           </Stack>
         </form>
+        )}
       </div>
     </div>
   );
