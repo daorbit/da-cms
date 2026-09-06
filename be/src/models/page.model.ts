@@ -24,6 +24,15 @@ const imageSchema = new Schema(
   { _id: false }
 );
 
+/** A published article's byline. Free text, not a link to an account. */
+const authorSchema = new Schema(
+  {
+    name: { type: String, trim: true, default: '' },
+    role: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+);
+
 const seoSchema = new Schema(
   {
     title: { type: String, trim: true, default: '' },
@@ -61,6 +70,15 @@ const pageSchema = new Schema(
     /** Read-only now: sections from pages saved before those blocks moved into `content`. */
     sections: { type: [sectionSchema], default: [] },
     seo: { type: seoSchema, default: () => ({}) },
+
+    /**
+     * The byline a published article carries. Distinct from `createdBy`, which
+     * is the account that saved the page — an editor may publish under someone
+     * else's name, and a byline should survive that account being deleted.
+     */
+    author: { type: authorSchema, default: () => ({}) },
+    /** Estimated read time in minutes. 0 means "work it out from the content". */
+    readingMinutes: { type: Number, default: 0, min: 0 },
 
     status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
     publishedAt: { type: Date, default: null },

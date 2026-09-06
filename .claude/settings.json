@@ -13,7 +13,12 @@
       "Bash(echo \"-- bearer workspace:\")",
       "Bash(curl -s http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTljZmQ5ZTM5MDkwZTA4MzE5NmZjYTkiLCJpYXQiOjE3ODg2NzU1MDEsImV4cCI6MTc5MTI2NzUwMX0.FUa0uismqSyQy6FnMfD03a-u3jbcQsRgZ0dH8UtCTlE')",
       "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages\")",
-      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug/introducing-quantalog?fields=title\")"
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug/introducing-quantalog?fields=title\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/publicpages?group=blogs&fields=title,slug,description,tags,publishedAt&perPage=3\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/publicpages?group=blogs&fields=slug,publishedAt&perPage=20\")",
+      "Bash(python -c \"import sys,json; [print\\(i['publishedAt'][:10], i['slug']\\) for i in json.load\\(sys.stdin\\)['items']]\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pagebyslug?group=blogs&fields=title,slug&perPage=2\")",
+      "Bash(curl -s \"http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/page-details/introducing-quantalog?fields=title\")"
     ]
   }
 }

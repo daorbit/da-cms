@@ -7,7 +7,7 @@ import {
   getSettings,
   updateSettings,
 } from '../controllers/workspace.controller.js';
-import { getPublicPageBySlug } from '../controllers/page.controller.js';
+import { getPublicPageBySlug, listPublicPages } from '../controllers/page.controller.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { requireAuth } from '../middleware/require-auth.js';
 import { requireApiAuth } from '../middleware/require-api-auth.js';
@@ -20,7 +20,10 @@ export const workspaceRoutes = Router();
 
 // Public, no auth — the content API an external site calls to render a page it
 // owns here. Declared before any auth so it stays open.
-workspaceRoutes.get('/:workspaceId/pagebyslug/:slug', asyncHandler(getPublicPageBySlug));
+/* The two halves of a content site: `pagebyslug` is the index a listing page
+   renders, `page-details/:slug` is the one post behind a dynamic route. */
+workspaceRoutes.get('/:workspaceId/pagebyslug', asyncHandler(listPublicPages));
+workspaceRoutes.get('/:workspaceId/page-details/:slug', asyncHandler(getPublicPageBySlug));
 
 /* Everything scoped to a workspace authenticates the same way, whether the
    caller is the editor in a browser or a script: `requireApiAuth` takes the

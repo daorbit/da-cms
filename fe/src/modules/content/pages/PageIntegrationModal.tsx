@@ -36,6 +36,18 @@ const RESPONSE_KEYS = [
 
 const DEFAULT_FIELDS = ['title', 'content'];
 
+/** The framed URL both endpoint blocks are shown in. */
+const endpointBox = {
+  padding: '10px 12px',
+  borderRadius: 'var(--mantine-radius-md)',
+  background: 'var(--mantine-color-default)',
+  border: '1px solid var(--mantine-color-default-border)',
+  fontFamily: 'var(--mantine-font-family-monospace)',
+  fontSize: 12,
+  lineHeight: 1.6,
+  wordBreak: 'break-all' as const,
+};
+
 /** A TS type literal for the selected fields, so the snippets stay typed. */
 function fieldsType(fields: string[]): string {
   if (fields.length === 0) return 'Record<string, unknown>';
@@ -49,7 +61,11 @@ function fieldsType(fields: string[]): string {
   return `{ ${fields.map((f) => `${f}: ${t[f] ?? 'unknown'}`).join('; ')} }`;
 }
 
-function buildSnippets(endpoint: string, fields: string[]): Record<FrameworkId, string> {
+function buildSnippets(
+  endpoint: string,
+  listEndpoint: string,
+  fields: string[]
+): Record<FrameworkId, string> {
   const q = fields.length ? `?fields=${fields.join(',')}` : '';
   const url = `${endpoint}/YOUR_PAGE_SLUG${q}`;
   const Type = fieldsType(fields);
@@ -57,18 +73,50 @@ function buildSnippets(endpoint: string, fields: string[]): Record<FrameworkId, 
   const titleLine = has('title') ? '      <h1>{page.title}</h1>\n' : '';
 
   return {
-    nextjs: `// app/[slug]/page.tsx — Server Component
+    nextjs: `// app/blog/page.tsx — the index
+type Summary = { title: string; slug: string; description: string };
+
+async function listPages(): Promise<Summary[]> {
+  const res = await fetch(
+    '${listEndpoint}?group=blogs&fields=title,slug,description',
+    { next: { revalidate: 60 } }, // ISR — refetch at most once a minute
+  );
+  const { items } = await res.json();
+  return items;
+}
+
+export default async function Blog() {
+  const posts = await listPages();
+  return (
+    <ul>
+      {posts.map((p) => (
+        <li key={p.slug}>
+          <a href={\`/blog/\${p.slug}\`}>{p.title}</a>
+          <p>{p.description}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// app/blog/[slug]/page.tsx — one post
 type Page = ${Type};
 
 async function getPage(slug: string): Promise<Page | null> {
   const res = await fetch(
     \`${endpoint}/\${slug}${q}\`,
-    { next: { revalidate: 60 } }, // ISR — refetch at most once a minute
+    { next: { revalidate: 60 } },
   );
   return res.ok ? res.json() : null;
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
+// Pre-renders every post at build time, so a visit is a static file rather
+// than a fetch — the list endpoint is what makes that possible.
+export async function generateStaticParams() {
+  return (await listPages()).map(({ slug }) => ({ slug }));
+}
+
+export default async function Post({ params }: { params: { slug: string } }) {
   const page = await getPage(params.slug);
   if (!page) notFound();
 
@@ -136,7 +184,10 @@ async function loadPage(slug) {
 const page = await loadPage('YOUR_PAGE_SLUG');
 ${has('title') ? "document.querySelector('#page-title').textContent = page.title;\n" : ''}document.querySelector('#page-body').innerHTML = page.content;`,
 
-    curl: `# The page as JSON${fields.length ? ' (selected fields only)' : ''}
+    curl: `# Every published page, newest first
+curl "${listEndpoint}?group=blogs&fields=title,slug,description"
+
+# One page as JSON${fields.length ? ' (selected fields only)' : ''}
 curl "${url}"
 
 # Rendered HTML document (what the preview frames)
@@ -153,8 +204,15 @@ export function PageIntegrationModal({ opened, onClose, apiBase, workspaceId }: 
   const [framework, setFramework] = useState<FrameworkId>('nextjs');
   const [fields, setFields] = useState<string[]>(DEFAULT_FIELDS);
 
-  const endpoint = `${apiBase.replace(/\/$/, '')}/workspaces/${workspaceId}/pagebyslug`;
-  const snippets = useMemo(() => buildSnippets(endpoint, fields), [endpoint, fields]);
+  const root = `${apiBase.replace(/\/$/, '')}/workspaces/${workspaceId}`;
+  // The two halves of a content site: the index a listing page renders, and the
+  // one page behind a dynamic route.
+  const listEndpoint = `${root}/pagebyslug`;
+  const endpoint = `${root}/page-details`;
+  const snippets = useMemo(
+    () => buildSnippets(endpoint, listEndpoint, fields),
+    [endpoint, listEndpoint, fields]
+  );
   const active = FRAMEWORKS.find((f) => f.id === framework)!;
   const code = snippets[framework];
 
@@ -207,22 +265,53 @@ export function PageIntegrationModal({ opened, onClose, apiBase, workspaceId }: 
           }}
         >
           <Stack gap="lg" p="lg">
+            {/* Two endpoints, because a content site is two screens: the index
+                that lists what exists, and the page behind a dynamic route. */}
             <div>
               <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6}>
-                Endpoint
+                List pages
               </Text>
-              <Box
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 'var(--mantine-radius-md)',
-                  background: 'var(--mantine-color-default)',
-                  border: '1px solid var(--mantine-color-default-border)',
-                  fontFamily: 'var(--mantine-font-family-monospace)',
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                  wordBreak: 'break-all',
-                }}
-              >
+              <Box style={endpointBox}>
+                <Text span c="teal" fw={700}>
+                  GET{' '}
+                </Text>
+                {listEndpoint}
+                <Text span c="blue">
+                  ?group=blogs&amp;fields=title,slug,description
+                </Text>
+              </Box>
+              <Group justify="flex-end" mt={6}>
+                <CopyButton value={`${listEndpoint}?group=blogs&fields=title,slug,description`}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="compact-xs"
+                      variant="subtle"
+                      leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                      onClick={copy}
+                    >
+                      {copied ? 'Copied' : 'Copy URL'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
+              <Text size="xs" c="dimmed">
+                Published pages, newest first, as{' '}
+                <Text span ff="monospace" size="xs">
+                  {'{ items, total, page, perPage }'}
+                </Text>
+                . Filter with <b>group</b>, <b>tag</b> or <b>q</b>; page with{' '}
+                <b>page</b> and <b>perPage</b>. Bodies are left out unless you ask
+                for <b>content</b>.
+              </Text>
+            </div>
+
+            <Divider />
+
+            <div>
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6}>
+                One page
+              </Text>
+              <Box style={endpointBox}>
                 <Text span c="teal" fw={700}>
                   GET{' '}
                 </Text>

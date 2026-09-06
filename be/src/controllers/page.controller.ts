@@ -48,7 +48,18 @@ const pageSchema = z.object({
       noIndex: z.boolean().default(false),
     })
     .default({ title: "", description: "", ogImage: "", noIndex: false }),
+  /** The byline a published article carries, separate from who saved it. */
+  author: z
+    .object({
+      name: z.string().max(120).default(""),
+      role: z.string().max(120).default(""),
+    })
+    .default({ name: "", role: "" }),
+  /** Estimated read time. 0 lets a consumer work it out from the content. */
+  readingMinutes: z.number().int().min(0).max(999).default(0),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
+  /** Set explicitly when importing existing content with its original date. */
+  publishedAt: z.coerce.date().optional(),
 });
 
 /** A populated author, or null once the user has been removed. */
@@ -82,6 +93,8 @@ interface PageDoc {
   content?: string;
   sections: unknown;
   seo: unknown;
+  author?: { name?: string; role?: string };
+  readingMinutes?: number;
   status: string;
   publishedAt?: Date | null;
   createdBy?: AuthorRef;
@@ -103,6 +116,8 @@ function toResponse(page: PageDoc) {
     content: page.content ?? "",
     sections: page.sections,
     seo: page.seo,
+    author: page.author ?? { name: "", role: "" },
+    readingMinutes: page.readingMinutes ?? 0,
     status: page.status,
     publishedAt: page.publishedAt ?? null,
     createdBy: toAuthor(page.createdBy),
@@ -168,9 +183,9 @@ export const createPage: RequestHandler = async (req, res) => {
       title,
       slug,
       status,
-      // Stamped on the way in rather than by a hook, so an imported page can
-      // carry its original publish date instead of being stamped with today's.
-      publishedAt: status === "published" ? new Date() : null,
+
+      publishedAt:
+        status === "published" ? (parsed.data.publishedAt ?? new Date()) : null,
       createdBy: req.userId,
       updatedBy: req.userId,
     });
@@ -271,6 +286,8 @@ const PUBLIC_FIELDS = [
   "thumbnailImage",
   "content",
   "seo",
+  "author",
+  "readingMinutes",
   "status",
   "publishedAt",
   "updatedAt",
@@ -290,6 +307,8 @@ function publicResponse(page: PageDoc): Record<string, unknown> {
     thumbnailImage: page.thumbnailImage ?? { url: "", alt: "" },
     content: page.content ?? "",
     seo: page.seo,
+    author: page.author ?? { name: "", role: "" },
+    readingMinutes: page.readingMinutes ?? 0,
     status: page.status,
     publishedAt: page.publishedAt ?? null,
     updatedAt: page.updatedAt,
@@ -373,6 +392,64 @@ export const getPublicPageBySlug: RequestHandler = async (req, res) => {
   res.json(payload);
 };
 
+/**
+ * Public list of published pages — the index a site renders as its blog roll.
+ *
+ * The companion to `getPublicPageBySlug`: that one renders a post, this one
+ * lists them. Both are unauthenticated and both return published pages only,
+ * so nothing here exposes a draft.
+ *
+ * `content` is excluded unless it is asked for by name. A listing of fifteen
+ * posts would otherwise ship every post's full body to render a page of titles.
+ */
+export const listPublicPages: RequestHandler = async (req, res) => {
+  const { workspaceId } = req.params;
+  const { group, tag, q } = req.query;
+
+  const filter: Record<string, unknown> = { workspaceId, status: "published" };
+  if (typeof group === "string" && group.trim()) filter.group = group.trim();
+  if (typeof tag === "string" && tag.trim()) filter.tags = tag.trim();
+  if (typeof q === "string" && q.trim()) {
+    // Escaped so a stray "(" in a search box cannot throw an invalid-regex error.
+    const safe = q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { title: { $regex: safe, $options: "i" } },
+      { description: { $regex: safe, $options: "i" } },
+    ];
+  }
+
+  const page = Math.max(
+    1,
+    Number.parseInt(String(req.query.page ?? "1"), 10) || 1,
+  );
+  const perPageRaw =
+    Number.parseInt(String(req.query.perPage ?? "20"), 10) || 20;
+  const perPage = Math.min(100, Math.max(1, perPageRaw));
+
+  const fields = parseFields(req.query.fields);
+  const wantsContent = fields?.includes("content") ?? false;
+
+  const query = PageModel.find(filter)
+    .select(wantsContent ? "-sections -createdBy -updatedBy" : "-sections -content -createdBy -updatedBy")
+    // Newest first by publication date, which is what a blog index orders by;
+    // `updatedAt` breaks the tie for pages published in the same instant.
+    .sort({ publishedAt: -1, updatedAt: -1 })
+    .skip((page - 1) * perPage)
+    .limit(perPage);
+
+  const [items, total] = await Promise.all([
+    query,
+    PageModel.countDocuments(filter),
+  ]);
+
+  const payload = items.map((doc) => {
+    const full = publicResponse(doc as unknown as PageDoc);
+    return fields ? Object.fromEntries(fields.map((f) => [f, full[f]])) : full;
+  });
+
+  res.json({ items: payload, total, page, perPage });
+};
+
 export const updatePage: RequestHandler = async (req, res) => {
   const parsed = pageSchema.partial().safeParse(req.body);
   if (!parsed.success) {
@@ -412,7 +489,7 @@ export const updatePage: RequestHandler = async (req, res) => {
   if (parsed.data.slug) update.slug = slugify(parsed.data.slug);
   // Stamp the first publish only; re-saving a published page keeps its date.
   if (parsed.data.status === "published" && existing.status !== "published") {
-    update.publishedAt = new Date();
+    update.publishedAt = parsed.data.publishedAt ?? new Date();
   }
 
   try {

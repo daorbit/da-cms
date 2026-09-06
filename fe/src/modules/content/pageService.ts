@@ -66,7 +66,7 @@ export const pageService = {
     if (opts.format) query.set('format', opts.format);
     if (opts.fields?.length) query.set('fields', opts.fields.join(','));
     const suffix = query.size ? `?${query}` : '';
-    return `${API_BASE}/workspaces/${workspaceId}/pagebyslug/${encodeURIComponent(slug)}${suffix}`;
+    return `${API_BASE}/workspaces/${workspaceId}/page-details/${encodeURIComponent(slug)}${suffix}`;
   },
 
   /** URL of the standalone content document, for framing in the preview. */
