@@ -293,13 +293,24 @@ export const login: RequestHandler = async (req, res) => {
 };
 
 const profileSchema = z.object({
+  /** Editable from the account screen; onboarding never sends it. */
+  name: z.string().min(1, 'Your name cannot be empty').max(120).optional(),
   jobRole: z.string().max(60).optional(),
   teamSize: z.string().max(30).optional(),
   /** Sent by the final onboarding step to close the flow for good. */
   onboarded: z.boolean().optional(),
 });
 
-/** Onboarding's profile step. Every field optional — the step is skippable. */
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
+/**
+ * Onboarding's profile step, and the account screen's name field. Every field
+ * optional — onboarding's step is skippable, and the account screen sends only
+ * what changed.
+ */
 export const updateProfile: RequestHandler = async (req, res) => {
   const parsed = profileSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -308,8 +319,9 @@ export const updateProfile: RequestHandler = async (req, res) => {
     return;
   }
 
-  const { jobRole, teamSize, onboarded } = parsed.data;
+  const { name, jobRole, teamSize, onboarded } = parsed.data;
   const update: Record<string, unknown> = {};
+  if (name !== undefined) update.name = name.trim();
   if (jobRole !== undefined) update.jobRole = jobRole;
   if (teamSize !== undefined) update.teamSize = teamSize;
   // Stamped once. Re-running the flow should not move the date.
@@ -323,6 +335,44 @@ export const updateProfile: RequestHandler = async (req, res) => {
   }
 
   res.json({ user: toUserResponse(user) });
+};
+
+/**
+ * Changes the signed-in user's password.
+ *
+ * The current one is required even though the session already proves identity:
+ * it is what stops someone who walks up to an unlocked screen from locking the
+ * owner out of their own account.
+ */
+export const changePassword: RequestHandler = async (req, res) => {
+  const parsed = passwordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const body: ApiError = { error: 'invalid_input', message: parsed.error.issues[0].message };
+    res.status(400).json(body);
+    return;
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
+  const user = await UserModel.findById(req.userId);
+  if (!user) {
+    const body: ApiError = { error: 'unauthorized', message: 'Not signed in' };
+    res.status(401).json(body);
+    return;
+  }
+
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    const body: ApiError = {
+      error: 'invalid_credentials',
+      message: 'Your current password is incorrect',
+    };
+    res.status(400).json(body);
+    return;
+  }
+
+  user.passwordHash = await hashPassword(newPassword);
+  await user.save();
+
+  res.status(204).end();
 };
 
 export const logout: RequestHandler = (_req, res) => {

@@ -2,18 +2,18 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Stack, Tabs, Text, Title } from '@mantine/core';
 import {
-  IconAdjustments, IconCategory, IconTags, IconLink,
+  IconCategory, IconTags, IconLink, IconUser,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import type { WorkspaceSettings } from '@/types';
-import { GeneralTab } from './settings/GeneralTab';
 import { TermsTab } from './settings/TermsTab';
 import { SiteLinksTab } from './settings/SiteLinksTab';
 import { FormSkeleton } from '@/components/Skeletons';
+import { AccountTab } from '@/modules/workspace/settings/AccountTab';
 
-const TABS = ['general', 'groups', 'tags', 'links'] as const;
+const TABS = ['account', 'groups', 'tags', 'links'] as const;
 type TabValue = (typeof TABS)[number];
 
 /**
@@ -24,7 +24,9 @@ type TabValue = (typeof TABS)[number];
 export function SettingsPage() {
   const workspace = useWorkspace();
   const [params, setParams] = useSearchParams();
-  const tab = (params.get('tab') as TabValue) ?? 'general';
+  // Account is the landing tab: it is the one thing on this screen that is
+  // about the person reading it rather than about the workspace.
+  const tab = (params.get('tab') as TabValue) ?? 'account';
 
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export function SettingsPage() {
       <div>
         <Title order={2}>Settings</Title>
         <Text c="dimmed" size="sm" mt={4}>
-          Manage this workspace and how pages are organised.
+          Your account, and how this workspace organises its pages.
         </Text>
       </div>
 
@@ -70,8 +72,8 @@ export function SettingsPage() {
 
       <Tabs value={tab} onChange={setTab} keepMounted={false}>
         <Tabs.List>
-          <Tabs.Tab value="general" leftSection={<IconAdjustments size={15} />}>
-            General
+          <Tabs.Tab value="account" leftSection={<IconUser size={15} />}>
+            Account
           </Tabs.Tab>
        
           <Tabs.Tab value="groups" leftSection={<IconCategory size={15} />}>
@@ -90,8 +92,8 @@ export function SettingsPage() {
             <FormSkeleton sections={2} />
           ) : (
             <>
-              <Tabs.Panel value="general">
-                <GeneralTab workspace={workspace} canManage={canManage} />
+              <Tabs.Panel value="account">
+                <AccountTab />
               </Tabs.Panel>
 
      

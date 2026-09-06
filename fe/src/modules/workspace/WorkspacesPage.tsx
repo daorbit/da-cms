@@ -54,7 +54,7 @@ export function WorkspacesPage() {
   const enter = (w: Workspace) => navigate(`/${w.slug}/dashboard`);
 
   return (
-    <Box py="xl" px="md">
+    <Box>
       <Stack gap="lg">
         <Group justify="space-between" align="flex-end">
           <div>
@@ -88,7 +88,7 @@ export function WorkspacesPage() {
                       </Badge>
                     )}
                     {(w.role === "owner" || w.role === "admin") && (
-                      <Tooltip label="Rename">
+                      <Tooltip label="Workspace settings">
                         <ActionIcon
                           variant="subtle"
                           color="gray"
@@ -270,6 +270,13 @@ function CreateWorkspaceModal({
   );
 }
 
+/**
+ * A workspace's own settings.
+ *
+ * Name and published-site URL live here rather than under Settings: they
+ * describe the workspace, and this is the screen that lists workspaces — so
+ * managing one is done where you can see all of them.
+ */
 function RenameWorkspaceModal({
   workspace,
   onClose,
@@ -280,8 +287,9 @@ function RenameWorkspaceModal({
   onRenamed: () => void;
 }) {
   // `key` on this component (the workspace id) resets state per open, so the
-  // field can start seeded with the current name.
+  // fields can start seeded with the current values.
   const [name, setName] = useState(workspace?.name ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(workspace?.websiteUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -291,11 +299,14 @@ function RenameWorkspaceModal({
     setBusy(true);
     setError(null);
     try {
-      await workspaceService.update(workspace.id, { name: next });
-      notifications.show({ message: "Workspace renamed", color: "teal" });
+      await workspaceService.update(workspace.id, {
+        name: next,
+        websiteUrl: websiteUrl.trim(),
+      });
+      notifications.show({ message: "Workspace updated", color: "teal" });
       onRenamed();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not rename");
+      setError(err instanceof ApiError ? err.message : "Could not save");
     } finally {
       setBusy(false);
     }
@@ -308,7 +319,7 @@ function RenameWorkspaceModal({
         setName("");
         onClose();
       }}
-      title="Rename workspace"
+      title="Workspace settings"
       centered
     >
       <Stack>
@@ -317,12 +328,19 @@ function RenameWorkspaceModal({
           placeholder={workspace?.name}
           autoFocus
           value={name}
-          error={error}
           onChange={(e) => setName(e.currentTarget.value)}
         />
-        <Text size="xs" c="dimmed">
+        <Text size="xs" c="dimmed" mt={-8}>
           The URL slug does not change when you rename.
         </Text>
+        <TextInput
+          label="Website URL"
+          description="Where this workspace publishes."
+          placeholder="https://example.com"
+          value={websiteUrl}
+          error={error}
+          onChange={(e) => setWebsiteUrl(e.currentTarget.value)}
+        />
         <Group justify="flex-end">
           <Button
             variant="default"
