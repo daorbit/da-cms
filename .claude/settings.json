@@ -33,7 +33,10 @@
       "Bash(echo \"revisions:\")",
       "Bash(curl -s http://localhost:8081/api/workspaces/6a9cfdb839090e083196fcaa/pages/__TRACKED_VAR__/revisions -H 'Authorization: Bearer __TRACKED_VAR__')",
       "Bash(cp \"D:/personal-code/ana-plus-forms/real-time-analytics/real-ana-fe/public/da-ai-dark-mode.png\" \"D:/personal-code/ana-plus-forms/real-time-analytics/real-ana-fe/public/da-ai-light-mode.png\" d:/personal-code/da-cms/fe/public/ && ls d:/personal-code/da-cms/fe/public/)",
-      "Bash(grep -o \"closest[^;]\\\\{0,60\\\\}\" node_modules/da-text-editor/dist/index.js)"
+      "Bash(grep -o \"closest[^;]\\\\{0,60\\\\}\" node_modules/da-text-editor/dist/index.js)",
+      "Bash(sort -k1 -n -r)",
+      "WebFetch(domain:iconsax.io)",
+      "WebFetch(domain:phosphoricons.com)"
     ],
     "additionalDirectories": [
       "D:\\personal-code\\ana-plus-forms\\real-time-analytics\\quantalog-lp\\src\\lib",
