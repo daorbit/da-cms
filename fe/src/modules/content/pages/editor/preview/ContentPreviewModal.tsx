@@ -61,8 +61,7 @@ export function ContentPreviewModal({ opened, onClose, title, src }: Props) {
       <Box className={classes.body}>
         <Box className={classes.stage} ref={stageRef}>
           <DeviceFrame device={device} scale={scale} hidden={!measured}>
-            {/* Remounted per device and per open so each preview starts fresh
-                at that device's width. */}
+          
             <iframe
               key={`${device}-${opened}`}
               src={src}
