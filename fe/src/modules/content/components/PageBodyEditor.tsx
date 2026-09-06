@@ -3,7 +3,7 @@ import { useMantineColorScheme } from '@mantine/core';
 import { Editor, Transforms, type Node as SlateNode } from 'slate';
 import { DaEditor, deserializeHtml, type DaEditorHandle } from 'da-text-editor';
 import 'da-text-editor/styles.css';
-import { AskAiModal } from './AskAiModal';
+import { AskAiDrawer } from './AskAiDrawer';
 import classes from './PageBodyEditor.module.css';
 
 interface Props {
@@ -69,7 +69,7 @@ export function PageBodyEditor({ value, onChange, placeholder = 'Start writingâ€
         onChange={emitChange}
       />
 
-      <AskAiModal
+      <AskAiDrawer
         opened={aiOpen}
         onClose={() => setAiOpen(false)}
         selection={selection}

@@ -1,27 +1,20 @@
-/*
- * The SEO rail beside the editor.
- *
- * A fixed width rather than a fraction: these are short fields, and letting
- * them stretch on a wide screen would take room from the writing surface for
- * no gain.
- */
+ 
 .panel {
   display: flex;
   flex-direction: column;
   width: 22rem;
   flex: 0 0 22rem;
   min-height: 0;
-  border-left: 1px solid var(--mantine-color-default-border);
+  border-top: 1px solid var(--mantine-color-default-border);
   background: var(--mantine-color-body);
 }
 
 .header {
   border-bottom: 1px solid var(--mantine-color-default-border);
   flex: 0 0 auto;
+  height: 50px;
 }
-
-/* Below this the editor and a 22rem rail cannot both be usable, so the panel
-   becomes an overlay pinned to the right edge instead of a column. */
+ 
 @media (max-width: 68em) {
   .panel {
     position: absolute;

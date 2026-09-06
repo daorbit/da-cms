@@ -1,0 +1,120 @@
+/*
+ * Orbit's drawer.
+ *
+ * A column of three: a header, the scrolling body, and a composer pinned to the
+ * bottom. The drawer itself has no padding — each row owns its own inset, which
+ * is what lets the header rule run the full width instead of floating inside a
+ * margin.
+ */
+.drawer {
+  display: flex;
+  flex-direction: column;
+  /* The aurora is positioned against this, and would otherwise escape it. */
+  position: relative;
+  overflow: hidden;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+/*
+ * The drifting wash, shared with the analytics app's assistant so the two read
+ * as the same surface. Two soft gradients that move slowly against each other:
+ * enough to make the panel feel lit rather than flat, not enough to compete
+ * with the text on top of it.
+ */
+.aurora {
+  position: absolute;
+  inset: -40%;
+  z-index: 0;
+  background:
+    radial-gradient(38% 38% at 25% 25%, var(--mantine-color-blue-5) 0%, transparent 70%),
+    radial-gradient(34% 34% at 75% 65%, var(--mantine-color-cyan-5) 0%, transparent 70%);
+  opacity: 0.14;
+  filter: blur(28px);
+  animation: orbit-drift 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes orbit-drift {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.12);
+  }
+}
+
+/* Motion for its own sake is the first thing to go when someone has asked for
+   less of it — the wash stays, it simply stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    animation: none;
+  }
+}
+
+/* Everything above the wash carries its own stacking, so the text stays crisp
+   rather than picking up the blur behind it. */
+.header,
+.scroll,
+.composer {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.composer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+}
+
+/* The input and its send button are one surface: a bordered box the textarea
+   sits inside, rather than a field with a button beside it. */
+.inputWrap {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+  transition: border-color 120ms ease;
+}
+
+.inputWrap:focus-within {
+  border-color: var(--mantine-color-blue-5);
+}
+
+.input {
+  padding: 10px 12px 4px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* A preset is a lead-in, so it reads as a suggestion rather than a control —
+   quiet until the pointer is on it. */
+.preset {
+  padding: 7px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-dimmed);
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.preset:hover {
+  border-color: var(--mantine-color-blue-4);
+  background: var(--mantine-color-blue-light);
+  color: var(--mantine-color-blue-filled);
+}
