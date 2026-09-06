@@ -1,0 +1,123 @@
+/*
+ * Orbit's composer, across the foot of the editor.
+ *
+ * A bar rather than a panel: the brief is written about the document, so
+ * anything that covers it makes the writer work from memory. This takes a strip
+ * of height and leaves the page in view.
+ */
+.bar {
+  position: relative;
+  flex: 0 0 auto;
+  border-right: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  /* Also what clips the wash, which is inset well past these edges. */
+  overflow: hidden;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  padding: 12px 16px 8px;
+}
+
+/*
+ * The drifting wash, in Orbit's own emerald and cyan.
+ *
+ * The same two gradients as the analytics app's assistant panel, at the same
+ * opacity and blur, so the two read as one surface rather than as two
+ * approximations of each other. Literal colours rather than theme tokens: this
+ * is Orbit's palette, and it should not shift when the CMS theme does.
+ */
+.aurora {
+  position: absolute;
+  inset: -60%;
+  z-index: 0;
+  background:
+    radial-gradient(38% 38% at 25% 30%, #059669 0%, transparent 70%),
+    radial-gradient(34% 34% at 75% 65%, #22d3ee 0%, transparent 70%);
+  opacity: 0.16;
+  filter: blur(28px);
+  animation: orbit-drift 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes orbit-drift {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.12);
+  }
+}
+
+/* Motion for its own sake is the first thing to drop when someone has asked for
+   less of it. The wash stays; it simply stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    animation: none;
+  }
+}
+
+/* The input and its controls are one surface — a bordered box everything sits
+   inside, rather than a field with buttons beside it. Slightly raised off the
+   wash so the text has a clean ground to sit on. */
+.inputWrap {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 14px;
+  background: var(--mantine-color-body);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.inputWrap:focus-within {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #059669 14%, transparent);
+}
+
+/* While dictating, the box itself signals it — a red mic button alone is easy
+   to miss when the eye is on the text. */
+.inputWrap[data-listening] {
+  border-color: var(--mantine-color-red-5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mantine-color-red-5) 12%, transparent);
+}
+
+.input {
+  padding: 10px 12px 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* The way into the prompt catalogue. Quiet — it sits beside a hint, and should
+   not compete with the input above it. */
+.suggestLink {
+  color: var(--mantine-color-dimmed);
+  transition: color 140ms ease;
+}
+
+.suggestLink:hover:not(:disabled) {
+  color: #047857;
+}
+
+[data-mantine-color-scheme='dark'] .suggestLink:hover:not(:disabled) {
+  color: #34d399;
+}
+
+.suggestLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* An attached image, with its remove control tucked into the corner. */
+.thumb {
+  position: relative;
+  line-height: 0;
+}
+
+.thumbRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  border-radius: 999px;
+  background: var(--mantine-color-body);
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.25);
+}

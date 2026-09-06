@@ -23,6 +23,16 @@ const composeSchema = z.object({
   selection: z.string().max(20000).optional(),
   /** Surrounding document, so the model matches its voice and does not repeat it. */
   context: z.string().max(20000).optional(),
+  /**
+   * Reference images, as data URLs.
+   *
+   * Accepted and bounded here, but not yet forwarded: the text models this
+   * runs on have no vision input, so passing them through would only inflate
+   * the request. Taking them now means the composer's UI is honest about what
+   * it collects, and wiring a vision model in later is a change to this file
+   * alone.
+   */
+  images: z.array(z.string().max(6_000_000)).max(4).optional(),
 });
 
 /**

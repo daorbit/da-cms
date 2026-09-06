@@ -21,3 +21,34 @@
   padding-left: 24px;
   padding-right: 24px;
 }
+
+/* The editor and the AI bar are one column: the surface takes what is left
+   after the bar, so opening the bar shortens the document rather than pushing
+   it off the bottom. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* While Orbit writes, the document is not editable — a keystroke landing
+   between two inserted blocks would be overwritten by the next one. The cursor
+   says so, and the slight fade marks the surface as busy rather than broken. */
+.surface[data-typing] {
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.surface[data-typing] :global(.da-editor__content) {
+  caret-color: transparent;
+}

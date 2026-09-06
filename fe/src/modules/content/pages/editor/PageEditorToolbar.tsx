@@ -20,6 +20,8 @@ interface Props {
   dirty: boolean;
   /** When the page was last written, for the save indicator. */
   savedAt: Date | null;
+  /** Whether Orbit is writing into the document right now. */
+  generating?: boolean;
   onBack: () => void;
   onOpenDetails: () => void;
   onPreview: () => void;
@@ -33,10 +35,12 @@ interface Props {
 }
 
 export function PageEditorToolbar({
-  title, status, savingAction, dirty, savedAt, onBack, onOpenDetails, onPreview,
-  onOpenHistory, seoOpen, onToggleSeo, onSave, onPublishToggle,
+  title, status, savingAction, dirty, savedAt, generating, onBack, onOpenDetails,
+  onPreview, onOpenHistory, seoOpen, onToggleSeo, onSave, onPublishToggle,
 }: Props) {
-  const busy = savingAction !== null;
+  // Saving while Orbit is mid-document would store a half-written page, so both
+  // write actions wait for it to finish.
+  const busy = savingAction !== null || !!generating;
   const published = status === 'published';
 
   return (
@@ -68,7 +72,12 @@ export function PageEditorToolbar({
       <Group gap="xs" wrap="nowrap">
         {/* Says whether the work is safe. A spinner alone left it ambiguous
             whether a save had actually landed. */}
-        <SaveState busy={busy} dirty={dirty} savedAt={savedAt} />
+        <SaveState
+          busy={savingAction !== null}
+          generating={!!generating}
+          dirty={dirty}
+          savedAt={savedAt}
+        />
 
         <Tooltip label="Preview content" withArrow>
           <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Preview content" onClick={onPreview}>
@@ -113,7 +122,16 @@ export function PageEditorToolbar({
 
         <Divider orientation="vertical" my={6} />
 
-        <Tooltip label={dirty ? 'Save (Ctrl+S)' : 'No changes to save'} withArrow>
+        <Tooltip
+          label={
+            generating
+              ? 'Orbit is writing…'
+              : dirty
+                ? 'Save (Ctrl+S)'
+                : 'No changes to save'
+          }
+          withArrow
+        >
           <Button
             variant="default"
             loading={savingAction === 'save'}
@@ -141,10 +159,12 @@ export function PageEditorToolbar({
 /** Unsaved / saving / last-saved, in one line of quiet text. */
 function SaveState({
   busy,
+  generating,
   dirty,
   savedAt,
 }: {
   busy: boolean;
+  generating: boolean;
   dirty: boolean;
   savedAt: Date | null;
 }) {
@@ -155,6 +175,14 @@ function SaveState({
     const timer = setInterval(() => tick((n) => n + 1), 30_000);
     return () => clearInterval(timer);
   }, []);
+
+  if (generating) {
+    return (
+      <Text size="xs" c="dimmed">
+        Orbit is writing…
+      </Text>
+    );
+  }
 
   if (busy) {
     return (

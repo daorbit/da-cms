@@ -13,8 +13,8 @@ import { useComputedColorScheme } from '@mantine/core';
  * makes a raster logo look pasted on, and the radius has to follow the size it
  * is rendered at.
  *
- * Shared with the analytics app, so the assistant is recognisably the same one
- * across both products.
+ * The same artwork as the analytics app, so the assistant is recognisably one
+ * thing across both products.
  */
 export function OrbitMark({ size = 20 }: { size?: number }) {
   // `getInitialValueInEffect: false` — the default defers to an effect, which

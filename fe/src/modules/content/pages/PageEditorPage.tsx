@@ -27,6 +27,9 @@ export function PageEditorPage() {
   // Open by default: metadata is part of writing a page, not an afterthought
   // behind a button someone has to remember to press.
   const [seoOpen, setSeoOpen] = useState(true);
+  // Saving mid-generation would write a half-finished document, so the toolbar
+  // is locked until Orbit has stopped.
+  const [generating, setGenerating] = useState(false);
 
   const editor = usePageEditor(id);
 
@@ -62,6 +65,7 @@ export function PageEditorPage() {
           savingAction={editor.savingAction}
           dirty={editor.dirty}
           savedAt={editor.savedAt}
+          generating={generating}
           onBack={() => leave(`/${editor.workspace?.slug}/content/pages`)}
           onOpenDetails={() =>
             leave(`/${editor.workspace?.slug}/content/pages/${id}/details`)
@@ -83,7 +87,11 @@ export function PageEditorPage() {
       )}
 
       <Box style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative' }}>
-        <EditorSurface content={editor.content} onContentChange={editor.setContent} />
+        <EditorSurface
+          content={editor.content}
+          onContentChange={editor.setContent}
+          onGeneratingChange={setGenerating}
+        />
 
         {seoOpen && (
           <SeoPanel
