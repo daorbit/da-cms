@@ -1,5 +1,6 @@
 import { Box } from '@mantine/core';
 import { PageBodyEditor } from '@/modules/content/components/PageBodyEditor';
+import classes from './EditorSurface.module.css';
 
 interface Props {
   content: string;
@@ -10,7 +11,7 @@ interface Props {
 export function EditorSurface({ content, onContentChange }: Props) {
   return (
  
-    <Box style={{ flex: 1, minHeight: 0 }}>
+    <Box className={classes.surface}>
       <PageBodyEditor value={content} onChange={onContentChange} placeholder="Start writing…" />
     </Box>
   );

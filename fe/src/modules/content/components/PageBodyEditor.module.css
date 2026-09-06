@@ -10,9 +10,9 @@
   max-width: 100%;
 }
 
-/* The panel around the editor already insets the content, so the editor's own
-   horizontal padding would read as a second margin. */
+/* The editor itself runs edge to edge, so the text needs its own breathing
+   room — narrower than the package default, which assumes a framed editor. */
 .editor :global(.da-editor__container) {
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: 24px;
+  padding-right: 24px;
 }
