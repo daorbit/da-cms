@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  ActionIcon,
-  Button,
-  Group,
-  Image,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Center,
-} from '@mantine/core';
+import { ActionIcon, Button, Image, Paper, Stack, Text, Center } from '@mantine/core';
 import { IconPhoto, IconX, IconLibraryPhoto } from '@tabler/icons-react';
 import { MediaPickerModal } from '@/modules/media/MediaPickerModal';
 import type { PageImage } from '@/types';
@@ -28,12 +18,11 @@ interface Props {
  *
  * Chosen from the workspace's media library, which is also where a new file is
  * uploaded — the picker uploads in place, so setting an image never means
- * leaving the page being edited. The URL field stays for an image hosted
- * somewhere else entirely.
+ * leaving the page being edited. The asset carries its own alt text, so there
+ * is nothing left to type here.
  */
 export function ImageField({ label, description, value, onChange, ratio = 16 / 9 }: Props) {
   const [picking, setPicking] = useState(false);
-  const set = (patch: Partial<PageImage>) => onChange({ ...value, ...patch });
 
   return (
     <Stack gap="xs">
@@ -84,9 +73,6 @@ export function ImageField({ label, description, value, onChange, ratio = 16 / 9
               >
                 Choose from library
               </Button>
-              <Text size="xs" c="dimmed">
-                or paste a URL below
-              </Text>
             </Stack>
           </Center>
         )}
@@ -103,29 +89,14 @@ export function ImageField({ label, description, value, onChange, ratio = 16 / 9
         </Button>
       )}
 
-      <Group grow gap="xs" align="flex-start">
-        <TextInput
-          placeholder="https://…"
-          size="xs"
-          value={value.url}
-          onChange={(e) => set({ url: e.currentTarget.value })}
-        />
-        <TextInput
-          placeholder="Alt text"
-          size="xs"
-          value={value.alt}
-          onChange={(e) => set({ alt: e.currentTarget.value })}
-        />
-      </Group>
-
       <MediaPickerModal
         opened={picking}
         onClose={() => setPicking(false)}
         title={`Choose ${label.toLowerCase()}`}
         kind="image"
-        // The library's alt text is the asset's own description, so it carries
-        // across — a caller can still override it in the field below.
-        onSelect={(asset) => onChange({ url: asset.url, alt: asset.alt || value.alt })}
+        // Alt text belongs to the asset, so it travels with it — edited in the
+        // media library rather than retyped on every page that uses the image.
+        onSelect={(asset) => onChange({ url: asset.url, alt: asset.alt })}
       />
     </Stack>
   );

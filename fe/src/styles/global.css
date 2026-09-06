@@ -237,6 +237,16 @@ body {
      otherwise set this column's width from its own intrinsic size and lay out
      wider than the shell. */
   min-width: 0;
+  /* A scroll container's own bottom padding is dropped once its content
+     overflows, so the last element of a long route ends up flush against the
+     edge. Carried here instead, on the content rather than the scroller. */
+  padding-bottom: var(--mantine-spacing-lg);
+}
+
+/* The editor supplies its own chrome and fills the column exactly; the trailing
+   space a scrolling form wants would leave a gap under it. */
+.app-main--flush .app-outlet {
+  padding-bottom: 0;
 }
 
 /* A route that is a surface rather than a panel — the page editor — supplies
@@ -403,4 +413,24 @@ body {
 }
 [data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-label[data-active] {
   color: #fff;
+}
+
+/* The page-details form is two columns on a wide screen — fields left, the
+   settings rail right — and one column once the rail would be too narrow to
+   hold an image field at a usable size. */
+@media (max-width: 62em) {
+  .page-details-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* The page-details header is separated from the form by a rule rather than by
+   space alone, so the title and its actions read as a bar above the fields. */
+.page-details-header {
+  padding-bottom: var(--mantine-spacing-md);
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme='dark'] .page-details-header {
+  border-bottom-color: rgba(255, 255, 255, 0.09);
 }
