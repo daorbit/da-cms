@@ -33,12 +33,37 @@ const authorSchema = new Schema(
   { _id: false }
 );
 
+/**
+ * What search engines and social cards read.
+ *
+ * Every field is optional and falls back to the page's own title, description
+ * and hero image — a page with none of this set still has usable metadata, and
+ * these exist for when the on-page copy is not the right thing to show in a
+ * result or a shared link.
+ */
 const seoSchema = new Schema(
   {
     title: { type: String, trim: true, default: '' },
     description: { type: String, trim: true, default: '' },
     ogImage: { type: String, trim: true, default: '' },
     noIndex: { type: Boolean, default: false },
+
+    /** The one URL search engines should treat as authoritative for this page. */
+    canonicalUrl: { type: String, trim: true, default: '' },
+    /** Comma-separated. Ignored by Google, still read by some other engines. */
+    keywords: { type: String, trim: true, default: '' },
+
+    /** Overrides for the card a link shows when shared. */
+    ogTitle: { type: String, trim: true, default: '' },
+    ogDescription: { type: String, trim: true, default: '' },
+    /** `article` for a post, `website` for a landing page. */
+    ogType: { type: String, trim: true, default: 'article' },
+
+    /** How large an image the card uses: 'summary_large_image' or 'summary'. */
+    twitterCard: { type: String, trim: true, default: 'summary_large_image' },
+
+    /** Excluded from sitemaps as well as from search, when set. */
+    noFollow: { type: Boolean, default: false },
   },
   { _id: false }
 );

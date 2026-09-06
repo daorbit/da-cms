@@ -70,11 +70,22 @@ export interface PageSection {
   data: Record<string, unknown>;
 }
 
+/**
+ * Search and social metadata. Every field falls back to the page's own title,
+ * description and hero image, so none of it is required.
+ */
 export interface PageSeo {
   title: string;
   description: string;
   ogImage: string;
   noIndex: boolean;
+  canonicalUrl: string;
+  keywords: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogType: string;
+  twitterCard: string;
+  noFollow: boolean;
 }
 
 export interface PageImage {

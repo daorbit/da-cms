@@ -9,6 +9,7 @@ import { pageService } from '@/modules/content/pageService';
 import { Skeleton } from '@mantine/core';
 import { HeaderSkeleton } from '@/components/Skeletons';
 import { RevisionHistoryModal } from '@/modules/content/pages/editor/RevisionHistoryModal';
+import { SeoPanel } from '@/modules/content/pages/editor/SeoPanel';
 
 /**
  * Shell only: wires the editor state hook to the toolbar and the writing
@@ -22,6 +23,9 @@ export function PageEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Open by default: metadata is part of writing a page, not an afterthought
+  // behind a button someone has to remember to press.
+  const [seoOpen, setSeoOpen] = useState(true);
 
   const editor = usePageEditor(id);
 
@@ -63,6 +67,8 @@ export function PageEditorPage() {
           }
           onPreview={() => setPreviewOpen(true)}
           onOpenHistory={() => setHistoryOpen(true)}
+          seoOpen={seoOpen}
+          onToggleSeo={() => setSeoOpen((v) => !v)}
           onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft', 'save')}
           onPublishToggle={() =>
             editor.save(editor.status === 'published' ? 'draft' : 'published', 'publish')
@@ -76,7 +82,25 @@ export function PageEditorPage() {
         </Alert>
       )}
 
-      <EditorSurface content={editor.content} onContentChange={editor.setContent} />
+      <Box style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative' }}>
+        <EditorSurface content={editor.content} onContentChange={editor.setContent} />
+
+        {seoOpen && (
+          <SeoPanel
+            seo={editor.seo}
+            onChange={editor.setSeo}
+            onClose={() => setSeoOpen(false)}
+            pageTitle={editor.title}
+            pageDescription={editor.description}
+            heroImage={editor.heroImage}
+            publicUrl={
+              editor.workspace?.websiteUrl
+                ? `${editor.workspace.websiteUrl.replace(/\/$/, '')}/${editor.slug}`
+                : ''
+            }
+          />
+        )}
+      </Box>
 
       <Modal
         opened={pendingRoute !== null}

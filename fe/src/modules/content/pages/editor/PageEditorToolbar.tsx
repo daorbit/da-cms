@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ActionIcon, Button, Divider, Group, Text, Tooltip } from '@mantine/core';
-import { IconArrowLeft, IconAdjustments, IconEye, IconHistory } from '@tabler/icons-react';
+import {
+  IconArrowLeft, IconAdjustments, IconEye, IconHistory, IconSearch,
+} from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
 
 const STATUS_DOT: Record<PageStatus, string> = {
@@ -22,13 +24,16 @@ interface Props {
   onOpenDetails: () => void;
   onPreview: () => void;
   onOpenHistory: () => void;
+  /** Whether the SEO rail is showing, so its button reads as a toggle. */
+  seoOpen: boolean;
+  onToggleSeo: () => void;
   onSave: () => void;
   onPublishToggle: () => void;
 }
 
 export function PageEditorToolbar({
   title, status, savingAction, dirty, savedAt, onBack, onOpenDetails, onPreview,
-  onOpenHistory, onSave, onPublishToggle,
+  onOpenHistory, seoOpen, onToggleSeo, onSave, onPublishToggle,
 }: Props) {
   const busy = savingAction !== null;
   const published = status === 'published';
@@ -67,6 +72,19 @@ export function PageEditorToolbar({
         <Tooltip label="Preview content" withArrow>
           <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Preview content" onClick={onPreview}>
             <IconEye size={18} />
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip label="SEO &amp; social" withArrow>
+          <ActionIcon
+            variant={seoOpen ? 'light' : 'subtle'}
+            color={seoOpen ? 'blue' : 'gray'}
+            size="lg"
+            aria-label="SEO and social"
+            aria-pressed={seoOpen}
+            onClick={onToggleSeo}
+          >
+            <IconSearch size={18} />
           </ActionIcon>
         </Tooltip>
 

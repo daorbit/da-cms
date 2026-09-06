@@ -43,12 +43,31 @@ const pageSchema = z.object({
   sections: z.array(sectionSchema).default([]),
   seo: z
     .object({
-      title: z.string().default(""),
-      description: z.string().default(""),
+      title: z.string().max(200).default(""),
+      description: z.string().max(400).default(""),
       ogImage: z.string().default(""),
       noIndex: z.boolean().default(false),
+      canonicalUrl: z.string().max(500).default(""),
+      keywords: z.string().max(300).default(""),
+      ogTitle: z.string().max(200).default(""),
+      ogDescription: z.string().max(400).default(""),
+      ogType: z.string().max(40).default("article"),
+      twitterCard: z.string().max(40).default("summary_large_image"),
+      noFollow: z.boolean().default(false),
     })
-    .default({ title: "", description: "", ogImage: "", noIndex: false }),
+    .default({
+      title: "",
+      description: "",
+      ogImage: "",
+      noIndex: false,
+      canonicalUrl: "",
+      keywords: "",
+      ogTitle: "",
+      ogDescription: "",
+      ogType: "article",
+      twitterCard: "summary_large_image",
+      noFollow: false,
+    }),
   /** The byline a published article carries, separate from who saved it. */
   author: z
     .object({

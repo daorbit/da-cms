@@ -8,7 +8,19 @@ export const slugify = (input: string) =>
   input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
 const EMPTY_IMAGE: PageImage = { url: '', alt: '' };
-const EMPTY_SEO: PageSeo = { title: '', description: '', ogImage: '', noIndex: false };
+const EMPTY_SEO: PageSeo = {
+  title: '',
+  description: '',
+  ogImage: '',
+  noIndex: false,
+  canonicalUrl: '',
+  keywords: '',
+  ogTitle: '',
+  ogDescription: '',
+  ogType: 'article',
+  twitterCard: 'summary_large_image',
+  noFollow: false,
+};
 
 /**
  * All state and load/save logic for the page editor, kept out of the
@@ -78,7 +90,7 @@ export function usePageEditor(id: string | undefined) {
         setThumbnailImage(page.thumbnailImage ?? EMPTY_IMAGE);
         setContent(page.content ?? '');
         setLegacySections(page.sections ?? []);
-        setSeo(page.seo ?? EMPTY_SEO);
+        setSeo({ ...EMPTY_SEO, ...(page.seo ?? {}) });
         setStatus(page.status);
         // The loaded page is by definition unmodified, so it becomes the
         // baseline everything after is compared against.
@@ -91,7 +103,7 @@ export function usePageEditor(id: string | undefined) {
           heroImage: page.heroImage ?? EMPTY_IMAGE,
           thumbnailImage: page.thumbnailImage ?? EMPTY_IMAGE,
           content: page.content ?? '',
-          seo: page.seo ?? EMPTY_SEO,
+          seo: { ...EMPTY_SEO, ...(page.seo ?? {}) },
         });
         setSavedAt(page.updatedAt ? new Date(page.updatedAt) : null);
       } catch (err) {
