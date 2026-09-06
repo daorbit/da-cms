@@ -121,3 +121,21 @@
   background: var(--mantine-color-body);
   box-shadow: 0 1px 4px rgba(16, 24, 40, 0.25);
 }
+
+/*
+ * The brief stays readable while Orbit works.
+ *
+ * A disabled textarea is greyed almost to the background, which made the thing
+ * the writer just asked for look like it had been lost. It is not being greyed
+ * because it is unavailable — it is simply not editable until the answer lands,
+ * so it keeps its own colour and only the cursor says so.
+ */
+.input:disabled {
+  color: var(--mantine-color-text);
+  opacity: 1;
+  cursor: default;
+}
+
+.inputWrap:has(.input:disabled) {
+  background: var(--mantine-color-default-hover);
+}
