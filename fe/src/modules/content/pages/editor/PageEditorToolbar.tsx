@@ -23,7 +23,8 @@ interface Props {
   onBack: () => void;
   onOpenDetails: () => void;
   onPreview: () => void;
-  onOpenHistory: () => void;
+  /** Version history is built but switched off for now, so this is optional. */
+  onOpenHistory?: () => void;
   /** Whether the SEO rail is showing, so its button reads as a toggle. */
   seoOpen: boolean;
   onToggleSeo: () => void;
@@ -88,17 +89,21 @@ export function PageEditorToolbar({
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip label="Version history" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="lg"
-            aria-label="Version history"
-            onClick={onOpenHistory}
-          >
-            <IconHistory size={18} />
-          </ActionIcon>
-        </Tooltip>
+        {/* Shown only when a caller wires it up, which nothing does while
+            version history is off. */}
+        {onOpenHistory && (
+          <Tooltip label="Version history" withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="lg"
+              aria-label="Version history"
+              onClick={onOpenHistory}
+            >
+              <IconHistory size={18} />
+            </ActionIcon>
+          </Tooltip>
+        )}
 
         <Tooltip label="Page details" withArrow>
           <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Page details" onClick={onOpenDetails}>

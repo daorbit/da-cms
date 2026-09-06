@@ -590,7 +590,7 @@ export const restoreRevision: RequestHandler = async (req, res) => {
   }
 
   // The current state is itself snapshotted, so restoring is undoable.
-  await snapshotRevision(page as unknown as PageDoc, workspaceId, req.userId);
+  // await snapshotRevision(page as unknown as PageDoc, workspaceId, req.userId);
 
   const restored = await PageModel.findOneAndUpdate(
     { _id: id, workspaceId },
@@ -685,9 +685,9 @@ export const updatePage: RequestHandler = async (req, res) => {
     return;
   }
 
-  // Taken before the write: a revision is the state an edit replaced, which is
-  // what someone restoring after a bad edit is looking for.
-  await snapshotRevision(existing as unknown as PageDoc, workspaceId, req.userId);
+  // Version history is switched off for now — nothing is snapshotted, so no
+  // revisions accumulate. Re-enable by restoring this call and the routes.
+  // await snapshotRevision(existing as unknown as PageDoc, workspaceId, req.userId);
 
   const taxonomyError = await checkTaxonomy(
     workspaceId,

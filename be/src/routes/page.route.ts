@@ -7,9 +7,6 @@ import {
   deletePage,
   bulkPages,
   duplicatePage,
-  listRevisions,
-  getRevision,
-  restoreRevision,
 } from '../controllers/page.controller.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 
@@ -25,8 +22,12 @@ pageRoutes.get('/:id', asyncHandler(getPage));
 pageRoutes.patch('/:id', asyncHandler(updatePage));
 pageRoutes.delete('/:id', asyncHandler(deletePage));
 
-/* A page's own history, and copying it as a new draft. */
+/* Copying a page as a new draft. */
 pageRoutes.post('/:id/duplicate', asyncHandler(duplicatePage));
+
+/* Version history is built but switched off for now. The handlers stay in the
+   controller; these are the only thing that exposes them.
 pageRoutes.get('/:id/revisions', asyncHandler(listRevisions));
 pageRoutes.get('/:id/revisions/:revisionId', asyncHandler(getRevision));
 pageRoutes.post('/:id/revisions/:revisionId/restore', asyncHandler(restoreRevision));
+*/

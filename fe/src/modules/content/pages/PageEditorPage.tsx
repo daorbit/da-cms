@@ -8,7 +8,8 @@ import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/Cont
 import { pageService } from '@/modules/content/pageService';
 import { Skeleton } from '@mantine/core';
 import { HeaderSkeleton } from '@/components/Skeletons';
-import { RevisionHistoryModal } from '@/modules/content/pages/editor/RevisionHistoryModal';
+// Version history is built but switched off for now — see RevisionHistoryModal.
+// import { RevisionHistoryModal } from '@/modules/content/pages/editor/RevisionHistoryModal';
 import { SeoPanel } from '@/modules/content/pages/editor/SeoPanel';
 
 /**
@@ -22,7 +23,7 @@ export function PageEditorPage() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // const [historyOpen, setHistoryOpen] = useState(false);
   // Open by default: metadata is part of writing a page, not an afterthought
   // behind a button someone has to remember to press.
   const [seoOpen, setSeoOpen] = useState(true);
@@ -66,7 +67,6 @@ export function PageEditorPage() {
             leave(`/${editor.workspace?.slug}/content/pages/${id}/details`)
           }
           onPreview={() => setPreviewOpen(true)}
-          onOpenHistory={() => setHistoryOpen(true)}
           seoOpen={seoOpen}
           onToggleSeo={() => setSeoOpen((v) => !v)}
           onSave={() => editor.save(editor.status === 'published' ? 'published' : 'draft', 'save')}
@@ -142,6 +142,7 @@ export function PageEditorPage() {
         </Stack>
       </Modal>
 
+      {/* Version history, off for now:
       {editor.workspace && id && (
         <RevisionHistoryModal
           opened={historyOpen}
@@ -152,7 +153,7 @@ export function PageEditorPage() {
           // it back rather than keep the state it was holding.
           onRestored={() => window.location.reload()}
         />
-      )}
+      )} */}
 
       {editor.workspace && id && (
         <ContentPreviewModal
