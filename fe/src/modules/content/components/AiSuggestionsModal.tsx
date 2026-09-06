@@ -1,178 +1,138 @@
-import { useState } from 'react';
-import {
-  Box,
-  Group,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  UnstyledButton,
-} from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Group, Modal, Text, TextInput } from '@mantine/core';
+import { IconCornerDownLeft, IconSearch } from '@tabler/icons-react';
 import { OrbitMark } from '@/modules/content/components/OrbitMark';
+import { PROMPT_GROUPS, needsSelection } from './aiPrompts';
 import classes from './AiSuggestionsModal.module.css';
-
-/**
- * The prompt catalogue.
- *
- * Written as lead-ins the writer finishes rather than as finished instructions:
- * a prompt ending in "about " puts the caret where the topic goes, which is the
- * only part that differs between one use and the next. Grouped, because a flat
- * list of two dozen is read as noise.
- */
-const GROUPS: { label: string; prompts: string[] }[] = [
-  {
-    label: 'Write something new',
-    prompts: [
-      'Write a full blog post about ',
-      'Write a detailed case study about ',
-      'Write a step-by-step guide to ',
-      'Write a product announcement for ',
-      'Write an opinion piece arguing that ',
-      'Write a beginner-friendly explainer on ',
-      'Write a technical deep dive into ',
-    ],
-  },
-  {
-    label: 'Compare and analyse',
-    prompts: [
-      'Compare the main options for ',
-      'Write a pros and cons breakdown of ',
-      'Explain the trade-offs between ',
-      'Write a migration guide from ',
-      'Debunk the common myths about ',
-    ],
-  },
-  {
-    label: 'Structure and sections',
-    prompts: [
-      'Write an introduction for a post about ',
-      'Write a conclusion that summarises ',
-      'Write an FAQ section covering ',
-      'Write a comparison table of ',
-      'Add a callout explaining why ',
-      'Write a short summary of the section above',
-    ],
-  },
-  {
-    label: 'Improve what is here',
-    prompts: [
-      'Rewrite the selected text to be clearer and shorter',
-      'Rewrite the selected text in a more formal voice',
-      'Rewrite the selected text in plain English',
-      'Expand the selected text with more detail and examples',
-      'Turn the selected text into a bulleted list',
-      'Fix the grammar and punctuation in the selected text',
-      'Make the selected text more persuasive',
-    ],
-  },
-  {
-    label: 'Search and social',
-    prompts: [
-      'Write a meta description for this page',
-      'Suggest five headline options for this page',
-      'Write a short social post announcing this page',
-    ],
-  },
-];
 
 interface Props {
   opened: boolean;
   onClose: () => void;
-  /** Whether the writer has a selection, so rewrite prompts make sense. */
   hasSelection: boolean;
   onPick: (prompt: string) => void;
 }
 
 export function AiSuggestionsModal({ opened, onClose, hasSelection, onPick }: Props) {
   const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const term = query.trim().toLowerCase();
-  const groups = GROUPS.map((group) => ({
-    ...group,
-    prompts: group.prompts.filter((p) => p.toLowerCase().includes(term)),
-  })).filter((group) => group.prompts.length > 0);
+ 
+  const groups = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return PROMPT_GROUPS.map((group) => ({
+      ...group,
+      prompts: group.prompts.filter(
+        (p) => (hasSelection || !needsSelection(p)) && p.toLowerCase().includes(term)
+      ),
+    })).filter((group) => group.prompts.length > 0);
+  }, [query, hasSelection]);
+
+  const flat = useMemo(() => groups.flatMap((g) => g.prompts), [groups]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query, hasSelection]);
+
+  useEffect(() => {
+    if (opened) setQuery('');
+  }, [opened]);
+
+  useEffect(() => {
+    listRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [active]);
+
+  const choose = (prompt: string) => {
+    onPick(prompt);
+    onClose();
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActive((i) => (i + 1) % Math.max(flat.length, 1));
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActive((i) => (i - 1 + flat.length) % Math.max(flat.length, 1));
+    }
+    if (event.key === 'Enter' && flat[active]) {
+      event.preventDefault();
+      choose(flat[active]);
+    }
+  };
+
+  let index = -1;
 
   return (
     <Modal
       opened={opened}
       onClose={onClose}
-      title={
-        <Group gap={8}>
-          <OrbitMark size={20} />
-          <Text fw={600} size="sm">
-            What should Orbit write?
-          </Text>
-        </Group>
-      }
+      withCloseButton={false}
       size="lg"
       centered
-      scrollAreaComponent={ScrollArea.Autosize}
+      padding={0}
+      classNames={{ content: classes.modal, body: classes.body }}
     >
-      <Stack gap="md">
+      <div className={classes.searchRow}>
+        <OrbitMark size={17} />
         <TextInput
-          placeholder="Search prompts"
+          placeholder="Search prompts, or type to filter"
           leftSection={<IconSearch size={15} />}
           value={query}
           onChange={(e) => setQuery(e.currentTarget.value)}
+          onKeyDown={onKeyDown}
+          variant="unstyled"
           autoFocus
+          className={classes.search}
         />
+      </div>
 
-        {!hasSelection && (
-          <Text size="xs" c="dimmed">
-            Prompts that rewrite text need a selection in the editor first.
-          </Text>
-        )}
-
-        {groups.length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="lg">
+      <div className={classes.list} ref={listRef}>
+        {flat.length === 0 ? (
+          <Text size="sm" c="dimmed" ta="center" py="xl">
             Nothing matches “{query}”.
           </Text>
         ) : (
           groups.map((group) => (
-            <Stack gap={6} key={group.label}>
-              <Text
-                size="xs"
-                fw={600}
-                tt="uppercase"
-                c="dimmed"
-                style={{ letterSpacing: '0.04em' }}
-              >
-                {group.label}
-              </Text>
-
-              <Box className={classes.grid}>
-                {group.prompts.map((prompt) => {
-                  // A rewrite prompt with nothing selected would send the model
-                  // an instruction about text it cannot see.
-                  const needsSelection = prompt.includes('selected text');
-                  const disabled = needsSelection && !hasSelection;
-
-                  return (
-                    <UnstyledButton
-                      key={prompt}
-                      className={classes.item}
-                      data-disabled={disabled || undefined}
-                      disabled={disabled}
-                      onClick={() => {
-                        onPick(prompt);
-                        onClose();
-                      }}
-                    >
-                      <Text size="xs" lh={1.45}>
-                        {/* A trailing space means the prompt is a lead-in the
-                            writer finishes, so it is shown as one. */}
-                        {prompt.endsWith(' ') ? `${prompt.trim()}…` : prompt}
-                      </Text>
-                    </UnstyledButton>
-                  );
-                })}
-              </Box>
-            </Stack>
+            <div key={group.label}>
+              <div className={classes.groupLabel}>{group.label}</div>
+              {group.prompts.map((prompt) => {
+                index += 1;
+                const at = index;
+                return (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className={classes.item}
+                    data-active={at === active || undefined}
+                    onMouseEnter={() => setActive(at)}
+                    onClick={() => choose(prompt)}
+                  >
+                    <span className={classes.itemText}>
+                      {prompt.endsWith(' ') ? `${prompt.trim()}…` : prompt}
+                    </span>
+                    {at === active && <IconCornerDownLeft size={13} />}
+                  </button>
+                );
+              })}
+            </div>
           ))
         )}
-      </Stack>
+      </div>
+
+      <Group className={classes.footer} gap={14}>
+        <Text size="xs" c="dimmed">
+          ↑↓ to move · ↵ to pick · esc to close
+        </Text>
+        {!hasSelection && (
+          <Text size="xs" c="dimmed" ml="auto">
+            Select text to see rewrite prompts
+          </Text>
+        )}
+      </Group>
     </Modal>
   );
 }
