@@ -23,6 +23,10 @@
       "dest": "fe/assets/$1"
     },
     {
+      "src": "/(.*\\.[a-zA-Z0-9]+)$",
+      "dest": "fe/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
