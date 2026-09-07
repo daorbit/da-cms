@@ -6,8 +6,8 @@ import type { ApiError } from '../types/index.js';
  
  
 const MODELS = [
-  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
   '@cf/mistralai/mistral-small-3.1-24b-instruct',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
 ];
 
  
@@ -33,7 +33,6 @@ Use exactly these tags:
 <ul><li> and <ol><li> for lists
 <blockquote> for a pulled-out claim
 <pre><code class="language-ts"> for code
-<table><thead><tr><th> then <tbody><tr><td> for tables
 <div data-callout="info"> (also warning, success, danger) wrapping <p> for asides
 <hr> for a section break
 <strong> <em> <u> <s> <code> for inline emphasis
@@ -41,7 +40,11 @@ Use exactly these tags:
 
 Never write markdown. Asterisks around a word are a bug: bold is <strong>, not **word**.
 
-You are writing for publication. A wall of plain paragraphs is a failed answer.
+You are writing for publication. Prose is the default. Well-written paragraphs
+with the occasional heading carry almost every answer. A table is rare: use one
+only when the user explicitly asks to compare things or asks for a table, and
+never to lay out prose, steps, or a single subject's attributes. When unsure,
+write a paragraph or a list, not a table.
 
 Length. Match the instruction. A request for a line returns a line, a request for
 a section returns a section. Absent any steer, write 250-350 words across 10-16
@@ -54,10 +57,10 @@ saying the same thing at different lengths.
 
 Structure. Use the block that fits the content, never one that does not:
 - <h2> to separate genuinely distinct sections
-- a table when there is something to compare, and only then
 - a list for steps, requirements or criteria
 - a callout for a real caveat, not for emphasis
 - <strong> on the terms that matter
+- a table only on an explicit request to compare or tabulate
 
 Substance. Specifics only: real numbers, named tools, concrete scenarios, actual
 trade-offs. No filler openings ("In today's fast-paced world"), no throat-clearing,
@@ -66,10 +69,9 @@ only its benefit. A case study needs the situation, what was tried, what it cost
 what changed, and what the reader should copy.
 
 Mechanics:
-- Every table row has the same number of cells, and the first row is the header.
-- A table has 3 columns and 3-5 rows, header included.
-- Vary the blocks. Never emit more than 3 paragraphs in a row without a heading,
-  list, table or callout between them.
+- If a table is genuinely warranted: every row has the same number of cells, the
+  first row is the header, 3 columns, 3-5 rows.
+- Vary the blocks. Break up a long run of paragraphs with a heading or a list.
 - Do not wrap the answer in a code fence, and do not emit <html>, <head> or <body>.
 - Return the whole piece in one reply. Do not stop early or offer to continue.`;
 

@@ -93,7 +93,20 @@ export function PageBodyEditor({
 
     const nodes = deserializeHtml(html);
     if (!nodes.length) return;
- 
+
+
+    const escapeContainer = () => {
+      const isBlock = (n: SlateNode) =>
+        !Editor.isEditor(n) && Editor.isBlock(editor, n as never);
+      const entry = Editor.above(editor, { match: isBlock, mode: 'lowest' });
+      const top = entry
+        ? Editor.above(editor, { at: entry[1], match: isBlock, mode: 'highest' })
+        : null;
+      if (top) {
+        Transforms.select(editor, Editor.end(editor, top[1]));
+      }
+    };
+
     if (mode === 'replace') {
       const at = aiRange.current ?? editor.selection;
       if (at) {
@@ -107,6 +120,11 @@ export function PageBodyEditor({
       emitChange();
       return;
     }
+
+    if (aiRange.current) {
+      Transforms.select(editor, aiRange.current);
+    }
+    escapeContainer();
 
     setTyping(true);
     onGeneratingChange?.(true);
