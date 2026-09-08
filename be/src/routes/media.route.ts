@@ -4,6 +4,7 @@ import {
   uploadMedia,
   updateMedia,
   deleteMedia,
+  bulkDeleteMedia,
 } from '../controllers/media.controller.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 
@@ -15,5 +16,6 @@ export const mediaRoutes = Router({ mergeParams: true });
 
 mediaRoutes.get('/', asyncHandler(listMedia));
 mediaRoutes.post('/', asyncHandler(uploadMedia));
+mediaRoutes.post('/bulk-delete', asyncHandler(bulkDeleteMedia));
 mediaRoutes.patch('/:id', asyncHandler(updateMedia));
 mediaRoutes.delete('/:id', asyncHandler(deleteMedia));

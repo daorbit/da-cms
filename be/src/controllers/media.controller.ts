@@ -6,6 +6,7 @@ import {
   checkDataUrl,
   cloudinaryConfigured,
   deleteAsset,
+  deleteAssets,
   resourceKind,
   uploadAsset,
   type ResourceKind,
@@ -15,11 +16,21 @@ import type { ApiError } from '../types/index.js';
 /** Ceiling on one upload. Video is the reason this is not smaller. */
 const MAX_BYTES = 25 * 1024 * 1024;
 
-const uploadSchema = z.object({
+const fileSchema = z.object({
   /** The file as a base64 data URL. */
   file: z.string().min(1, 'A file is required'),
   name: z.string().min(1).max(160),
   alt: z.string().max(300).default(''),
+});
+
+/** Accepts one file or a `files` array; both land as an array internally. */
+const uploadSchema = z.union([
+  fileSchema.transform((f) => ({ files: [f] })),
+  z.object({ files: z.array(fileSchema).min(1).max(50) }),
+]);
+
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
 });
 
 const updateSchema = z.object({
@@ -117,53 +128,101 @@ export const uploadMedia: RequestHandler = async (req, res) => {
     return;
   }
 
-  const { file, name, alt } = parsed.data;
-
-  const checked = checkDataUrl(file, MAX_BYTES);
-  if ('error' in checked) {
-    const body: ApiError = { error: 'invalid_input', message: checked.error };
-    res.status(400).json(body);
-    return;
-  }
-
   const { workspaceId } = req.params;
-  const kind: ResourceKind = resourceKind(checked.mime);
+  const { files } = parsed.data;
 
-  let uploaded;
-  try {
-    uploaded = await uploadAsset({
-      file,
+  const results = await Promise.all(
+    files.map(async ({ file, name, alt }) => {
+      const checked = checkDataUrl(file, MAX_BYTES);
+      if ('error' in checked) return { ok: false as const, name, message: checked.error };
 
-      folder: `da-cms/${workspaceId}`,
-      publicId: assetId(),
-      kind,
-    });
-  } catch (err) {
+      const kind: ResourceKind = resourceKind(checked.mime);
+
+      try {
+        const uploaded = await uploadAsset({
+          file,
+          folder: `da-cms/${workspaceId}`,
+          publicId: assetId(),
+          kind,
+        });
+
+        const doc = await MediaModel.create({
+          workspaceId,
+          name,
+          alt,
+          url: uploaded.url,
+          publicId: uploaded.publicId,
+          kind: uploaded.kind,
+          mime: checked.mime,
+          format: uploaded.format,
+          bytes: uploaded.bytes || checked.bytes,
+          width: uploaded.width ?? null,
+          height: uploaded.height ?? null,
+          thumbnailUrl: uploaded.thumbnailUrl ?? '',
+          uploadedBy: req.userId,
+        });
+
+        return { ok: true as const, doc: doc as unknown as MediaDoc };
+      } catch (err) {
+        return {
+          ok: false as const,
+          name,
+          message: err instanceof Error ? err.message : 'Could not upload that file',
+        };
+      }
+    })
+  );
+
+  const items = results.filter((r) => r.ok).map((r) => toResponse(r.doc));
+  const failed = results
+    .filter((r) => !r.ok)
+    .map((r) => ({ name: r.name, message: r.message }));
+
+  if (items.length === 0) {
     const body: ApiError = {
       error: 'upload_failed',
-      message: err instanceof Error ? err.message : 'Could not upload that file',
+      message: failed[0]?.message ?? 'Could not upload those files',
     };
     res.status(502).json(body);
     return;
   }
 
-  const doc = await MediaModel.create({
-    workspaceId,
-    name,
-    alt,
-    url: uploaded.url,
-    publicId: uploaded.publicId,
-    kind: uploaded.kind,
-    mime: checked.mime,
-    format: uploaded.format,
-    bytes: uploaded.bytes || checked.bytes,
-    width: uploaded.width ?? null,
-    height: uploaded.height ?? null,
-    thumbnailUrl: uploaded.thumbnailUrl ?? '',
-    uploadedBy: req.userId,
-  });
+  // 207: some succeeded, some did not.
+  res.status(failed.length ? 207 : 201).json({ items, failed });
+};
 
-  res.status(201).json(toResponse(doc as unknown as MediaDoc));
+export const bulkDeleteMedia: RequestHandler = async (req, res) => {
+  const parsed = bulkDeleteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const body: ApiError = { error: 'invalid_input', message: parsed.error.issues[0].message };
+    res.status(400).json(body);
+    return;
+  }
+
+  const { workspaceId } = req.params;
+  const docs = await MediaModel.find({ _id: { $in: parsed.data.ids }, workspaceId });
+
+  if (docs.length === 0) {
+    const body: ApiError = { error: 'not_found', message: 'No such files' };
+    res.status(404).json(body);
+    return;
+  }
+
+  await MediaModel.deleteMany({ _id: { $in: docs.map((d) => d._id) }, workspaceId });
+
+  // Cloudinary addresses assets per pipeline, so group by kind.
+  const byKind: Record<ResourceKind, string[]> = { image: [], video: [], raw: [] };
+  for (const doc of docs) {
+    byKind[doc.kind as ResourceKind]?.push(doc.publicId);
+  }
+
+  await Promise.all(
+    (Object.keys(byKind) as ResourceKind[])
+      .filter((k) => byKind[k].length)
+      .map((k) => deleteAssets(byKind[k], k))
+  );
+
+  res.json({ deleted: docs.map((d) => String(d._id)) });
 };
 
 export const updateMedia: RequestHandler = async (req, res) => {

@@ -140,6 +140,45 @@ export async function deleteAsset(publicId: string, kind: ResourceKind): Promise
 }
 
 
+/**
+ * Delete many assets of one kind in a single Admin API call per 100 IDs.
+ * The Admin API uses Basic auth rather than a per-request signature.
+ */
+export async function deleteAssets(
+  publicIds: string[],
+  kind: ResourceKind
+): Promise<void> {
+  if (!cloudinaryConfigured()) return;
+
+  const ids = publicIds.filter(Boolean);
+  if (ids.length === 0) return;
+
+  const auth = Buffer.from(`${API_KEY()}:${API_SECRET()}`).toString('base64');
+
+  // The Admin API caps one call at 100 public IDs.
+  for (let i = 0; i < ids.length; i += 100) {
+    const batch = ids.slice(i, i + 100);
+    const query = batch.map((id) => `public_ids[]=${encodeURIComponent(id)}`).join('&');
+
+    try {
+      await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME()}/resources/${kind}/upload?${query}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Basic ${auth}` },
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
+    } catch (err) {
+      console.error(
+        '[cloudinary] batch delete failed:',
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+}
+
+
 const ALLOWED_MIME = new Set([
   'image/png',
   'image/jpeg',
