@@ -110,7 +110,7 @@ export function PageEditorPage() {
         onClose={() => setPendingRoute(null)}
         title="Unsaved changes"
         centered
-        size="lg"
+        size={480}
       >
         <Stack>
           <Text size="sm">
