@@ -150,8 +150,7 @@ export function PageBodyEditor({
 
   return (
     <Box className={classes.wrap}>
-      {/* While Orbit is typing the surface is read-only: an edit landing between
-          two inserted blocks would be overwritten by the next one. */}
+
       <Box className={classes.surface} data-typing={typing || undefined}>
         <DaEditor
           ref={ref}
