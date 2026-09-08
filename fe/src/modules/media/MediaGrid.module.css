@@ -20,6 +20,23 @@
   }
 }
 
+/* The picker gives each tile more room, so an image reads at a glance. */
+.threeUp {
+  column-count: 2;
+}
+
+@media (min-width: 48em) {
+  .threeUp {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 75em) {
+  .threeUp {
+    column-count: 3;
+  }
+}
+
 .tile {
   position: relative;
   /* Stops a tile being split across a column break mid-image. */
@@ -98,4 +115,14 @@
   border-radius: 999px;
   background: var(--mantine-color-blue-6);
   color: #fff;
+}
+
+.pick {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 3px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.2);
 }

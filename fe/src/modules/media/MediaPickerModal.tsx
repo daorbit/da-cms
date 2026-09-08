@@ -16,6 +16,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid } from './MediaGrid';
+import { UploadTray, type UploadItem } from './UploadTray';
 import { MediaGridSkeleton } from '@/components/Skeletons';
 
 /** Matches the library page, so the two feel like one wall. */
@@ -50,7 +51,8 @@ export function MediaPickerModal({
 
   const [items, setItems] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const uploading = uploads.some((u) => u.state === 'queued' || u.state === 'uploading');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<MediaKind | 'all'>(kind);
   const [selected, setSelected] = useState<MediaAsset | null>(null);
@@ -101,25 +103,32 @@ export function MediaPickerModal({
     setPage(1);
   }, [filter, query]);
 
-  const upload = async (files: FileList | null) => {
-    if (!files?.length || !workspaceId) return;
+  const upload = async (fileList: FileList | null) => {
+    if (!fileList?.length || !workspaceId) return;
 
-    setUploading(true);
-    try {
-      const asset = await mediaService.upload(workspaceId, files[0]);
-      // Picked straight away: uploading here is almost always "use this one".
-      // Shown on the first page too, which is where a new upload sorts to.
+    const files = Array.from(fileList);
+    setUploads(files.map((file) => ({ file, state: 'queued' })));
+
+    const { assets } = await mediaService.uploadMany(
+      workspaceId,
+      files,
+      (index, state, _asset, error) => {
+        setUploads((prev) =>
+          prev.map((u, i) => (i === index ? { ...u, state, error } : u))
+        );
+      }
+    );
+
+    if (assets.length) {
+      // Shown on the first page, which is where a new upload sorts to, and the
+      // last one is pre-selected: uploading here is almost always "use this".
       setPage(1);
-      setItems((prev) => [asset, ...prev]);
-      setSelected(asset);
-    } catch (err) {
-      notifications.show({
-        color: 'red',
-        message: err instanceof ApiError ? err.message : 'Upload failed',
-      });
-    } finally {
-      setUploading(false);
+      setItems((prev) => [...assets, ...prev]);
+      setSelected(assets[assets.length - 1]);
     }
+
+    // Leave the tray up briefly so a failed row is readable, then clear.
+    setTimeout(() => setUploads([]), 2500);
   };
 
   const confirm = () => {
@@ -131,7 +140,14 @@ export function MediaPickerModal({
   const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
-    <Modal opened={opened} onClose={onClose} title={title} size="xl" centered>
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={title}
+      size={1040}
+      centered
+      styles={{ title: { fontWeight: 600, fontSize: 'var(--mantine-font-size-lg)' } }}
+    >
       <Stack>
         <Group gap="sm">
           <TextInput
@@ -165,6 +181,7 @@ export function MediaPickerModal({
         <input
           ref={fileInput}
           type="file"
+          multiple
           hidden
           accept={filter === 'image' ? 'image/*' : filter === 'video' ? 'video/*' : undefined}
           onChange={(e) => {
@@ -173,7 +190,9 @@ export function MediaPickerModal({
           }}
         />
 
-        <div style={{ maxHeight: '52vh', overflowY: 'auto' }}>
+        {uploads.length > 0 && <UploadTray items={uploads} />}
+
+        <div style={{ maxHeight: '58vh', overflowY: 'auto' }}>
           {loading ? (
             <MediaGridSkeleton count={PER_PAGE} />
           ) : items.length === 0 ? (
@@ -186,7 +205,12 @@ export function MediaPickerModal({
               </Stack>
             </Center>
           ) : (
-            <MediaGrid items={items} selectedId={selected?.id} onSelect={setSelected} />
+            <MediaGrid
+              items={items}
+              selectedId={selected?.id}
+              onSelect={setSelected}
+              maxColumns={3}
+            />
           )}
         </div>
 

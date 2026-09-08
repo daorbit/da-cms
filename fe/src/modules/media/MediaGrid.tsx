@@ -1,50 +1,80 @@
-import { Box, Text, ActionIcon, Group, Tooltip } from '@mantine/core';
+import { Box, Checkbox, Text, ActionIcon, Group, Tooltip } from '@mantine/core';
 import { IconCheck, IconFile, IconFileTypePdf, IconMovie, IconMusic } from '@tabler/icons-react';
 import { formatBytes, type MediaAsset } from './mediaService';
 import classes from './MediaGrid.module.css';
 
 interface Props {
   items: MediaAsset[];
-  /** Highlights the asset a picker has chosen. */
   selectedId?: string | null;
   onSelect?: (asset: MediaAsset) => void;
-  /** Per-item controls — rename, delete — shown on hover. */
   renderActions?: (asset: MediaAsset) => React.ReactNode;
+  /** Widest column count. Fewer columns = bigger tiles (the picker wants this). */
+  maxColumns?: 3 | 4;
+  /** IDs ticked for a bulk action. When passed, a tile click toggles the tick. */
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
-/**
- * The library as a masonry wall.
- *
- * CSS columns rather than a grid: images arrive at whatever aspect ratio they
- * were uploaded at, and a fixed grid would either crop them all to one shape or
- * leave ragged gaps. Columns let each tile keep its own height.
- */
-export function MediaGrid({ items, selectedId, onSelect, renderActions }: Props) {
+
+export function MediaGrid({
+  items,
+  selectedId,
+  onSelect,
+  renderActions,
+  maxColumns = 4,
+  selectedIds,
+  onToggleSelect,
+}: Props) {
+  const multiSelect = !!selectedIds;
+
   return (
-    <Box className={classes.masonry}>
-      {items.map((asset) => (
+    <Box
+      className={`${classes.masonry} ${maxColumns === 3 ? classes.threeUp : ''}`}
+    >
+      {items.map((asset) => {
+        const ticked = selectedIds?.has(asset.id) ?? false;
+        const activate = multiSelect
+          ? () => onToggleSelect?.(asset.id)
+          : onSelect
+            ? () => onSelect(asset)
+            : undefined;
+
+        return (
         <Box
           key={asset.id}
-          className={`${classes.tile} ${selectedId === asset.id ? classes.selected : ''}`}
-          onClick={() => onSelect?.(asset)}
-          role={onSelect ? 'button' : undefined}
-          tabIndex={onSelect ? 0 : undefined}
+          className={`${classes.tile} ${
+            (multiSelect ? ticked : selectedId === asset.id) ? classes.selected : ''
+          }`}
+          onClick={activate}
+          role={activate ? 'button' : undefined}
+          tabIndex={activate ? 0 : undefined}
           onKeyDown={(e) => {
-            if (onSelect && (e.key === 'Enter' || e.key === ' ')) {
+            if (activate && (e.key === 'Enter' || e.key === ' ')) {
               e.preventDefault();
-              onSelect(asset);
+              activate();
             }
           }}
         >
           <Preview asset={asset} />
 
-          {selectedId === asset.id && (
+          {multiSelect && (
+            <Box className={classes.pick} onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                size="xs"
+                checked={ticked}
+                onChange={() => onToggleSelect?.(asset.id)}
+                aria-label={`Select ${asset.name}`}
+              />
+            </Box>
+          )}
+
+          {!multiSelect && selectedId === asset.id && (
             <Box className={classes.check}>
               <IconCheck size={14} stroke={3} />
             </Box>
           )}
 
-          {renderActions && (
+          {!multiSelect && renderActions && (
             <Box className={classes.actions}>
               <Group gap={4} justify="flex-end">
                 {renderActions(asset)}
@@ -63,18 +93,13 @@ export function MediaGrid({ items, selectedId, onSelect, renderActions }: Props)
             </Text>
           </Box>
         </Box>
-      ))}
+        );
+      })}
     </Box>
   );
 }
 
-/**
- * What a tile shows.
- *
- * Images and video have a real preview; everything else gets an icon, since a
- * PDF or a spreadsheet has nothing to show at this size that a filename does
- * not say better.
- */
+ 
 function Preview({ asset }: { asset: MediaAsset }) {
   if (asset.kind === 'image' || (asset.kind === 'video' && asset.thumbnailUrl)) {
     return (
@@ -91,21 +116,20 @@ function Preview({ asset }: { asset: MediaAsset }) {
     <Box className={classes.fileTile}>
       <FileIcon mime={asset.mime} />
       <Text size="10px" c="dimmed" tt="uppercase" mt={6}>
-        {asset.format || asset.mime.split('/')[1]}
+        {asset.format || asset.mime?.split('/')[1] || 'file'}
       </Text>
     </Box>
   );
 }
 
-function FileIcon({ mime }: { mime: string }) {
+function FileIcon({ mime }: { mime?: string }) {
   const size = 26;
   if (mime === 'application/pdf') return <IconFileTypePdf size={size} stroke={1.4} />;
-  if (mime.startsWith('video/')) return <IconMovie size={size} stroke={1.4} />;
-  if (mime.startsWith('audio/')) return <IconMusic size={size} stroke={1.4} />;
+  if (mime?.startsWith('video/')) return <IconMovie size={size} stroke={1.4} />;
+  if (mime?.startsWith('audio/')) return <IconMusic size={size} stroke={1.4} />;
   return <IconFile size={size} stroke={1.4} />;
 }
 
-/** A hover action, styled to stay legible over any image. */
 export function TileAction({
   label,
   onClick,
@@ -125,7 +149,6 @@ export function TileAction({
         size="sm"
         aria-label={label}
         onClick={(e) => {
-          // The tile itself is clickable in a picker; an action is not a pick.
           e.stopPropagation();
           onClick();
         }}

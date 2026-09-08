@@ -106,7 +106,7 @@ export function thumbnailFor(url: string, kind: ResourceKind): string | undefine
   const at = url.indexOf(marker);
   if (at === -1) return undefined;
 
-  const transform = 'c_fill,w_480,h_320,q_auto,f_auto/';
+  const transform = 'c_fill,w_640,h_480,q_auto,f_auto/';
   const base = url.slice(0, at + marker.length) + transform + url.slice(at + marker.length);
 
   return kind === 'video' ? base.replace(/\.[^./]+$/, '.jpg') : base;

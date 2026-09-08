@@ -2,6 +2,8 @@ import { api } from '@/lib/api';
 
 export type MediaKind = 'image' | 'video' | 'raw';
 
+export type UploadState = 'queued' | 'uploading' | 'done' | 'error';
+
 export interface MediaAsset {
   id: string;
   name: string;
@@ -13,7 +15,6 @@ export interface MediaAsset {
   bytes: number;
   width: number | null;
   height: number | null;
-  /** A delivery-time transformation of the asset, not a second upload. */
   thumbnailUrl: string;
   createdAt?: string;
   updatedAt?: string;
@@ -43,19 +44,40 @@ export const mediaService = {
     return api.get<MediaListResult>(`${base(workspaceId)}${suffix}`);
   },
 
-  /**
-   * Uploads one file, read into a base64 data URL first.
-   *
-   * A data URL rather than multipart because the API takes JSON throughout, and
-   * the backend hands the same string to Cloudinary without buffering a file.
-   */
-  async upload(workspaceId: string, file: File, name?: string) {
+ 
+  async upload(workspaceId: string, file: File, name?: string): Promise<MediaAsset> {
     const dataUrl = await readAsDataUrl(file);
-    return api.post<MediaAsset>(base(workspaceId), {
-      file: dataUrl,
-      name: name?.trim() || file.name,
-      alt: '',
-    });
+    // The endpoint always answers in batch shape: { items, failed }.
+    const res = await api.post<{ items: MediaAsset[]; failed: { message: string }[] }>(
+      base(workspaceId),
+      { file: dataUrl, name: name?.trim() || file.name, alt: '' }
+    );
+    const asset = res.items?.[0];
+    if (!asset) throw new Error(res.failed?.[0]?.message ?? 'Upload failed');
+    return asset;
+  },
+ 
+  async uploadMany(
+    workspaceId: string,
+    files: File[],
+    onProgress?: (index: number, state: UploadState, asset?: MediaAsset, error?: string) => void
+  ): Promise<{ assets: MediaAsset[]; failed: number }> {
+    const assets: MediaAsset[] = [];
+    let failed = 0;
+
+    for (let i = 0; i < files.length; i += 1) {
+      onProgress?.(i, 'uploading');
+      try {
+        const asset = await this.upload(workspaceId, files[i]);
+        assets.push(asset);
+        onProgress?.(i, 'done', asset);
+      } catch (err) {
+        failed += 1;
+        onProgress?.(i, 'error', undefined, err instanceof Error ? err.message : 'Upload failed');
+      }
+    }
+
+    return { assets, failed };
   },
 
   update(workspaceId: string, id: string, payload: { name?: string; alt?: string }) {
@@ -64,6 +86,11 @@ export const mediaService = {
 
   remove(workspaceId: string, id: string) {
     return api.delete<void>(`${base(workspaceId)}/${id}`);
+  },
+
+  /** Deletes many assets in one request. Returns the IDs actually removed. */
+  bulkRemove(workspaceId: string, ids: string[]) {
+    return api.post<{ deleted: string[] }>(`${base(workspaceId)}/bulk-delete`, { ids });
   },
 };
 

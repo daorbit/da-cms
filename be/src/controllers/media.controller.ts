@@ -216,7 +216,9 @@ export const bulkDeleteMedia: RequestHandler = async (req, res) => {
     byKind[doc.kind as ResourceKind]?.push(doc.publicId);
   }
 
-  await Promise.all(
+  // Storage cleanup runs after the response — the library already no longer
+  // lists these, and an orphaned file is not worth making the user wait for.
+  void Promise.all(
     (Object.keys(byKind) as ResourceKind[])
       .filter((k) => byKind[k].length)
       .map((k) => deleteAssets(byKind[k], k))
@@ -258,6 +260,8 @@ export const deleteMedia: RequestHandler = async (req, res) => {
     return;
   }
 
-  await deleteAsset(doc.publicId, doc.kind as ResourceKind);
+  // The DB row is the source of truth for what the library shows; the stored
+  // file is orphaned storage at worst. Do not hold the response on Cloudinary.
+  void deleteAsset(doc.publicId, doc.kind as ResourceKind);
   res.status(204).end();
 };

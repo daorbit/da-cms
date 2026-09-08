@@ -24,40 +24,42 @@ import {
   IconRefresh,
   IconPhotoOff,
   IconEye,
+  IconChecklist,
 } from '@tabler/icons-react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
 import { MediaGrid, TileAction } from './MediaGrid';
+import { UploadTray, type UploadItem } from './UploadTray';
 import { MediaPreviewModal } from './MediaPreviewModal';
 import { MediaGridSkeleton } from '@/components/Skeletons';
 
 type Filter = 'all' | MediaKind;
 
-/** Assets per page. A wall of twelve fills the columns without endless scroll. */
 const PER_PAGE = 12;
 
-/**
- * The workspace's media library: everything uploaded, in one wall.
- *
- * The same grid backs the picker a page's hero and thumbnail fields open, so an
- * asset uploaded here is immediately choosable there, and one chosen there is
- * managed here.
- */
+ 
 export function MediaPage() {
   const workspace = useWorkspace();
   const workspaceId = workspace?.id;
 
   const [items, setItems] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const uploading = uploads.some((u) => u.state === 'queued' || u.state === 'uploading');
   const [error, setError] = useState<string | null>(null);
 
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [renaming, setRenaming] = useState<MediaAsset | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MediaAsset | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [previewing, setPreviewing] = useState<MediaAsset | null>(null);
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -96,40 +98,44 @@ export function MediaPage() {
     setPage(1);
   }, [filter, query]);
 
-  const upload = async (files: FileList | null) => {
-    if (!files?.length || !workspaceId) return;
+  const upload = async (fileList: FileList | null) => {
+    if (!fileList?.length || !workspaceId) return;
 
-    setUploading(true);
+    const files = Array.from(fileList);
     setError(null);
-    // Sequential rather than parallel: each request carries a whole file, and a
-    // dozen at once is a good way to be rate-limited or to exhaust memory.
-    let failed = 0;
-    for (const file of Array.from(files)) {
-      try {
-        await mediaService.upload(workspaceId, file);
-      } catch (err) {
-        failed += 1;
-        notifications.show({
-          color: 'red',
-          title: file.name,
-          message: err instanceof ApiError ? err.message : 'Upload failed',
-        });
-      }
-    }
-    setUploading(false);
+    setUploads(files.map((file) => ({ file, state: 'queued' })));
 
-    const added = files.length - failed;
-    if (added > 0) {
+    const { assets, failed } = await mediaService.uploadMany(
+      workspaceId,
+      files,
+      (index, state, _asset, err) => {
+        setUploads((prev) =>
+          prev.map((u, i) => (i === index ? { ...u, state, error: err } : u))
+        );
+      }
+    );
+
+    if (assets.length > 0) {
       notifications.show({
         color: 'teal',
-        message: `Uploaded ${added} file${added === 1 ? '' : 's'}`,
+        message: `Uploaded ${assets.length} file${assets.length === 1 ? '' : 's'}`,
       });
     }
+    if (failed > 0) {
+      notifications.show({
+        color: 'red',
+        message: `${failed} file${failed === 1 ? '' : 's'} failed to upload`,
+      });
+    }
+
+    // Leave the tray up briefly so a failed row is readable, then clear.
+    setTimeout(() => setUploads([]), 2500);
     await load();
   };
 
   const confirmDelete = async () => {
     if (!pendingDelete || !workspaceId) return;
+    setDeleting(true);
     try {
       await mediaService.remove(workspaceId, pendingDelete.id);
       notifications.show({ color: 'teal', message: `Deleted ${pendingDelete.name}` });
@@ -137,13 +143,60 @@ export function MediaPage() {
       // so removing one row should pull the next one up into it.
       if (items.length === 1 && page > 1) setPage(page - 1);
       else await load();
+      setPendingDelete(null);
     } catch (err) {
       notifications.show({
         color: 'red',
         message: err instanceof ApiError ? err.message : 'Could not delete that file',
       });
     } finally {
-      setPendingDelete(null);
+      setDeleting(false);
+    }
+  };
+
+  // A page that no longer holds the ticked assets should not keep them ticked.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => items.some((a) => a.id === id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!workspaceId || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const { deleted } = await mediaService.bulkRemove(workspaceId, [...selectedIds]);
+      notifications.show({
+        color: 'teal',
+        message: `Deleted ${deleted.length} file${deleted.length === 1 ? '' : 's'}`,
+      });
+      setBulkConfirm(false);
+      exitSelect();
+      // Removing a chunk can empty the current page.
+      if (deleted.length >= items.length && page > 1) setPage(page - 1);
+      else await load();
+    } catch (err) {
+      notifications.show({
+        color: 'red',
+        message: err instanceof ApiError ? err.message : 'Could not delete those files',
+      });
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -170,6 +223,15 @@ export function MediaPage() {
               <IconRefresh size={18} />
             </ActionIcon>
           </Tooltip>
+          {items.length > 0 && (
+            <Button
+              variant={selectMode ? 'filled' : 'default'}
+              leftSection={<IconChecklist size={16} />}
+              onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+            >
+              {selectMode ? 'Done' : 'Select'}
+            </Button>
+          )}
           <Button
             leftSection={<IconUpload size={16} />}
             loading={uploading}
@@ -179,6 +241,45 @@ export function MediaPage() {
           </Button>
         </Group>
       </Group>
+
+      {selectMode && (
+        <Group
+          justify="space-between"
+          p="xs"
+          style={{
+            border: '1px solid var(--mantine-color-default-border)',
+            borderRadius: 'var(--mantine-radius-md)',
+            background: 'var(--mantine-color-default-hover)',
+          }}
+        >
+          <Group gap="sm">
+            <Text size="sm" fw={500}>
+              {selectedIds.size} selected
+            </Text>
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => setSelectedIds(new Set(items.map((a) => a.id)))}
+            >
+              Select all on page
+            </Button>
+            {selectedIds.size > 0 && (
+              <Button size="xs" variant="subtle" onClick={() => setSelectedIds(new Set())}>
+                Clear
+              </Button>
+            )}
+          </Group>
+          <Button
+            size="xs"
+            color="red"
+            leftSection={<IconTrash size={14} />}
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkConfirm(true)}
+          >
+            Delete selected
+          </Button>
+        </Group>
+      )}
 
       <input
         ref={fileInput}
@@ -197,6 +298,8 @@ export function MediaPage() {
           {error}
         </Alert>
       )}
+
+      {uploads.length > 0 && <UploadTray items={uploads} />}
 
       <Group gap="sm">
         <TextInput
@@ -246,6 +349,8 @@ export function MediaPage() {
         <Box>
           <MediaGrid
             items={items}
+            selectedIds={selectMode ? selectedIds : undefined}
+            onToggleSelect={toggleSelect}
             renderActions={(asset) => (
               <>
                 <TileAction label="Preview" onClick={() => setPreviewing(asset)}>
@@ -294,7 +399,7 @@ export function MediaPage() {
 
       <Modal
         opened={!!pendingDelete}
-        onClose={() => setPendingDelete(null)}
+        onClose={() => !deleting && setPendingDelete(null)}
         title="Delete file"
         centered
       >
@@ -304,10 +409,37 @@ export function MediaPage() {
             show a broken image. This cannot be undone.
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setPendingDelete(null)}>
+            <Button variant="default" disabled={deleting} onClick={() => setPendingDelete(null)}>
               Cancel
             </Button>
-            <Button color="red" onClick={confirmDelete}>
+            <Button color="red" loading={deleting} onClick={confirmDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={bulkConfirm}
+        onClose={() => !bulkDeleting && setBulkConfirm(false)}
+        title={`Delete ${selectedIds.size} file${selectedIds.size === 1 ? '' : 's'}`}
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Delete <strong>{selectedIds.size}</strong> selected file
+            {selectedIds.size === 1 ? '' : 's'}? Any page still using one will show a
+            broken image. This cannot be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button
+              variant="default"
+              disabled={bulkDeleting}
+              onClick={() => setBulkConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button color="red" loading={bulkDeleting} onClick={confirmBulkDelete}>
               Delete
             </Button>
           </Group>
