@@ -1,7 +1,8 @@
 
 .editor {
   border-radius: 0;
-  background: transparent;
+  background: #ffffff;
+  color-scheme: light;
 
 
   flex: 1;

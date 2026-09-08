@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, useMantineColorScheme } from '@mantine/core';
+import { Box } from '@mantine/core';
 import {
   Editor,
   Transforms,
@@ -45,7 +45,7 @@ export function PageBodyEditor({
   const ref = useRef<DaEditorHandle>(null);
   const lastHtml = useRef(value);
   const aiRange = useRef<SlateRange | null>(null);
-  const { colorScheme } = useMantineColorScheme();
+  // const { colorScheme } = useMantineColorScheme();
 
  
   const [aiOpen, setAiOpen] = useState(true);
@@ -156,7 +156,7 @@ export function PageBodyEditor({
           ref={ref}
           className={classes.editor}
           defaultHtml={value}
-          theme={colorScheme === 'auto' ? 'system' : colorScheme}
+          theme="light"
           placeholder={placeholder}
           onAskAi={openAi}
           onPickMedia={pickMedia}
