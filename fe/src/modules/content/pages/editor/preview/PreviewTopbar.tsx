@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, Text, Tooltip } from '@mantine/core';
 import { IconExternalLink, IconX } from '@tabler/icons-react';
-import { type DeviceId } from './DeviceFrame';
+import { type DeviceId } from './devices';
 import { DeviceSwitch } from './DeviceSwitch';
 import classes from './PreviewModal.module.css';
 

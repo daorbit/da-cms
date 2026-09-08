@@ -12,6 +12,7 @@ import { theme } from '@/app/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/code-highlight/styles.css';
+import 'da-frame-set/styles.css';
 
 hljs.registerLanguage('typescript', tsLang);
 hljs.registerLanguage('javascript', jsLang);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal, Box } from "@mantine/core";
-import { useFitScale } from "./useFitScale";
-import { DeviceFrame, frameSize, type DeviceId } from "./DeviceFrame";
+import { DeviceFrame, frameSize, useFitScale } from "da-frame-set";
+import { frameId, frameSpec, type DeviceId } from "./devices";
 import { PreviewTopbar } from "./PreviewTopbar";
 import classes from "./PreviewModal.module.css";
 
@@ -26,7 +26,7 @@ export function ContentPreviewModal({
   const [device, setDevice] = useState<DeviceId>("macbook");
   const [fetched, setFetched] = useState("");
 
-  const size = frameSize(device);
+  const size = frameSize(frameSpec(device));
   const {
     ref: stageRef,
     scale,
@@ -87,7 +87,7 @@ export function ContentPreviewModal({
 
       <Box className={classes.body}>
         <Box className={classes.stage} ref={stageRef}>
-          <DeviceFrame device={device} scale={scale} hidden={!measured}>
+          <DeviceFrame device={frameId(device)} scale={scale} hidden={!measured}>
             <div
               key={`${device}-${opened}`}
               className={classes.page}

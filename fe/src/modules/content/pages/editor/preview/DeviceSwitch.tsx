@@ -1,12 +1,5 @@
 import { SegmentedControl, Tooltip } from '@mantine/core';
-import { IconDeviceIpad, IconDeviceLaptop, IconDeviceMobile } from '@tabler/icons-react';
-import { DEVICE_ORDER, DEVICE_SPECS, type DeviceId } from './DeviceFrame';
-
-const DEVICE_ICONS: Record<DeviceId, typeof IconDeviceLaptop> = {
-  macbook: IconDeviceLaptop,
-  ipad: IconDeviceIpad,
-  iphone: IconDeviceMobile,
-};
+import { DEVICE_ORDER, DEVICES, type DeviceId } from './devices';
 
 interface Props {
   device: DeviceId;
@@ -25,15 +18,12 @@ export function DeviceSwitch({ device, onChange }: Props) {
       value={device}
       onChange={(v) => onChange(v as DeviceId)}
       data={DEVICE_ORDER.map((id) => {
-        const Icon = DEVICE_ICONS[id];
+        const { label, icon: Icon } = DEVICES[id];
         return {
           value: id,
           label: (
-            <Tooltip label={DEVICE_SPECS[id].label} position="bottom" withArrow>
-              <span
-                style={{ display: 'flex', padding: '0 2px' }}
-                aria-label={DEVICE_SPECS[id].label}
-              >
+            <Tooltip label={label} position="bottom" withArrow>
+              <span style={{ display: 'flex', padding: '0 2px' }} aria-label={label}>
                 <Icon size={20} stroke={1.6} />
               </span>
             </Tooltip>
