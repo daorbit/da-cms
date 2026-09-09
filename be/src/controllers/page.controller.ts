@@ -346,15 +346,7 @@ function parseFields(raw: unknown): PublicField[] | null {
   return picked.length ? picked : null;
 }
 
-/**
- * Wraps stored content as a standalone document for the preview frame.
- *
- * The editor serializes with its styling inlined on every element, so the
- * content is self-contained: no stylesheet to ship, and therefore no reason for
- * the API to know which editor produced it. That keeps the editor a frontend
- * dependency, and keeps a published page renderable by any site that fetches
- * this content and drops it into a page of its own.
- */
+ 
 function contentDocument(title: string, content: string) {
   return `<!doctype html>
 <html lang="en">
@@ -364,7 +356,21 @@ function contentDocument(title: string, content: string) {
 <title>${escapeHtml(title)}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  body { margin: 0; background: #fff; }
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 40px;
+    max-width: 720px;
+    margin-inline: auto;
+    font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: #1f2328;
+    background: #fff;
+  }
+  a { color: #3b5bfd; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e6e6; background: #1a1a1a; }
+    a { color: #8aa0ff; }
+  }
   img, video { max-width: 100%; height: auto; }
 </style>
 </head>
