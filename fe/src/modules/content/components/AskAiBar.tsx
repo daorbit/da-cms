@@ -31,6 +31,7 @@ interface Props {
   onClose: () => void;
   selection?: string;
   context?: string;
+  page?: { title?: string; description?: string };
   onInsert: (html: string, mode?: 'insert' | 'replace') => void;
   onGeneratingChange: (generating: boolean) => void;
 }
@@ -41,6 +42,7 @@ export function AskAiBar({
   onClose,
   selection,
   context,
+  page,
   onInsert,
   onGeneratingChange,
 }: Props) {
@@ -119,6 +121,7 @@ export function AskAiBar({
           prompt,
           selection: selection || undefined,
           context: context || undefined,
+          page,
           images: images.length ? images.map((i) => i.dataUrl) : undefined,
         }
       );

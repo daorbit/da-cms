@@ -14,6 +14,7 @@ import {
 } from 'da-text-editor';
 import 'da-text-editor/styles.css';
 import { AskAiBar } from './AskAiBar';
+import { normalizeAiHtml } from './normalizeAiHtml';
 import { MediaPickerModal } from '@/modules/media/MediaPickerModal';
 import type { MediaKind } from '@/modules/media/mediaService';
 import classes from './PageBodyEditor.module.css';
@@ -23,6 +24,8 @@ interface Props {
   onChange: (html: string) => void;
   placeholder?: string;
   onGeneratingChange?: (generating: boolean) => void;
+  pageTitle?: string;
+  pageDescription?: string;
 }
 
 const CONTEXT_LIMIT = 6000;
@@ -41,6 +44,8 @@ export function PageBodyEditor({
   onChange,
   placeholder = 'Start writing…',
   onGeneratingChange,
+  pageTitle,
+  pageDescription,
 }: Props) {
   const ref = useRef<DaEditorHandle>(null);
   const lastHtml = useRef(value);
@@ -91,7 +96,7 @@ export function PageBodyEditor({
     const editor = ref.current?.editor;
     if (!editor) return;
 
-    const nodes = deserializeHtml(html);
+    const nodes = deserializeHtml(normalizeAiHtml(html));
     if (!nodes.length) return;
 
 
@@ -183,6 +188,7 @@ export function PageBodyEditor({
         onClose={() => setAiOpen(false)}
         selection={selection}
         context={ref.current?.getText().slice(0, CONTEXT_LIMIT)}
+        page={{ title: pageTitle, description: pageDescription }}
         onInsert={insertHtml}
         onGeneratingChange={(g) => onGeneratingChange?.(g)}
       />

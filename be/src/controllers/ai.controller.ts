@@ -1,6 +1,8 @@
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { cloudflareChat, cloudflareReady } from '../lib/cloudflare-ai.js';
+import { COMPOSE_SYSTEM, EDIT_SYSTEM } from '../lib/ai-prompts.js';
+import { extractHtml } from '../lib/ai-html.js';
 import type { ApiError } from '../types/index.js';
 
  
@@ -11,7 +13,7 @@ const MODELS = [
 ];
 
  
-const MAX_TOKENS = 1800;
+const MAX_TOKENS = 2800;
 
 const MODEL_TIMEOUT_MS = 45_000;
 
@@ -22,96 +24,20 @@ const composeSchema = z.object({
   selection: z.string().max(20000).optional(),
   context: z.string().max(20000).optional(),
   images: z.array(z.string().max(6_000_000)).max(4).optional(),
+  page: z
+    .object({
+      title: z.string().max(300).optional(),
+      description: z.string().max(1000).optional(),
+    })
+    .optional(),
 });
 
- 
-const SYSTEM = `You write content for a CMS editor. You reply with an HTML fragment only — no prose before or after it, no markdown, no code fence.
-
-Use exactly these tags:
-<h1> <h2> <h3> for headings
-<p> for paragraphs
-<ul><li> and <ol><li> for lists
-<blockquote> for a pulled-out claim
-<pre><code class="language-ts"> for code
-<div data-callout="info"> (also warning, success, danger) wrapping <p> for asides
-<hr> for a section break
-<strong> <em> <u> <s> <code> for inline emphasis
-<a href="https://..."> for links
-
-Never write markdown. Asterisks around a word are a bug: bold is <strong>, not **word**.
-
-You are writing for publication. Prose is the default. Well-written paragraphs
-with the occasional heading carry almost every answer. A table is rare: use one
-only when the user explicitly asks to compare things or asks for a table, and
-never to lay out prose, steps, or a single subject's attributes. When unsure,
-write a paragraph or a list, not a table.
-
-Length. Match the instruction. A request for a line returns a line, a request for
-a section returns a section. Absent any steer, write 250-350 words across 10-16
-blocks. This is a draft the writer expands, so it is tight: every sentence earns
-its place, and there is no summary section restating what was just said.
-
-Paragraphs are 40-70 words — three or four sentences that make one point and give
-a reason or an example. Never a one-sentence paragraph, and never two paragraphs
-saying the same thing at different lengths.
-
-Structure. Use the block that fits the content, never one that does not:
-- <h2> to separate genuinely distinct sections
-- a list for steps, requirements or criteria
-- a callout for a real caveat, not for emphasis
-- <strong> on the terms that matter
-- a table only on an explicit request to compare or tabulate
-
-Substance. Specifics only: real numbers, named tools, concrete scenarios, actual
-trade-offs. No filler openings ("In today's fast-paced world"), no throat-clearing,
-no restating the title as the first sentence. Name the cost of each approach, not
-only its benefit. A case study needs the situation, what was tried, what it cost,
-what changed, and what the reader should copy.
-
-Mechanics:
-- If a table is genuinely warranted: every row has the same number of cells, the
-  first row is the header, 3 columns, 3-5 rows.
-- Vary the blocks. Break up a long run of paragraphs with a heading or a list.
-- Do not wrap the answer in a code fence, and do not emit <html>, <head> or <body>.
-- Return the whole piece in one reply. Do not stop early or offer to continue.`;
-
- 
-const EDIT_SYSTEM = `You edit a fragment of a document. You reply with an HTML fragment only — no prose before or after it, no markdown, no code fence, no explanation of what you changed.
-
-You are given a passage and an instruction. Return that passage rewritten, and nothing else.
-
-Rules:
-- Return only the passage. Never add headings, tables, callouts or sections that were not there.
-- Match the length of the original unless the instruction asks for shorter or longer. A one-line input returns roughly one line.
-- Keep the original voice, tense and person.
-- Preserve the inline markup that was there: <strong> <em> <u> <s> <code> <a href>.
-- If the passage was plain text with no tags, return a single <p> and nothing more.
-- If it was several paragraphs, return the same number of <p> blocks.
-- Never write markdown. Bold is <strong>, not **word**.`;
-
- 
-function parseHtml(text: string): string | null {
-  const fenced = text.match(/```(?:html)?\s*([\s\S]*?)```/);
-  let body = fenced ? fenced[1] : text;
-
-  const start = body.search(/<(h[1-6]|p|ul|ol|table|blockquote|pre|div|hr|img)\b/i);
-  if (start === -1) return null;
-
-  const end = body.lastIndexOf('>');
-  if (end <= start) return null;
-  body = body.slice(start, end + 1);
-
-  body = body
-    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:)]|$)/g, '$1<em>$2</em>');
-
- 
-  body = body.replace(
-    />\s+<(\/?(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|div|h[1-6]|p|pre|blockquote|hr)\b)/gi,
-    '><$1'
-  );
-
-  return body.trim() || null;
+function pageBrief(page?: { title?: string; description?: string }): string {
+  const lines = [
+    page?.title?.trim() ? `Page title: ${page.title.trim()}` : '',
+    page?.description?.trim() ? `Page description: ${page.description.trim()}` : '',
+  ].filter(Boolean);
+  return lines.join('\n');
 }
 
  
@@ -129,22 +55,26 @@ export const composeContent: RequestHandler = async (req, res) => {
     return;
   }
 
-  const { prompt, selection, context } = parsed.data;
+  const { prompt, selection, context, page } = parsed.data;
+  const brief = pageBrief(page);
 
- 
   const editing = Boolean(selection?.trim());
 
   const parts = editing
     ? [
-        `Passage to rewrite:\n${selection}`,
+        brief,
         context ? `Surrounding document, for voice only:\n${context}` : '',
+        `Passage to rewrite:\n${selection}`,
         `Instruction:\n${prompt}`,
-        'Return only the rewritten passage as an HTML fragment.',
+        'Return only the rewritten passage as an HTML fragment using the editor blocks.',
       ].filter(Boolean)
     : [
-        context ? `The document so far, for voice and to avoid repeating it:\n${context}` : '',
+        brief,
+        context
+          ? `The document so far, for voice and to avoid repeating it:\n${context}`
+          : 'The document is empty so far.',
         `Instruction:\n${prompt}`,
-        'Follow the instruction exactly, including any length it asks for. Return the HTML fragment only.',
+        'Follow the instruction exactly, including any length or format it asks for. Return the HTML fragment only, using the editor blocks.',
       ].filter(Boolean);
 
  
@@ -169,11 +99,11 @@ export const composeContent: RequestHandler = async (req, res) => {
     const result = await cloudflareChat({
       model,
       messages: [
-        { role: 'system', content: editing ? EDIT_SYSTEM : SYSTEM },
+        { role: 'system', content: editing ? EDIT_SYSTEM : COMPOSE_SYSTEM },
         { role: 'user', content: parts.join('\n\n') },
       ],
       maxTokens,
-      temperature: editing ? 0.3 : 0.7,
+      temperature: editing ? 0.3 : 0.6,
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
 
@@ -182,7 +112,7 @@ export const composeContent: RequestHandler = async (req, res) => {
       continue;
     }
 
-    const html = parseHtml(result.text);
+    const html = extractHtml(result.text);
     if (!html) {
       detail = 'model returned unparseable content';
       continue;

@@ -89,6 +89,8 @@ export function PageEditorPage() {
           content={editor.content}
           onContentChange={editor.setContent}
           onGeneratingChange={setGenerating}
+          pageTitle={editor.title}
+          pageDescription={editor.description}
         />
 
         {seoOpen && (
