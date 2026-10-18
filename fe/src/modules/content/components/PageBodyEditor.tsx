@@ -48,7 +48,7 @@ export function PageBodyEditor({
   // const { colorScheme } = useMantineColorScheme();
 
  
-  const [aiOpen, setAiOpen] = useState(true);
+  const [aiOpen, setAiOpen] = useState(false);
   const [selection, setSelection] = useState('');
   const [typing, setTyping] = useState(false);
 

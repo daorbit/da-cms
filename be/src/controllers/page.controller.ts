@@ -169,6 +169,25 @@ async function checkTaxonomy(
   return null;
 }
 
+type PageSeo = z.infer<typeof pageSchema>["seo"];
+
+/** Seeds empty search and social text from the page's title and description. */
+function withSeoDefaults(
+  seo: PageSeo,
+  title: string,
+  description: string,
+): PageSeo {
+  const seoTitle = seo.title || title.slice(0, 200);
+  const seoDescription = seo.description || description.slice(0, 400);
+  return {
+    ...seo,
+    title: seoTitle,
+    description: seoDescription,
+    ogTitle: seo.ogTitle || seoTitle,
+    ogDescription: seo.ogDescription || seoDescription,
+  };
+}
+
 const duplicateSlug = (err: unknown) =>
   typeof err === "object" &&
   err !== null &&
@@ -188,6 +207,7 @@ export const createPage: RequestHandler = async (req, res) => {
   const { title, status, ...rest } = parsed.data;
   const { workspaceId } = req.params;
   const slug = slugify(parsed.data.slug || title);
+  rest.seo = withSeoDefaults(rest.seo, title, rest.description);
 
   const taxonomyError = await checkTaxonomy(workspaceId, rest.group, rest.tags);
   if (taxonomyError) {

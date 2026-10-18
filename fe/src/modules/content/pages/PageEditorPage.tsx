@@ -24,9 +24,7 @@ export function PageEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   // const [historyOpen, setHistoryOpen] = useState(false);
-  // Open by default: metadata is part of writing a page, not an afterthought
-  // behind a button someone has to remember to press.
-  const [seoOpen, setSeoOpen] = useState(true);
+  const [seoOpen, setSeoOpen] = useState(false);
   // Saving mid-generation would write a half-finished document, so the toolbar
   // is locked until Orbit has stopped.
   const [generating, setGenerating] = useState(false);
