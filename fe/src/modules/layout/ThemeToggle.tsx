@@ -11,12 +11,13 @@ const OPTIONS = [
  * Three states rather than a two-way switch: "auto" is the default, and a plain
  * toggle gives no way back to it once a user has picked a side.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ vertical = false }: { vertical?: boolean }) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   return (
     <SegmentedControl
       fullWidth
+      orientation={vertical ? 'vertical' : 'horizontal'}
       size="xs"
       radius="md"
       value={colorScheme}
@@ -24,7 +25,7 @@ export function ThemeToggle() {
       data={OPTIONS.map((option) => ({
         value: option.value,
         label: (
-          <Tooltip label={option.label} openDelay={400} withArrow>
+          <Tooltip label={option.label} openDelay={400} withArrow position={vertical ? 'right' : 'top'}>
             <Center>
               <option.icon size={15} stroke={1.7} />
             </Center>

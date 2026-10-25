@@ -153,12 +153,15 @@ body {
   display: flex;
   gap: 10px;
   padding: 10px;
-  height: 100dvh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
 .app-nav {
   flex: 0 0 248px;
+  min-height: 0;
+  transition: flex-basis 180ms ease;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -210,6 +213,62 @@ body {
 .app-nav > * {
   position: relative;
   z-index: 1;
+}
+
+.app-nav-inner {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.app-nav-header {
+  flex-shrink: 0;
+}
+
+.app-nav-header .mantine-Menu-target,
+.app-nav-header .ws-switcher {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-nav-toggle {
+  flex-shrink: 0;
+}
+
+.app-nav[data-collapsed='true'] {
+  flex-basis: 64px;
+  padding-inline: 8px;
+}
+
+.app-nav[data-collapsed='true'] .app-nav-header {
+  justify-content: center;
+}
+
+.app-nav[data-collapsed='true'] .nav-rule {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.app-nav[data-collapsed='true'] .mantine-NavLink-root {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.app-nav[data-collapsed='true'] .mantine-NavLink-section {
+  margin-inline-end: 0;
+}
+
+.app-nav[data-collapsed='true'] .mantine-NavLink-body {
+  display: none;
+}
+
+.app-nav[data-collapsed='true'] .ws-account {
+  padding-inline: 0;
+}
+
+[data-mantine-color-scheme='dark'] .app-nav-toggle {
+  color: rgba(255, 255, 255, 0.62);
 }
 
 

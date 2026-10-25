@@ -1,14 +1,16 @@
-import { Group, Text, Menu, Avatar, NavLink, Stack, Burger, UnstyledButton, Divider } from '@mantine/core';
+import { Group, Text, Menu, Avatar, Stack, Burger, UnstyledButton, Divider, ActionIcon, Tooltip } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
-  IconUsers, IconBuilding, IconPhoto,
+  IconUsers, IconBuilding, IconPhoto, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { ThemeToggle } from './ThemeToggle';
+import { SidebarLink } from './SidebarLink';
 
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
@@ -27,6 +29,8 @@ export function WorkspaceLayout() {
   // Matches the CSS breakpoint: below it the rail is a drawer, above it a
   // permanent panel that ignores `opened` entirely.
   const mobile = useMediaQuery('(max-width: 48em)');
+  const { collapsed: collapsedPref, toggle: toggleCollapsed } = useSidebarCollapsed();
+  const collapsed = !mobile && collapsedPref;
 
   const workspace = workspaces.find((w) => w.slug === workspaceSlug);
 
@@ -52,54 +56,77 @@ export function WorkspaceLayout() {
     // the brand, the workspace switcher and the account menu all live in the
     // sidebar, so the content starts at the top of the window.
     <div className="app-shell">
-      <nav className="app-nav" data-hidden={mobile && !opened}>
-        <Stack gap="xs" h="100%">
-          {/* Workspace switcher, doubling as the brand mark. */}
-          <Menu shadow="md" width={220} position="bottom-start">
-            <Menu.Target>
-              <UnstyledButton className="ws-switcher">
-                <Group gap="sm" wrap="nowrap">
-                  <span className="ws-switcher-text">
-                    <Text size="md" fw={600} truncate>
-                      {workspace?.name ?? 'da-cms'}
-                    </Text>
-                  </span>
-                  <IconSelector size={15} stroke={1.7} opacity={0.5} />
-                </Group>
-              </UnstyledButton>
-            </Menu.Target>
+      <nav className="app-nav" data-hidden={mobile && !opened} data-collapsed={collapsed}>
+        <Stack gap="xs" className="app-nav-inner">
+          <Group gap={4} wrap="nowrap" className="app-nav-header">
+            {/* Workspace switcher, doubling as the brand mark. */}
+            {!collapsed && (
+              <Menu shadow="md" width={220} position="bottom-start">
+                <Menu.Target>
+                  <UnstyledButton className="ws-switcher">
+                    <Group gap="sm" wrap="nowrap">
+                      <span className="ws-switcher-text">
+                        <Text size="md" fw={600} truncate>
+                          {workspace?.name ?? 'da-cms'}
+                        </Text>
+                      </span>
+                      <IconSelector size={15} stroke={1.7} opacity={0.5} />
+                    </Group>
+                  </UnstyledButton>
+                </Menu.Target>
+    
+                <Menu.Dropdown>
+                  <Menu.Label>Workspaces</Menu.Label>
+                  {workspaces.map((item) => (
+                    <Menu.Item
+                      key={item.id}
+                      leftSection={
+                        item.slug === workspaceSlug ? <IconCheck size={14} /> : <span style={{ width: 14 }} />
+                      }
+                      onClick={() => navigate(`/${item.slug}/dashboard`)}
+                    >
+                      {item.name}
+                    </Menu.Item>
+                  ))}
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<IconPlus size={14} />}
+                    onClick={() => go('workspaces')}
+                  >
+                    Manage workspaces
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
 
-            <Menu.Dropdown>
-              <Menu.Label>Workspaces</Menu.Label>
-              {workspaces.map((item) => (
-                <Menu.Item
-                  key={item.id}
-                  leftSection={
-                    item.slug === workspaceSlug ? <IconCheck size={14} /> : <span style={{ width: 14 }} />
-                  }
-                  onClick={() => navigate(`/${item.slug}/dashboard`)}
+            {!mobile && (
+              <Tooltip label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} position="right" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  radius="md"
+                  className="app-nav-toggle"
+                  aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  onClick={toggleCollapsed}
                 >
-                  {item.name}
-                </Menu.Item>
-              ))}
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<IconPlus size={14} />}
-                onClick={() => go('workspaces')}
-              >
-                Manage workspaces
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+                  {collapsed
+                    ? <IconLayoutSidebarLeftExpand size={18} stroke={1.6} />
+                    : <IconLayoutSidebarLeftCollapse size={18} stroke={1.6} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
 
           <Divider className="nav-rule" />
 
           <Stack gap={2}>
             {NAV.map((item) => (
-              <NavLink
+              <SidebarLink
                 key={item.to}
                 label={item.label}
-                leftSection={<item.icon size={18} stroke={1.6} />}
+                icon={item.icon}
+                collapsed={collapsed}
                 // Prefix rather than equality, so an editor route keeps its
                 // parent nav item highlighted instead of clearing the sidebar.
                 active={pathname.startsWith(`/${workspaceSlug}/${item.to}`)}
@@ -110,9 +137,10 @@ export function WorkspaceLayout() {
             {/* Lists every workspace, with its id and rename. It was reachable
                 only from inside the switcher dropdown before, which is a thing
                 you have to already know about to find. */}
-            <NavLink
+            <SidebarLink
               label="Workspaces"
-              leftSection={<IconBuilding size={18} stroke={1.6} />}
+              icon={IconBuilding}
+              collapsed={collapsed}
               active={pathname === `/${workspaceSlug}/workspaces`}
               onClick={() => go('workspaces')}
             />
@@ -122,25 +150,29 @@ export function WorkspaceLayout() {
               navigation, and sitting them under the links made them read as a
               fourth and fifth destination. */}
           <Stack gap="xs" mt="auto">
-            <ThemeToggle />
+            <ThemeToggle vertical={collapsed} />
             <Divider className="nav-rule" />
 
-            <Menu shadow="md" width={200} position="top-start">
+            <Menu shadow="md" width={200} position={collapsed ? 'right-end' : 'top-start'}>
               <Menu.Target>
                 <UnstyledButton className="ws-account">
-                  <Group gap="sm" wrap="nowrap">
+                  <Group gap="sm" wrap="nowrap" justify={collapsed ? 'center' : undefined}>
                     <Avatar size={28} radius="xl" color="brand">
                       {user?.name?.[0]?.toUpperCase()}
                     </Avatar>
-                    <span className="ws-switcher-text">
-                      <Text size="sm" fw={500} truncate>
-                        {user?.name}
-                      </Text>
-                      <Text size="xs" c="dimmed" truncate>
-                        {user?.email}
-                      </Text>
-                    </span>
-                    <IconSelector size={15} stroke={1.7} opacity={0.5} />
+                    {!collapsed && (
+                      <>
+                        <span className="ws-switcher-text">
+                          <Text size="sm" fw={500} truncate>
+                            {user?.name}
+                          </Text>
+                          <Text size="xs" c="dimmed" truncate>
+                            {user?.email}
+                          </Text>
+                        </span>
+                        <IconSelector size={15} stroke={1.7} opacity={0.5} />
+                      </>
+                    )}
                   </Group>
                 </UnstyledButton>
               </Menu.Target>
