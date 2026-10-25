@@ -267,6 +267,10 @@ body {
   padding-inline: 0;
 }
 
+.app-nav-theme {
+  align-self: center;
+}
+
 [data-mantine-color-scheme='dark'] .app-nav-toggle {
   color: rgba(255, 255, 255, 0.62);
 }

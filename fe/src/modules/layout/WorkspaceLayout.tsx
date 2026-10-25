@@ -150,7 +150,7 @@ export function WorkspaceLayout() {
               navigation, and sitting them under the links made them read as a
               fourth and fifth destination. */}
           <Stack gap="xs" mt="auto">
-            <ThemeToggle vertical={collapsed} />
+            <ThemeToggle compact={collapsed} />
             <Divider className="nav-rule" />
 
             <Menu shadow="md" width={200} position={collapsed ? 'right-end' : 'top-start'}>
