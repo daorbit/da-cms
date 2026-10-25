@@ -1,84 +1,156 @@
-import { createTheme, type MantineColorsTuple } from '@mantine/core';
+import { ActionIcon, Button, createTheme, Pagination, rem, type MantineColorsTuple } from '@mantine/core';
 
-/**
- * The brand ramp.
- *
- * Shades 5-6 are the ones that end up on filled buttons and the active nav
- * pill, so they are a genuinely bright blue rather than the desaturated navy
- * a naively-walked ramp produces — on a near-black sidebar that navy read as
- * grey rather than as a selection.
- */
+/** Quantalog's blue ramp, so the two products share one accent. */
 const brand: MantineColorsTuple = [
-  '#e7f0ff',
-  '#cfdeff',
-  '#9ebbff',
-  '#6a95ff',
-  '#4175fe',
-  '#2b62fe',
-  '#1d58fe',
-  '#1148e4',
-  '#043fcc',
-  '#0036b4',
+  '#eef3ff',
+  '#dce6ff',
+  '#b5c8ff',
+  '#8fadff',
+  '#5f8bff',
+  '#4776ff',
+  '#2f6bff',
+  '#255fef',
+  '#1f55d6',
+  '#142c66',
 ];
 
-/**
- * The neutral ramp, overridden because Mantine's default `dark` is a blue-grey
- * that never gets darker than #1a1b1e — which is what made the app read as
- * charcoal rather than black.
- *
- * Indices matter: 7 is the app background, 6 the borders, 5 the dimmed text.
- * These are near-neutral with a trace of warmth so large fills don't look
- * digital-blue.
- */
+/** Quantalog's neutral ramp; the dark-mode surfaces are remapped onto tokens.css. */
 const dark: MantineColorsTuple = [
-  '#c9c9c9',
-  '#b8b8b8',
-  '#828282',
-  '#696969',
-  '#424242',
-  '#3b3b3b',
-  '#2a2a2b',
-  '#161617',
-  '#0e0e0f',
-  '#080809',
+  '#d4d5da',
+  '#b0b2ba',
+  '#8a8c95',
+  '#6b6d76',
+  '#303137',
+  '#222327',
+  '#1c1d21',
+  '#16171a',
+  '#111214',
+  '#0b0c0e',
 ];
+
+const SOFT_HOVER = 'color-mix(in srgb, var(--text) 7%, var(--surface-2))';
+
+const isBrand = (color?: string) => !color || color === 'brand';
 
 export const theme = createTheme({
   primaryColor: 'brand',
-  primaryShade: { light: 6, dark: 5 },
+  primaryShade: { light: 6, dark: 6 },
   colors: { brand, dark },
 
-  fontFamily:
-    'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  fontFamilyMonospace:
-    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  fontFamily: "'Google Sans Flex', ui-sans-serif, system-ui, -apple-system, sans-serif",
+  fontFamilyMonospace: "ui-monospace, 'SF Mono', Menlo, monospace",
 
   headings: {
-    // The serif that carries the auth screens, brought into the app so the two
-    // read as one product rather than a landing page bolted to a dashboard.
-    fontFamily: 'Georgia, "Times New Roman", serif',
-    fontWeight: '400',
+    fontFamily: "'Google Sans Flex', ui-sans-serif, system-ui, sans-serif",
+    fontWeight: '650',
     sizes: {
-      h1: { fontSize: '2rem', lineHeight: '1.25' },
-      h2: { fontSize: '1.6rem', lineHeight: '1.3' },
-      h3: { fontSize: '1.3rem', lineHeight: '1.35' },
-      // Small headings are labels, not display type — they stay in the UI face,
-      // set by `.mantine-Title-root` overrides in global.css.
-      h4: { fontSize: '1.05rem', lineHeight: '1.4' },
-      h5: { fontSize: '0.95rem', lineHeight: '1.45' },
-      h6: { fontSize: '0.85rem', lineHeight: '1.5' },
+      h1: { fontSize: rem(26), lineHeight: '1.2' },
+      h2: { fontSize: rem(20), lineHeight: '1.25' },
+      h3: { fontSize: rem(16), lineHeight: '1.35' },
     },
   },
 
   defaultRadius: 'md',
-  radius: { md: '10px', lg: '14px' },
+  radius: { xs: rem(4), sm: rem(6), md: rem(8), lg: rem(12), xl: rem(16) },
+  cursorType: 'pointer',
+
+  shadows: {
+    md: 'var(--shadow)',
+    lg: 'var(--shadow-lg)',
+  },
 
   components: {
     Card: { defaultProps: { withBorder: true, radius: 'lg' } },
-    Button: { defaultProps: { radius: 'md' } },
+    Paper: { defaultProps: { radius: 'lg' } },
+    Modal: {
+      defaultProps: {
+        radius: 'xl',
+        overlayProps: { backgroundOpacity: 0.4, blur: 6 },
+        transitionProps: { transition: 'pop', duration: 180 },
+      },
+    },
+    Menu: {
+      defaultProps: {
+        radius: 'lg',
+        shadow: 'lg',
+        transitionProps: { transition: 'pop', duration: 140 },
+      },
+    },
+    Popover: { defaultProps: { radius: 'lg', shadow: 'lg' } },
+    Tooltip: { defaultProps: { radius: 'sm', openDelay: 300 } },
     TextInput: { defaultProps: { radius: 'md' } },
     Textarea: { defaultProps: { radius: 'md' } },
     PasswordInput: { defaultProps: { radius: 'md' } },
     Select: { defaultProps: { radius: 'md' } },
+
+    Button: Button.extend({
+      defaultProps: { radius: 'md' },
+      styles: { label: { fontWeight: 500, letterSpacing: '-0.005em' } },
+      vars: (_theme, props) => {
+        if (!isBrand(props.color)) return { root: {} };
+        if (props.variant === undefined || props.variant === 'filled') {
+          return {
+            root: {
+              '--button-bg': 'var(--cta)',
+              '--button-hover': 'var(--cta-hover)',
+              '--button-color': 'var(--cta-fg)',
+              '--button-hover-color': 'var(--cta-fg)',
+            },
+          };
+        }
+        if (props.variant === 'light') {
+          return {
+            root: {
+              '--button-bg': 'var(--surface-2)',
+              '--button-hover': SOFT_HOVER,
+              '--button-color': 'var(--text)',
+              '--button-hover-color': 'var(--text)',
+              '--button-bd': '1px solid var(--border)',
+            },
+          };
+        }
+        return { root: {} };
+      },
+    }),
+
+    ActionIcon: ActionIcon.extend({
+      vars: (_theme, props) => {
+        if (!isBrand(props.color)) return { root: {} };
+        if (props.variant === undefined || props.variant === 'filled') {
+          return {
+            root: {
+              '--ai-bg': 'var(--cta)',
+              '--ai-hover': 'var(--cta-hover)',
+              '--ai-color': 'var(--cta-fg)',
+              '--ai-hover-color': 'var(--cta-fg)',
+            },
+          };
+        }
+        if (props.variant === 'light') {
+          return {
+            root: {
+              '--ai-bg': 'var(--surface-2)',
+              '--ai-hover': SOFT_HOVER,
+              '--ai-color': 'var(--text)',
+              '--ai-hover-color': 'var(--text)',
+              '--ai-bd': '1px solid var(--border)',
+            },
+          };
+        }
+        return { root: {} };
+      },
+    }),
+
+    Pagination: Pagination.extend({
+      vars: (_theme, props) =>
+        isBrand(props.color)
+          ? {
+              root: {
+                '--pagination-active-bg': 'var(--cta)',
+                '--pagination-active-color': 'var(--cta-fg)',
+              },
+            }
+          : { root: {} },
+    }),
   },
 });

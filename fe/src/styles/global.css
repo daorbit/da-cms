@@ -4,19 +4,15 @@ html, body, #root {
 
 body {
   margin: 0;
+  background: var(--shell);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ------------------------------------------------------------- scrollbars */
-
-/* Thin, self-colouring scrollbars everywhere, so the app is not littered with
-   the OS's chunky default track and its arrow buttons. Firefox takes the two
-   `scrollbar-*` properties; WebKit/Blink take the pseudo-elements. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--mantine-color-gray-4) transparent;
-}
-[data-mantine-color-scheme='dark'] * {
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -30,69 +26,56 @@ body {
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: content-box;
-  background-color: var(--mantine-color-gray-4);
+  background-color: var(--border-strong);
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--mantine-color-gray-5);
+  background-color: var(--border-hover);
 }
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
-/* No arrow buttons at the ends of the track. */
 *::-webkit-scrollbar-button {
   display: none;
 }
 
-[data-mantine-color-scheme='dark'] *::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.18);
-}
-[data-mantine-color-scheme='dark'] *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.28);
-}
-
-/* Mantine's heading font is the serif, which suits page titles but reads as
-   decorative on the small headings that are really labels — a card's "SEO" or
-   "Details". Those go back to the UI face. */
-h4.mantine-Title-root,
-h5.mantine-Title-root,
-h6.mantine-Title-root {
-  font-family: var(--mantine-font-family);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-/* Large titles are set tighter than a serif's defaults, which are drawn for
-   body copy rather than display sizes. */
 h1.mantine-Title-root,
 h2.mantine-Title-root {
   letter-spacing: -0.02em;
 }
 
-/* ---------------------------------------------------------- page surface */
-
-/* Off-white rather than pure white: the inset rail and the cards both need a
-   ground to sit on, and on #fff neither has an edge. */
-body {
-  background: var(--mantine-color-gray-1);
+.mantine-Card-root,
+.mantine-Paper-root[data-with-border] {
+  background: var(--surface);
+  border-color: var(--border);
 }
 
-/* Mantine paints `--mantine-color-body` from dark[7]; this pins the page to the
-   darkest step so the content area is near-black rather than the charcoal the
-   default ramp lands on — and so the rail and cards, which are lighter, have
-   something to sit on. */
-[data-mantine-color-scheme='dark'] body {
-  background: #0a0a0b;
+.mantine-Input-input {
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
 }
 
-/* Cards lift off the ground rather than blending into it: a step lighter than
-   the page, with a border that is actually visible at that depth. */
-.mantine-Card-root {
-  background: #fff;
+.mantine-Input-input::placeholder {
+  color: var(--faint);
 }
-[data-mantine-color-scheme='dark'] .mantine-Card-root,
-[data-mantine-color-scheme='dark'] .mantine-Paper-root {
-  background: #141416;
-  border-color: rgba(255, 255, 255, 0.09);
+
+.mantine-Input-input:focus,
+.mantine-Input-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.mantine-Table-thead .mantine-Table-th {
+  color: var(--muted);
+  border-bottom-color: var(--border);
+}
+
+.mantine-Table-td {
+  border-color: var(--border);
+}
+
+.mantine-Table-tr:hover {
+  background: var(--nav-hover);
 }
 
 /* --------------------------------------------------------- page preview */
@@ -139,23 +122,14 @@ body {
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
-/* ------------------------------------------------------------- app shell */
-
-/* The sidebar is an inset panel floating on the page ground rather than a rail
-   welded to the window edge — the same shape as the auth screens' brand panel,
-   so signing in and using the app read as one product.
-   Dark in both schemes, for the same reason it is there: it is chrome, and a
-   white rail beside white content needs a border to exist at all. */
-/* Two panels side by side in a flex row that fills the viewport. Each panel
-   scrolls its own content, so neither the window nor the shell ever scrolls
-   and nothing needs to be positioned by hand. */
 .app-shell {
   display: flex;
-  gap: 10px;
-  padding: 10px;
+  gap: 0;
+  padding: 8px 8px 8px 0;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  background: var(--shell);
 }
 
 .app-nav {
@@ -166,53 +140,9 @@ body {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  border: 0;
-  border-radius: 16px;
   padding: var(--mantine-spacing-sm);
-  background: #fff;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(16, 24, 40, 0.04),
-    0 12px 32px rgba(16, 24, 40, 0.06);
-}
-[data-mantine-color-scheme='dark'] .app-nav {
-  background: #17171a;
-  color: #fff;
-  /* The page behind is near-black too, so the panel's edge comes from a
-     hairline and a drop shadow rather than from the fill alone. */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 12px 32px rgba(0, 0, 0, 0.35);
-}
-
-/* The bloom, as on the auth panel: one soft light source low in the panel so
-   the flat fill has depth instead of reading as a dead rectangle. Dark only —
-   on white it turned the lower third a washed lilac. */
-[data-mantine-color-scheme='dark'] .app-nav::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -30%;
-  width: 190%;
-  aspect-ratio: 1;
-  transform: translateX(-50%);
-  pointer-events: none;
-  /* Held well below the auth panel's strength: this one sits behind working
-     controls, and at full weight it tinted the account row purple. */
-  background:
-    radial-gradient(closest-side, rgba(124, 138, 255, 0.16), transparent 70%),
-    radial-gradient(closest-side, rgba(150, 90, 240, 0.12), transparent 72%);
-  background-position: 54% 46%, 46% 56%;
-  background-size: 74% 74%, 96% 96%;
-  background-repeat: no-repeat;
-  filter: blur(52px);
-}
-
-/* Everything in the rail sits above the bloom. */
-.app-nav > * {
-  position: relative;
-  z-index: 1;
+  background: var(--shell);
+  color: var(--text);
 }
 
 .app-nav-inner {
@@ -271,8 +201,13 @@ body {
   align-self: center;
 }
 
-[data-mantine-color-scheme='dark'] .app-nav-toggle {
-  color: rgba(255, 255, 255, 0.62);
+.app-nav-toggle {
+  color: var(--text-2);
+}
+
+.app-nav-toggle:hover {
+  background: var(--nav-hover);
+  color: var(--text);
 }
 
 
@@ -284,13 +219,10 @@ body {
 
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: var(--mantine-spacing-lg);
-  background: #fff;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(16, 24, 40, 0.04),
-    0 12px 32px rgba(16, 24, 40, 0.06);
+  background: var(--bg-2);
 }
 
 .app-outlet {
@@ -331,14 +263,6 @@ body {
   margin: var(--mantine-spacing-sm) 0 0 var(--mantine-spacing-sm);
 }
 
-[data-mantine-color-scheme='dark'] .app-main {
-  background: #17171a;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 12px 32px rgba(0, 0, 0, 0.35);
-}
-
 @media (max-width: 48em) {
   /* Inset framing costs real width on a phone, so both panels go full-bleed
      and the rail becomes a drawer the burger toggles. */
@@ -350,132 +274,107 @@ body {
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 200;
-    border-radius: 0;
+    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
   }
   .app-nav[data-hidden='true'] {
     display: none;
   }
   .app-main {
+    border: 0;
     border-radius: 0;
     padding: 1rem;
-    box-shadow: none;
   }
 }
 
-/* Workspace switcher and account button share a shape: full-width rows that
-   only reveal a surface on hover, so the sidebar stays quiet at rest. */
 .ws-switcher,
 .ws-account {
   width: 100%;
   padding: 8px;
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--radius-sm);
   transition: background-color 120ms ease;
 }
 
-/* A single line of text now the slug is gone, so the row needs the height set
-   deliberately or it collapses to something shorter than the account row. */
 .ws-switcher {
   padding-top: 10px;
   padding-bottom: 10px;
 }
+
 .ws-switcher:hover,
-.ws-account:hover {
-  background: var(--mantine-color-gray-1);
+.ws-account:hover,
+.ws-account[data-expanded] {
+  background: var(--nav-hover);
 }
 
-/* On the dark rail Mantine's own colours are computed against the page rather
-   than this panel, so they are restated here. */
-[data-mantine-color-scheme='dark'] .ws-switcher:hover,
-[data-mantine-color-scheme='dark'] .ws-account:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root {
-  color: #fff;
-}
-[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root[data-dimmed],
-[data-mantine-color-scheme='dark'] .app-nav .mantine-Text-root[data-c='dimmed'] {
-  color: rgba(255, 255, 255, 0.5);
-}
-[data-mantine-color-scheme='dark'] .app-nav .mantine-Divider-root {
-  border-color: rgba(255, 255, 255, 0.1);
+.app-nav .mantine-Divider-root {
+  border-color: var(--border);
 }
 
-/* Pulled out past the navbar's own padding so the rule spans the full panel —
-   inset on both sides it read as a stray underline under the switcher rather
-   than as a division of the rail. */
 .app-nav .nav-rule {
   margin-left: calc(var(--mantine-spacing-sm) * -1);
   margin-right: calc(var(--mantine-spacing-sm) * -1);
 }
-[data-mantine-color-scheme='dark'] .app-nav .mantine-Avatar-placeholder {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-}
 
-/* `min-width: 0` is what lets the Text children truncate — without it the flex
-   item refuses to shrink below its content and the name overflows the rail. */
 .ws-switcher-text {
   flex: 1;
   min-width: 0;
   display: block;
 }
 
-/* Nav items: a filled pill when active rather than Mantine's default tint,
-   which was too faint to find at a glance on the recessed sidebar. */
 .app-nav .mantine-NavLink-root {
-  border-radius: var(--mantine-radius-md);
-  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  transition: background-color 120ms ease, color 120ms ease;
 }
+
 .app-nav .mantine-NavLink-label {
-  font-size: 0.9rem;
+  font-size: 13.5px;
   font-weight: 500;
 }
-.app-nav .mantine-NavLink-root {
-  color: var(--mantine-color-text);
+
+.app-nav .mantine-NavLink-section {
+  color: var(--text-2);
 }
+
 .app-nav .mantine-NavLink-root:hover {
-  background: var(--mantine-color-gray-1);
+  background: var(--nav-hover);
 }
-/* A tinted pill rather than a saturated fill: the rail is a quiet surface, and
-   a solid blue block on it reads as a button rather than as "you are here". */
+
+.app-nav .mantine-NavLink-root:hover .mantine-NavLink-section {
+  color: var(--text);
+}
+
 .app-nav .mantine-NavLink-root[data-active],
 .app-nav .mantine-NavLink-root[data-active]:hover {
-  background: var(--mantine-color-brand-0);
-  color: var(--mantine-color-brand-7);
+  background: var(--nav-active);
+  color: var(--text);
+}
+
+.app-nav .mantine-NavLink-root[data-active] .mantine-NavLink-label {
   font-weight: 600;
 }
 
-[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root {
-  color: rgba(255, 255, 255, 0.62);
-}
-[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: #fff;
-}
-/* Translucent white on the dark rail: a saturated blue block there fights the
-   bloom behind it, where a lit surface belongs to it. */
-[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root[data-active],
-[data-mantine-color-scheme='dark'] .app-nav .mantine-NavLink-root[data-active]:hover {
-  background: rgba(255, 255, 255, 0.13);
-  color: #fff;
+.app-nav .mantine-NavLink-root[data-active] .mantine-NavLink-section {
+  color: var(--text);
 }
 
-/* The theme switch sits on the rail's own ground, which is a step off the
-   page's in both schemes. */
 .app-nav .mantine-SegmentedControl-root {
-  background: var(--mantine-color-gray-1);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
-[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-root {
-  background: rgba(255, 255, 255, 0.07);
+
+.app-nav .mantine-SegmentedControl-indicator {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--border);
 }
-[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-indicator {
-  background: rgba(255, 255, 255, 0.16);
+
+.app-nav .mantine-SegmentedControl-label {
+  color: var(--text-2);
 }
-[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-label {
-  color: rgba(255, 255, 255, 0.55);
-}
-[data-mantine-color-scheme='dark'] .app-nav .mantine-SegmentedControl-label[data-active] {
-  color: #fff;
+
+.app-nav .mantine-SegmentedControl-label[data-active] {
+  color: var(--text);
 }
 
 /* The page-details form is two columns on a wide screen — fields left, the
@@ -491,11 +390,7 @@ body {
    space alone, so the title and its actions read as a bar above the fields. */
 .page-details-header {
   padding-bottom: var(--mantine-spacing-md);
-  border-bottom: 1px solid var(--mantine-color-gray-2);
-}
-
-[data-mantine-color-scheme='dark'] .page-details-header {
-  border-bottom-color: rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid var(--border);
 }
 
 /* ------------------------------------------------------- Mantine ScrollArea */
@@ -521,21 +416,11 @@ body {
 }
 
 .mantine-ScrollArea-thumb {
-  background-color: var(--mantine-color-gray-4);
+  background-color: var(--border-strong);
 }
 
 .mantine-ScrollArea-scrollbar:hover .mantine-ScrollArea-thumb {
-  background-color: var(--mantine-color-gray-5);
-}
-
-[data-mantine-color-scheme='dark'] .mantine-ScrollArea-thumb {
-  background-color: rgba(255, 255, 255, 0.18);
-}
-
-[data-mantine-color-scheme='dark']
-  .mantine-ScrollArea-scrollbar:hover
-  .mantine-ScrollArea-thumb {
-  background-color: rgba(255, 255, 255, 0.28);
+  background-color: var(--border-hover);
 }
 
 /* The corner between two scrollbars is chrome for a case that does not arise

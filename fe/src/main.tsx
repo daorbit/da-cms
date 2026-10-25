@@ -22,6 +22,8 @@ hljs.registerAliases(['tsx', 'ts'], { languageName: 'typescript' });
 hljs.registerAliases(['jsx'], { languageName: 'javascript' });
 
 const codeHighlightAdapter = createHighlightJsAdapter(hljs);
+import '@/styles/fonts.css';
+import '@/styles/tokens.css';
 import '@/styles/global.css';
 import '@/styles/auth.css';
 
