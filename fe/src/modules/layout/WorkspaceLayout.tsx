@@ -4,7 +4,6 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
   IconUsers, IconBuilding, IconPhoto, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
-  IconSparkles,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -13,6 +12,7 @@ import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { ThemeToggle } from './ThemeToggle';
 import { SidebarLink } from './SidebarLink';
 import { ConnectClaudeModal } from '@/modules/integrations/ConnectClaudeModal';
+import { ClaudeIcon } from '@/components/ClaudeIcon';
 
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
@@ -155,7 +155,7 @@ export function WorkspaceLayout() {
           <Stack gap="xs" mt="auto">
             <SidebarLink
               label="Connect Claude"
-              icon={IconSparkles}
+              icon={ClaudeIcon}
               collapsed={collapsed}
               active={claudeOpened}
               onClick={() => {

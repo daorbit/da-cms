@@ -25,7 +25,7 @@ export function signTypedToken<T extends object>(
 ) {
   return jwt.sign({ ...payload, typ }, env.jwtSecret, {
     expiresIn: options.expiresInSeconds,
-    audience: options.audience,
+    ...(options.audience ? { audience: options.audience } : {}),
   });
 }
 
