@@ -8,7 +8,8 @@ import {
   type PageResponse,
 } from '../../services/page.service.js';
 import { contentApiUrl, editorUrl, requireWorkspace, type McpContext } from '../context.js';
-import { estimateReadingMinutes, prepareContent } from '../content.js';
+import { contentReport, estimateReadingMinutes, prepareContent } from '../content.js';
+import { BLOG_TARGETS } from '../writing-guide.js';
 import { pageFieldsInput, pageIdInput, pageUpdateInput, workspaceIdInput, type PageFields } from '../schemas.js';
 import { runTool } from '../tool-result.js';
 
@@ -42,6 +43,11 @@ function toPayload(fields: PageFields, existing?: PageResponse) {
   else delete payload.seo;
 
   return payload;
+}
+
+/** The saved page plus how its body measures up, so the model can fix gaps. */
+function withReport(summary: ReturnType<typeof withLinks>, page: PageResponse) {
+  return page.content ? { ...summary, contentReport: contentReport(page.content, BLOG_TARGETS) } : summary;
 }
 
 function withLinks(ctx: McpContext, workspaceId: string, workspaceSlug: string, page: PageResponse) {
@@ -100,7 +106,7 @@ export function registerPageTools(server: McpServer, ctx: McpContext) {
     {
       title: 'Create page',
       description:
-        'Saves a new page or blog post with its content, images and SEO. Saved as a draft unless status is set. Returns the editor link.',
+        'Saves a new page or blog post with its content, images and SEO. Call get_writing_guide first and send the complete post. Saved as a draft unless status is set. Returns the editor link and a contentReport; if meetsBlogStandard is false, fix the issues with update_page.',
       inputSchema: { workspaceId: workspaceIdInput, ...pageFieldsInput },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
@@ -108,7 +114,7 @@ export function registerPageTools(server: McpServer, ctx: McpContext) {
       runTool(async () => {
         const { slug } = await requireWorkspace(ctx, workspaceId);
         const page = await createPage(workspaceId, ctx.userId, toPayload(fields));
-        return withLinks(ctx, workspaceId, slug, page);
+        return withReport(withLinks(ctx, workspaceId, slug, page), page);
       })
   );
 
@@ -126,7 +132,7 @@ export function registerPageTools(server: McpServer, ctx: McpContext) {
         const { slug } = await requireWorkspace(ctx, workspaceId);
         const existing = await getPage(workspaceId, pageId);
         const page = await updatePage(workspaceId, pageId, ctx.userId, toPayload(fields, existing));
-        return withLinks(ctx, workspaceId, slug, page);
+        return withReport(withLinks(ctx, workspaceId, slug, page), page);
       })
   );
 }

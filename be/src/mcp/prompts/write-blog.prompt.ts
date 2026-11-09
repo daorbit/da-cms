@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { BLOG_TARGETS } from '../writing-guide.js';
 
 const line = (label: string, value?: string) => (value ? `\n${label}: ${value}` : '');
 
@@ -24,7 +25,7 @@ export function registerWriteBlogPrompt(server: McpServer) {
           content: {
             type: 'text',
             text:
-              `Write a complete blog post for da-cms and save it, following the da-cms blog workflow: title, slug, description, content, hero and thumbnail images, and full SEO.` +
+              `Write a complete, publication-quality blog post for da-cms and save it. First call get_writing_guide and follow it exactly: ${BLOG_TARGETS.minWords}-2,000 words, ${BLOG_TARGETS.minSections}-8 sections with concrete examples, real source links, an FAQ, a hero and thumbnail image, and full SEO. After saving, fix anything the contentReport flags.` +
               `\nTopic: ${topic}` +
               line('Keywords', keywords) +
               line('Audience', audience) +

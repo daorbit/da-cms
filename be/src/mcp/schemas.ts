@@ -53,7 +53,9 @@ export const pageFieldsInput = {
   content: z
     .string()
     .optional()
-    .describe("The body as an HTML fragment in the editor's block vocabulary. No h1, no markdown."),
+    .describe(
+      "The complete body as an HTML fragment in the editor's blocks (see get_writing_guide). For a blog post: 1,200-2,000 words, an opening of 2-3 paragraphs, 5-8 <h2> sections with concrete examples, lists or a table, real source links, an FAQ section and a next-step close. No h1, no markdown, never a summary or outline in place of the post."
+    ),
   group: z.string().max(60).optional().describe('One group name from get_workspace_context, e.g. the blog group.'),
   tags: z
     .array(z.string().max(60))

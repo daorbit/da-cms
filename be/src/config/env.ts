@@ -7,7 +7,8 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET ?? '',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   cookieName: process.env.COOKIE_NAME ?? 'da_cms_token',
-  appUrl: (process.env.APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
+  /** Where the web app is served. On a single-domain deploy that is the public URL. */
+  appUrl: (process.env.APP_URL || process.env.PUBLIC_URL || 'http://localhost:5173').replace(/\/$/, ''),
   /** The backend's public origin, for OAuth metadata. Derived from the request when unset. */
   publicUrl: (process.env.PUBLIC_URL ?? '').replace(/\/$/, ''),
 
