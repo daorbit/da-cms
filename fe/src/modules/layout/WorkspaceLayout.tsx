@@ -4,6 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
   IconUsers, IconBuilding, IconPhoto, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
+  IconSparkles,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -11,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { ThemeToggle } from './ThemeToggle';
 import { SidebarLink } from './SidebarLink';
+import { ConnectClaudeModal } from '@/modules/integrations/ConnectClaudeModal';
 
 const NAV = [
   { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
@@ -26,6 +28,7 @@ export function WorkspaceLayout() {
   const { pathname } = useLocation();
   const { user, workspaces, clearSession } = useAuth();
   const [opened, { toggle, close }] = useDisclosure(false);
+  const [claudeOpened, claude] = useDisclosure(false);
   // Matches the CSS breakpoint: below it the rail is a drawer, above it a
   // permanent panel that ignores `opened` entirely.
   const mobile = useMediaQuery('(max-width: 48em)');
@@ -150,6 +153,16 @@ export function WorkspaceLayout() {
               navigation, and sitting them under the links made them read as a
               fourth and fifth destination. */}
           <Stack gap="xs" mt="auto">
+            <SidebarLink
+              label="Connect Claude"
+              icon={IconSparkles}
+              collapsed={collapsed}
+              active={claudeOpened}
+              onClick={() => {
+                claude.open();
+                close();
+              }}
+            />
             <ThemeToggle compact={collapsed} />
             <Divider className="nav-rule" />
 
@@ -199,6 +212,8 @@ export function WorkspaceLayout() {
           <Outlet />
         </div>
       </main>
+
+      <ConnectClaudeModal opened={claudeOpened} onClose={claude.close} />
     </div>
   );
 }

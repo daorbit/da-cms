@@ -4,6 +4,7 @@ import {
   Stack, Text, Title, Tooltip,
 } from '@mantine/core';
 import { CodeHighlight } from '@mantine/code-highlight';
+import { CopyUrlButton } from '@/components/CopyUrlButton';
 import { IconCheck, IconCopy, IconRotate, IconX } from '@tabler/icons-react';
 
 interface Props {
@@ -281,18 +282,7 @@ export function PageIntegrationModal({ opened, onClose, apiBase, workspaceId }: 
                 </Text>
               </Box>
               <Group justify="flex-end" mt={6}>
-                <CopyButton value={`${listEndpoint}?group=blogs&fields=title,slug,description`}>
-                  {({ copied, copy }) => (
-                    <Button
-                      size="compact-xs"
-                      variant="subtle"
-                      leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-                      onClick={copy}
-                    >
-                      {copied ? 'Copied' : 'Copy URL'}
-                    </Button>
-                  )}
-                </CopyButton>
+                <CopyUrlButton value={`${listEndpoint}?group=blogs&fields=title,slug,description`} />
               </Group>
               <Text size="xs" c="dimmed">
                 Published pages, newest first, as{' '}
@@ -321,18 +311,7 @@ export function PageIntegrationModal({ opened, onClose, apiBase, workspaceId }: 
                 </Text>
               </Box>
               <Group justify="flex-end" mt={6}>
-                <CopyButton value={`${endpoint}/{slug}${fields.length ? `?fields=${fields.join(',')}` : ''}`}>
-                  {({ copied, copy }) => (
-                    <Button
-                      size="compact-xs"
-                      variant="subtle"
-                      leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-                      onClick={copy}
-                    >
-                      {copied ? 'Copied' : 'Copy URL'}
-                    </Button>
-                  )}
-                </CopyButton>
+                <CopyUrlButton value={`${endpoint}/{slug}${fields.length ? `?fields=${fields.join(',')}` : ''}`} />
               </Group>
               <Text size="xs" c="dimmed">
                 Returns the published page with that slug. Drafts and archived pages 404.

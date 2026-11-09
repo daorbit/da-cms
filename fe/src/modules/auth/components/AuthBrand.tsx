@@ -1,3 +1,5 @@
+import { BrandMark } from '@/components/BrandMark';
+
 export interface BrandStep {
   label: string;
   description: string;
@@ -27,9 +29,7 @@ export function AuthBrand({ headline, subline, steps, current = 0 }: Props) {
 
       <div className="ab-mark">
         <span className="ab-mark-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M4 7h16M4 12h16M4 17h10" />
-          </svg>
+          <BrandMark />
         </span>
         <span className="ab-mark-text">
           da<strong>cms</strong>
