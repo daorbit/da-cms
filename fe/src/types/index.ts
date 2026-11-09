@@ -118,6 +118,9 @@ export interface Page {
   /** Read-only: sections from pages saved before those blocks moved into `content`. */
   sections: PageSection[];
   seo: PageSeo;
+  /** The published byline, separate from who saved the page. */
+  author?: { name: string; role: string };
+  readingMinutes?: number;
   status: PageStatus;
   publishedAt: string | null;
   createdBy: Author | null;

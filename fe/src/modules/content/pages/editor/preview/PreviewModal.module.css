@@ -20,7 +20,7 @@
   --preview-active: #31353d;
   --preview-active-text: #ffffff;
   --preview-scrollbar: #3a3f48;
-  --preview-stage: radial-gradient(circle at 50% 0%, #1c2029 0%, #0f1115 60%);
+  --preview-stage: #0f1115;
   --preview-heading: #ced4da;
 
   display: flex;
@@ -48,11 +48,7 @@
   --preview-active: var(--mantine-color-gray-3);
   --preview-active-text: var(--mantine-color-gray-9);
   --preview-scrollbar: var(--mantine-color-gray-4);
-  --preview-stage: radial-gradient(
-    circle at 50% 0%,
-    var(--mantine-color-gray-0) 0%,
-    var(--mantine-color-gray-2) 60%
-  );
+  --preview-stage: var(--mantine-color-gray-1);
   --preview-heading: var(--mantine-color-gray-7);
 
   background-color: var(--mantine-color-gray-0);

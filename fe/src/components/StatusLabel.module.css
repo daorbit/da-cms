@@ -1,0 +1,51 @@
+.root {
+  --status-color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--status-color);
+}
+
+.root[data-status='published'] {
+  --status-color: var(--green);
+}
+
+.root[data-status='archived'] {
+  --status-color: var(--amber);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.root[data-status='published'] .dot {
+  background: var(--status-color);
+}
+
+.root[data-status='draft'] .dot {
+  border: 1.5px solid var(--status-color);
+}
+
+.root[data-status='archived'] .dot {
+  border: 1.5px dashed var(--status-color);
+}
+
+.label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

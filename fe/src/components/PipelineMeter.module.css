@@ -1,0 +1,57 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bar {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+}
+
+.segment {
+  flex-basis: 0;
+  min-width: 6px;
+  border-radius: 999px;
+}
+
+.segment[data-status='published'] {
+  background: var(--green);
+}
+
+.segment[data-status='draft'] {
+  background: var(--border-hover);
+}
+
+.segment[data-status='archived'] {
+  background: var(--amber);
+}
+
+.empty {
+  flex: 1;
+  border-radius: 999px;
+  background: var(--surface-active);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}

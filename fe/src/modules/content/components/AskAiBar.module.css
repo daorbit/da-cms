@@ -10,7 +10,6 @@
   flex: 0 0 auto;
   border-right: 1px solid var(--mantine-color-default-border);
   background: var(--mantine-color-body);
-  /* Also what clips the wash, which is inset well past these edges. */
   overflow: hidden;
 }
 
@@ -18,44 +17,6 @@
   position: relative;
   z-index: 1;
   padding: 12px 16px 8px;
-}
-
-/*
- * The drifting wash, in Orbit's own emerald and cyan.
- *
- * The same two gradients as the analytics app's assistant panel, at the same
- * opacity and blur, so the two read as one surface rather than as two
- * approximations of each other. Literal colours rather than theme tokens: this
- * is Orbit's palette, and it should not shift when the CMS theme does.
- */
-.aurora {
-  position: absolute;
-  inset: -60%;
-  z-index: 0;
-  background:
-    radial-gradient(38% 38% at 25% 30%, #059669 0%, transparent 70%),
-    radial-gradient(34% 34% at 75% 65%, #22d3ee 0%, transparent 70%);
-  opacity: 0.16;
-  filter: blur(28px);
-  animation: orbit-drift 9s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes orbit-drift {
-  from {
-    transform: translate3d(-4%, -3%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(5%, 4%, 0) scale(1.12);
-  }
-}
-
-/* Motion for its own sake is the first thing to drop when someone has asked for
-   less of it. The wash stays; it simply stops moving. */
-@media (prefers-reduced-motion: reduce) {
-  .aurora {
-    animation: none;
-  }
 }
 
 /* The input and its controls are one surface — a bordered box everything sits

@@ -4,7 +4,6 @@ import {
   ActionIcon,
   Alert,
   Anchor,
-  Badge,
   Box,
   Button,
   Card,
@@ -34,14 +33,9 @@ import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/Cont
 import { ImageField } from '@/modules/content/components/ImageField';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import { pageService } from '@/modules/content/pageService';
-import type { PageStatus, Term } from '@/types';
+import type { Term } from '@/types';
 import { FormSkeleton, HeaderSkeleton } from '@/components/Skeletons';
-
-const STATUS_COLOR: Record<PageStatus, string> = {
-  draft: 'gray',
-  published: 'teal',
-  archived: 'orange',
-};
+import { StatusLabel } from '@/components/StatusLabel';
 
 /**
  * Page metadata on its own screen — title, slug, description, taxonomy, media
@@ -108,9 +102,7 @@ export function PageDetailsPage() {
                 <Title order={3} lineClamp={1}>
                   {editor.title || 'Untitled'}
                 </Title>
-                <Badge size="sm" variant="light" color={STATUS_COLOR[editor.status]}>
-                  {editor.status}
-                </Badge>
+                <StatusLabel status={editor.status} />
               </Group>
               <Text size="xs" c="dimmed">
                 Page details

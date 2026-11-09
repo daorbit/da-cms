@@ -1,4 +1,4 @@
-import { ActionIcon, Button, createTheme, Pagination, rem, type MantineColorsTuple } from '@mantine/core';
+import { ActionIcon, Badge, Button, createTheme, Pagination, rem, type MantineColorsTuple } from '@mantine/core';
 
 /** Quantalog's blue ramp, so the two products share one accent. */
 const brand: MantineColorsTuple = [
@@ -44,9 +44,11 @@ export const theme = createTheme({
     fontFamily: "'Google Sans Flex', ui-sans-serif, system-ui, sans-serif",
     fontWeight: '650',
     sizes: {
-      h1: { fontSize: rem(26), lineHeight: '1.2' },
-      h2: { fontSize: rem(20), lineHeight: '1.25' },
-      h3: { fontSize: rem(16), lineHeight: '1.35' },
+      h1: { fontSize: rem(30), lineHeight: '1.15' },
+      h2: { fontSize: rem(22), lineHeight: '1.22' },
+      h3: { fontSize: rem(17), lineHeight: '1.3' },
+      h4: { fontSize: rem(15), lineHeight: '1.35' },
+      h5: { fontSize: rem(14), lineHeight: '1.4' },
     },
   },
 
@@ -82,6 +84,11 @@ export const theme = createTheme({
     Textarea: { defaultProps: { radius: 'md' } },
     PasswordInput: { defaultProps: { radius: 'md' } },
     Select: { defaultProps: { radius: 'md' } },
+
+    Badge: Badge.extend({
+      defaultProps: { radius: 'sm', variant: 'light' },
+      styles: { root: { textTransform: 'none', fontWeight: 500, letterSpacing: 0 } },
+    }),
 
     Button: Button.extend({
       defaultProps: { radius: 'md' },

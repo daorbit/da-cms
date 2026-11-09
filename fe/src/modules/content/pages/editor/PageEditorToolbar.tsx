@@ -4,12 +4,8 @@ import {
   IconArrowLeft, IconAdjustments, IconEye, IconHistory, IconSearch,
 } from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
-
-const STATUS_DOT: Record<PageStatus, string> = {
-  draft: 'var(--mantine-color-gray-5)',
-  published: 'var(--mantine-color-teal-6)',
-  archived: 'var(--mantine-color-orange-6)',
-};
+import { StatusLabel } from '@/components/StatusLabel';
+import { relativeTime } from '@/lib/format';
 
 interface Props {
   title: string;
@@ -55,18 +51,7 @@ export function PageEditorToolbar({
           {title || 'Untitled'}
         </Text>
 
-        <Tooltip label={status} withArrow>
-          <span
-            aria-label={status}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: STATUS_DOT[status],
-              flexShrink: 0,
-            }}
-          />
-        </Tooltip>
+        <StatusLabel status={status} dotOnly />
       </Group>
 
       <Group gap="xs" wrap="nowrap">
@@ -218,18 +203,4 @@ function SaveState({
       Saved {relativeTime(savedAt)}
     </Text>
   );
-}
-
-/** "just now" / "5 minutes ago" — enough to answer "did that save?". */
-function relativeTime(at: Date): string {
-  const seconds = Math.round((Date.now() - at.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-
-  return at.toLocaleDateString();
 }

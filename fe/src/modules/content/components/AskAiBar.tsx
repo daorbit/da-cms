@@ -141,7 +141,6 @@ export function AskAiBar({
   return (
     <Box className={classes.bar}>
 
-      <div className={classes.aurora} aria-hidden />
 
       <Box className={classes.inner}>
         <Group justify="space-between" mb={8} wrap="nowrap">

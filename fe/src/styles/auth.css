@@ -28,26 +28,6 @@
   color: #fff;
 }
 
-/* One soft bloom rather than a gradient across the whole panel: it gives the
-   flat black a light source without washing out the copy sitting on it.
-   Centred on the panel — off to one side it read as a stray highlight. */
-.ab-bloom {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 92%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  background:
-    radial-gradient(closest-side, rgba(124, 138, 255, 0.42), transparent 70%),
-    radial-gradient(closest-side, rgba(150, 90, 240, 0.34), transparent 72%);
-  background-position: 56% 44%, 44% 58%;
-  background-size: 70% 70%, 92% 92%;
-  background-repeat: no-repeat;
-  filter: blur(52px);
-}
-
 .ab-mark {
   position: absolute;
   top: clamp(1.75rem, 3vw, 2.5rem);

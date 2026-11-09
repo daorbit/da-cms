@@ -1,27 +1,30 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Alert, Badge, Button, Card, Center, Grid, Group, Stack, Table, Text, Title, ThemeIcon,
-} from '@mantine/core';
-import { IconFileText, IconPencil, IconWorld, IconPlus, IconArrowRight } from '@tabler/icons-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Alert, Button, Skeleton, Text } from '@mantine/core';
+import { IconArrowRight, IconPlus } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { dashboardService } from '@/modules/dashboard/dashboardService';
 import { ApiError } from '@/lib/api';
-import type { DashboardStats, PageStatus } from '@/types';
-import { DashboardSkeleton } from '@/components/Skeletons';
+import { plural } from '@/lib/format';
+import { PipelineMeter } from '@/components/PipelineMeter';
+import { PageRow } from '@/modules/content/pages/library/PageRow';
+import { dashboardService } from '@/modules/dashboard/dashboardService';
+import type { DashboardStats } from '@/types';
+import classes from './DashboardPage.module.css';
 
-const TILES = [
-  { key: 'total', label: 'Total pages', icon: IconFileText, color: 'blue' },
-  { key: 'draft', label: 'Drafts', icon: IconPencil, color: 'gray' },
-  { key: 'published', label: 'Published', icon: IconWorld, color: 'teal' },
-] as const;
+const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
-const STATUS_COLOR: Record<PageStatus, string> = {
-  draft: 'gray',
-  published: 'teal',
-  archived: 'orange',
-};
+function greeting(hour: number) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function headline(stats: DashboardStats | null) {
+  if (!stats || stats.pages.total === 0) return 'Nothing published yet';
+  const { published, total } = stats.pages;
+  return published === total ? `All ${plural(total, 'page')} are live` : `${published} of ${plural(total, 'page')} live`;
+}
 
 export function DashboardPage() {
   const workspace = useWorkspace();
@@ -35,46 +38,34 @@ export function DashboardPage() {
   useEffect(() => {
     if (!workspace) return;
     let cancelled = false;
-
-    (async () => {
-      try {
-        const result = await dashboardService.stats(workspace.id);
-        if (!cancelled) setStats(result);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Could not load the dashboard');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
+    dashboardService
+      .stats(workspace.id)
+      .then((result) => !cancelled && setStats(result))
+      .catch((err) => !cancelled && setError(err instanceof ApiError ? err.message : 'Could not load your workspace'))
+      .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
   }, [workspace]);
 
-  // Only the first name — the greeting reads oddly with a full "Jane Doe".
+  const now = new Date();
   const firstName = user?.name?.split(' ')[0] ?? '';
-
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const pagesHref = `/${workspace?.slug}/content/pages`;
 
   return (
-    <Stack gap="lg">
-      <Group justify="space-between" align="flex-end">
+    <div className={classes.page}>
+      <header className={classes.header}>
         <div>
-          <Title order={2}>Welcome back{firstName ? `, ${firstName}` : ''}</Title>
-          <Text c="dimmed" size="sm" mt={4}>
-            What's happening in {workspace?.name}.
-          </Text>
+          <p className={classes.date}>{today.format(now)}</p>
+          <h1 className={classes.greeting}>
+            {greeting(now.getHours())}
+            {firstName ? `, ${firstName}` : ''}
+          </h1>
         </div>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={() => navigate(`/${workspace?.slug}/content/pages?new=1`)}
-        >
+        <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`${pagesHref}?new=1`)}>
           New page
         </Button>
-      </Group>
+      </header>
 
       {error && (
         <Alert color="red" variant="light">
@@ -82,93 +73,62 @@ export function DashboardPage() {
         </Alert>
       )}
 
-      <Grid gap="md">
-        {TILES.map((tile) => (
-          <Grid.Col key={tile.key} span={{ base: 12, xs: 4 }}>
-            <Card withBorder radius="md" p="lg">
-              <Group justify="space-between" align="flex-start">
-                <div>
-                  <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
-                    {tile.label}
-                  </Text>
-                  <Text fw={700} fz={32} lh={1.1} mt={6}>
-                    {stats?.pages[tile.key] ?? 0}
-                  </Text>
-                </div>
-                <ThemeIcon variant="light" color={tile.color} size="lg" radius="md">
-                  <tile.icon size={18} />
-                </ThemeIcon>
-              </Group>
-            </Card>
-          </Grid.Col>
-        ))}
-      </Grid>
-
-      <Card withBorder radius="md" p={0}>
-        <Group justify="space-between" p="md" pb="sm">
-          <Title order={5}>Recently updated</Title>
-          <Button
-            variant="subtle"
-            size="xs"
-            rightSection={<IconArrowRight size={14} />}
-            onClick={() => navigate(`/${workspace?.slug}/content/pages`)}
-          >
-            All pages
-          </Button>
-        </Group>
-
-        {!stats || stats.recent.length === 0 ? (
-          <Center py={48}>
-            <Stack align="center" gap={4}>
-              <IconFileText size={28} opacity={0.4} />
-              <Text fw={600} size="sm">
-                Nothing here yet
-              </Text>
-              <Text c="dimmed" size="sm">
-                Pages you create will show up here.
-              </Text>
-            </Stack>
-          </Center>
+      <section className={classes.card} aria-labelledby="pipeline-title">
+        <div className={classes.cardHead}>
+          <div>
+            <Text size="sm" c="dimmed">
+              {workspace?.name}
+            </Text>
+            {loading ? (
+              <Skeleton height={26} width={220} radius="sm" mt={6} />
+            ) : (
+              <h2 id="pipeline-title" className={classes.headline}>
+                {headline(stats)}
+              </h2>
+            )}
+          </div>
+        </div>
+        {loading ? (
+          <Skeleton height={10} radius="xl" />
         ) : (
-          <Table highlightOnHover verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Title</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Updated</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {stats.recent.map((page) => (
-                <Table.Tr
-                  key={page.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/${workspace?.slug}/content/pages/${page.id}/edit`)}
-                >
-                  <Table.Td>
-                    <Text fw={500} size="sm">
-                      {page.title}
-                    </Text>
-                    <Text c="dimmed" size="xs" ff="monospace">
-                      /{page.slug}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge size="sm" variant="light" color={STATUS_COLOR[page.status]}>
-                      {page.status}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text c="dimmed" size="sm">
-                      {page.updatedAt ? new Date(page.updatedAt).toLocaleDateString() : '—'}
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          stats && <PipelineMeter counts={stats.pages} />
         )}
-      </Card>
-    </Stack>
+      </section>
+
+      <section className={classes.card} aria-labelledby="recent-title">
+        <div className={classes.sectionHead}>
+          <h2 id="recent-title" className={classes.sectionTitle}>
+            Recently edited
+          </h2>
+          <Link to={pagesHref} className={classes.sectionLink}>
+            All pages <IconArrowRight size={14} />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className={classes.recent}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <Skeleton key={i} height={52} radius={12} />
+            ))}
+          </div>
+        ) : !stats || stats.recent.length === 0 ? (
+          <div className={classes.empty}>
+            <Text fw={600} size="sm">
+              No pages yet
+            </Text>
+            <Text size="sm" c="dimmed">
+              Pages you write, or ask Claude to draft, appear here.
+            </Text>
+          </div>
+        ) : (
+          <div className={classes.recent}>
+            {stats.recent.map((page) => (
+              <PageRow key={page.id} page={page} onOpen={() => navigate(`${pagesHref}?page=${page.id}`)} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

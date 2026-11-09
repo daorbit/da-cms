@@ -25,7 +25,6 @@ interface Props {
 export function AuthBrand({ headline, subline, steps, current = 0 }: Props) {
   return (
     <aside className="auth-brand">
-      <div className="ab-bloom" aria-hidden="true" />
 
       <div className="ab-mark">
         <span className="ab-mark-ic" aria-hidden="true">

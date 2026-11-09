@@ -1,214 +1,72 @@
-import { Group, Text, Menu, Avatar, Stack, Burger, UnstyledButton, Divider, ActionIcon, Tooltip } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
+import { Tooltip, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconLogout, IconSelector, IconLayoutDashboard, IconFileText, IconCheck, IconSettings, IconPlus,
-  IconUsers, IconBuilding, IconPhoto, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
-} from '@tabler/icons-react';
-import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { api } from '@/lib/api';
+import { IconFileText, IconHome2, IconPhoto, IconSettings, IconUsers } from '@tabler/icons-react';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
-import { ThemeToggle } from './ThemeToggle';
-import { SidebarLink } from './SidebarLink';
-import { ConnectClaudeModal } from '@/modules/integrations/ConnectClaudeModal';
 import { ClaudeIcon } from '@/components/ClaudeIcon';
+import { ConnectClaudeModal } from '@/modules/integrations/ConnectClaudeModal';
+import { AccountMenu } from './AccountMenu';
+import { DockItem } from './DockItem';
+import { WorkspaceMenu } from './WorkspaceMenu';
+import classes from './Shell.module.css';
 
 const NAV = [
-  { label: 'Dashboard', to: 'dashboard', icon: IconLayoutDashboard },
+  { label: 'Home', to: 'dashboard', icon: IconHome2 },
   { label: 'Pages', to: 'content/pages', icon: IconFileText },
   { label: 'Media', to: 'media', icon: IconPhoto },
-  { label: 'Teams', to: 'teams', icon: IconUsers },
+  { label: 'Team', to: 'teams', icon: IconUsers },
   { label: 'Settings', to: 'settings', icon: IconSettings },
 ];
 
+/** Routes that are working surfaces: they fill the panel edge to edge and scroll themselves. */
+const FLUSH_ROUTES = [/\/content\/pages\/?$/, /\/content\/pages\/[^/]+\/edit$/];
+
 export function WorkspaceLayout() {
   const { workspaceSlug } = useParams();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { user, workspaces, clearSession } = useAuth();
-  const [opened, { toggle, close }] = useDisclosure(false);
+  const { workspaces } = useAuth();
   const [claudeOpened, claude] = useDisclosure(false);
-  // Matches the CSS breakpoint: below it the rail is a drawer, above it a
-  // permanent panel that ignores `opened` entirely.
-  const mobile = useMediaQuery('(max-width: 48em)');
-  const { collapsed: collapsedPref, toggle: toggleCollapsed } = useSidebarCollapsed();
-  const collapsed = !mobile && collapsedPref;
 
   const workspace = workspaces.find((w) => w.slug === workspaceSlug);
-
-  // The page editor is a writing surface rather than a panel of content: it
-  // supplies its own padding and runs to the edges, so the shell drops the
-  // inset it gives every other route instead of the route clawing it back with
-  // a negative margin it cannot paint over.
-  const fullBleed = /\/content\/pages\/[^/]+\/edit$/.test(pathname);
-
-  const handleLogout = async () => {
-    await api.post('/auth/logout');
-    clearSession();
-    navigate('/login');
-  };
-
-  const go = (to: string) => {
-    navigate(`/${workspaceSlug}/${to}`);
-    close();
-  };
+  const flush = FLUSH_ROUTES.some((route) => route.test(pathname));
 
   return (
-    // A flex row of two panels: the rail and the content surface. No header —
-    // the brand, the workspace switcher and the account menu all live in the
-    // sidebar, so the content starts at the top of the window.
-    <div className="app-shell">
-      <nav className="app-nav" data-hidden={mobile && !opened} data-collapsed={collapsed}>
-        <Stack gap="xs" className="app-nav-inner">
-          <Group gap={4} wrap="nowrap" className="app-nav-header">
-            {/* Workspace switcher, doubling as the brand mark. */}
-            {!collapsed && (
-              <Menu shadow="md" width={220} position="bottom-start">
-                <Menu.Target>
-                  <UnstyledButton className="ws-switcher">
-                    <Group gap="sm" wrap="nowrap">
-                      <span className="ws-switcher-text">
-                        <Text size="md" fw={600} truncate>
-                          {workspace?.name ?? 'da-cms'}
-                        </Text>
-                      </span>
-                      <IconSelector size={15} stroke={1.7} opacity={0.5} />
-                    </Group>
-                  </UnstyledButton>
-                </Menu.Target>
-    
-                <Menu.Dropdown>
-                  <Menu.Label>Workspaces</Menu.Label>
-                  {workspaces.map((item) => (
-                    <Menu.Item
-                      key={item.id}
-                      leftSection={
-                        item.slug === workspaceSlug ? <IconCheck size={14} /> : <span style={{ width: 14 }} />
-                      }
-                      onClick={() => navigate(`/${item.slug}/dashboard`)}
-                    >
-                      {item.name}
-                    </Menu.Item>
-                  ))}
-                  <Menu.Divider />
-                  <Menu.Item
-                    leftSection={<IconPlus size={14} />}
-                    onClick={() => go('workspaces')}
-                  >
-                    Manage workspaces
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            )}
+    <div className={classes.shell}>
+      <nav className={classes.dock} aria-label="Main">
+        <div className={classes.dockTop}>
+          <WorkspaceMenu workspace={workspace} workspaces={workspaces} />
+        </div>
 
-            {!mobile && (
-              <Tooltip label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} position="right" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size="lg"
-                  radius="md"
-                  className="app-nav-toggle"
-                  aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  onClick={toggleCollapsed}
-                >
-                  {collapsed
-                    ? <IconLayoutSidebarLeftExpand size={18} stroke={1.6} />
-                    : <IconLayoutSidebarLeftCollapse size={18} stroke={1.6} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </Group>
-
-          <Divider className="nav-rule" />
-
-          <Stack gap={2}>
-            {NAV.map((item) => (
-              <SidebarLink
-                key={item.to}
-                label={item.label}
-                icon={item.icon}
-                collapsed={collapsed}
-                // Prefix rather than equality, so an editor route keeps its
-                // parent nav item highlighted instead of clearing the sidebar.
-                active={pathname.startsWith(`/${workspaceSlug}/${item.to}`)}
-                onClick={() => go(item.to)}
-              />
-            ))}
-
-            {/* Lists every workspace, with its id and rename. It was reachable
-                only from inside the switcher dropdown before, which is a thing
-                you have to already know about to find. */}
-            <SidebarLink
-              label="Workspaces"
-              icon={IconBuilding}
-              collapsed={collapsed}
-              active={pathname === `/${workspaceSlug}/workspaces`}
-              onClick={() => go('workspaces')}
+        <div className={classes.dockNav}>
+          {NAV.map((item) => (
+            <DockItem
+              key={item.to}
+              label={item.label}
+              icon={item.icon}
+              to={`/${workspaceSlug}/${item.to}`}
+              // Prefix rather than equality, so the editor keeps Pages lit.
+              active={pathname.startsWith(`/${workspaceSlug}/${item.to}`)}
             />
-          </Stack>
+          ))}
+        </div>
 
-          {/* Pushed to the bottom: theme and account are settings, not
-              navigation, and sitting them under the links made them read as a
-              fourth and fifth destination. */}
-          <Stack gap="xs" mt="auto">
-            <SidebarLink
-              label="Connect Claude"
-              icon={ClaudeIcon}
-              collapsed={collapsed}
-              active={claudeOpened}
-              onClick={() => {
-                claude.open();
-                close();
-              }}
-            />
-            <ThemeToggle compact={collapsed} />
-            <Divider className="nav-rule" />
-
-            <Menu shadow="md" width={200} position={collapsed ? 'right-end' : 'top-start'}>
-              <Menu.Target>
-                <UnstyledButton className="ws-account">
-                  <Group gap="sm" wrap="nowrap" justify={collapsed ? 'center' : undefined}>
-                    <Avatar size={28} radius="xl" color="brand">
-                      {user?.name?.[0]?.toUpperCase()}
-                    </Avatar>
-                    {!collapsed && (
-                      <>
-                        <span className="ws-switcher-text">
-                          <Text size="sm" fw={500} truncate>
-                            {user?.name}
-                          </Text>
-                          <Text size="xs" c="dimmed" truncate>
-                            {user?.email}
-                          </Text>
-                        </span>
-                        <IconSelector size={15} stroke={1.7} opacity={0.5} />
-                      </>
-                    )}
-                  </Group>
-                </UnstyledButton>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                <Menu.Item
-                  color="red"
-                  leftSection={<IconLogout size={14} />}
-                  onClick={handleLogout}
-                >
-                  Log out
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </Stack>
-        </Stack>
+        <div className={classes.dockBottom}>
+          <Tooltip label="Connect Claude" position="right" withArrow openDelay={250}>
+            <UnstyledButton
+              className={`${classes.item} ${classes.desktopOnly}`}
+              aria-label="Connect Claude"
+              data-active={claudeOpened || undefined}
+              onClick={claude.open}
+            >
+              <ClaudeIcon size={19} />
+            </UnstyledButton>
+          </Tooltip>
+          <AccountMenu onConnectClaude={claude.open} />
+        </div>
       </nav>
 
-      <main className={`app-main${fullBleed ? ' app-main--flush' : ''}`}>
-        {/* The only thing left of the header: without it there is no way to
-            open the sidebar on a phone. */}
-        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" mb="md" />
-        <div className="app-outlet">
+      <main className={classes.main} data-flush={flush || undefined}>
+        <div className={classes.outlet}>
           <Outlet />
         </div>
       </main>
