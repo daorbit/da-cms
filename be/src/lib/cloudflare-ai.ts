@@ -32,30 +32,48 @@ export function cloudflareReady(): boolean {
  * Errors are returned rather than thrown: the caller turns them into a status
  * for the client, and none of them are exceptional enough to unwind through.
  */
-export async function cloudflareChat(req: ChatRequest): Promise<ChatResult> {
+type Failure = { ok: false; status: number; detail: string };
+
+/** POSTs a JSON input to one Workers AI model, or reports what is missing. */
+async function runModel(
+  model: string,
+  input: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<Response | Failure> {
   const token = process.env.CLOUDFLARE_API_TOKEN;
   const account = process.env.CLOUDFLARE_ACCOUNT_ID;
 
   if (!token) return { ok: false, status: 503, detail: 'no CLOUDFLARE_API_TOKEN' };
   if (!account) return { ok: false, status: 503, detail: 'no CLOUDFLARE_ACCOUNT_ID' };
 
+  return fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${model}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+    signal,
+  });
+}
+
+function requestFailure(e: unknown): Failure {
+  const aborted = e instanceof Error && e.name === 'AbortError';
+  return {
+    ok: false,
+    status: aborted ? 504 : 502,
+    detail: e instanceof Error ? e.message : 'request failed',
+  };
+}
+
+export async function cloudflareChat(req: ChatRequest): Promise<ChatResult> {
   try {
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${req.model}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: req.messages,
-          max_tokens: req.maxTokens,
-          temperature: req.temperature,
-        }),
-        signal: req.signal,
-      }
+    const res = await runModel(
+      req.model,
+      { messages: req.messages, max_tokens: req.maxTokens, temperature: req.temperature },
+      req.signal
     );
+    if (!(res instanceof Response)) return res;
 
     const body = await res.text();
 
@@ -87,11 +105,43 @@ export async function cloudflareChat(req: ChatRequest): Promise<ChatResult> {
 
     return { ok: true, text };
   } catch (e) {
-    const aborted = e instanceof Error && e.name === 'AbortError';
-    return {
-      ok: false,
-      status: aborted ? 504 : 502,
-      detail: e instanceof Error ? e.message : 'request failed',
-    };
+    return requestFailure(e);
+  }
+}
+
+export interface ImageRequest {
+  model: string;
+  prompt: string;
+  steps?: number;
+  signal?: AbortSignal;
+}
+
+export type ImageResult = { ok: true; dataUrl: string } | Failure;
+
+/**
+ * One text-to-image generation, returned as a base64 data URL. Some models
+ * answer with raw image bytes and others with `{ result: { image } }`, so both
+ * are accepted.
+ */
+export async function cloudflareImage(req: ImageRequest): Promise<ImageResult> {
+  try {
+    const res = await runModel(req.model, { prompt: req.prompt, steps: req.steps }, req.signal);
+    if (!(res instanceof Response)) return res;
+
+    if (!res.ok) return { ok: false, status: res.status, detail: (await res.text()).slice(0, 300) };
+
+    const type = (res.headers.get('content-type') ?? '').split(';')[0];
+    if (type.startsWith('image/')) {
+      const bytes = Buffer.from(await res.arrayBuffer()).toString('base64');
+      return { ok: true, dataUrl: `data:${type};base64,${bytes}` };
+    }
+
+    const data = (await res.json()) as { result?: { image?: string } };
+    const image = data.result?.image;
+    if (!image) return { ok: false, status: 502, detail: 'no image in response' };
+
+    return { ok: true, dataUrl: `data:image/jpeg;base64,${image}` };
+  } catch (e) {
+    return requestFailure(e);
   }
 }

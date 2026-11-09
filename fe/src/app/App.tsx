@@ -16,6 +16,7 @@ import { TeamsPage } from '@/modules/workspace/TeamsPage';
 import { InviteAcceptPage } from '@/modules/workspace/InviteAcceptPage';
 import { WorkspacesPage } from '@/modules/workspace/WorkspacesPage';
 import { MediaPage } from '@/modules/media/MediaPage';
+import { ConsentPage } from '@/modules/oauth/ConsentPage';
 
 function HomeRedirect() {
   const { user, workspaces, loading } = useAuth();
@@ -38,6 +39,7 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/workspaces" element={<WorkspacesPage />} />
+            <Route path="/oauth/consent" element={<ConsentPage />} />
 
             <Route element={<RequireWorkspace />}>
               <Route path="/:workspaceSlug" element={<WorkspaceLayout />}>

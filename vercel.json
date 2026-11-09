@@ -19,6 +19,18 @@
       "dest": "be/api/index.ts"
     },
     {
+      "src": "/.well-known/(.*)",
+      "dest": "be/api/index.ts"
+    },
+    {
+      "src": "/oauth/(.*)",
+      "headers": {
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": "frame-ancestors 'none'"
+      },
+      "continue": true
+    },
+    {
       "src": "/assets/(.*)",
       "dest": "fe/assets/$1"
     },

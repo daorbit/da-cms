@@ -1,16 +1,11 @@
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import { verifyToken } from '../lib/jwt.js';
-import { MembershipModel } from '../models/membership.model.js';
+import { bearerToken } from '../lib/bearer.js';
+import { findActiveMembership } from '../services/workspace.service.js';
 import type { WorkspaceRole } from '../models/membership.model.js';
 import type { ApiError } from '../types/index.js';
 
-/** A bearer token from the Authorization header, if one is present. */
-function bearerToken(header: string | undefined): string | null {
-  if (!header) return null;
-  const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
-  return match ? match[1] : null;
-}
 
  
 export const requireApiAuth: RequestHandler = async (req, res, next) => {
@@ -35,7 +30,7 @@ export const requireApiAuth: RequestHandler = async (req, res, next) => {
   }
 
   const { workspaceId } = req.params;
-  const membership = await MembershipModel.findOne({ userId, workspaceId, status: 'active' });
+  const membership = await findActiveMembership(userId, workspaceId);
 
   if (!membership) {
     const body: ApiError = { error: 'forbidden', message: 'Not a member of this workspace' };

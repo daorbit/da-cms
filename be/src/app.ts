@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { connectDb } from './config/db.js';
 import { routes } from './routes/index.js';
+import { wellKnownRoutes } from './routes/well-known.route.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { notFound } from './middleware/not-found.js';
 
@@ -17,6 +18,9 @@ export function createApp() {
   app.use(cookieParser());
 
   app.use(express.json({ limit: '36mb' }));
+
+  // OAuth discovery for MCP clients. Static, so it answers before the database.
+  app.use('/.well-known', wellKnownRoutes);
 
   // Serverless has no startup phase to connect in, so every request makes sure
   // the connection is up. After the first one this resolves immediately — see

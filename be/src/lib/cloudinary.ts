@@ -99,15 +99,21 @@ export async function uploadAsset(opts: {
 }
 
 
-export function thumbnailFor(url: string, kind: ResourceKind): string | undefined {
-  if (kind === 'raw') return undefined;
-
+/** The same asset delivered through a Cloudinary transformation, or undefined
+ *  for a URL that is not a Cloudinary upload. */
+export function withTransform(url: string, transform: string): string | undefined {
   const marker = '/upload/';
   const at = url.indexOf(marker);
   if (at === -1) return undefined;
 
-  const transform = 'c_fill,w_640,h_480,q_auto,f_auto/';
-  const base = url.slice(0, at + marker.length) + transform + url.slice(at + marker.length);
+  return `${url.slice(0, at + marker.length)}${transform}/${url.slice(at + marker.length)}`;
+}
+
+export function thumbnailFor(url: string, kind: ResourceKind): string | undefined {
+  if (kind === 'raw') return undefined;
+
+  const base = withTransform(url, 'c_fill,w_640,h_480,q_auto,f_auto');
+  if (!base) return undefined;
 
   return kind === 'video' ? base.replace(/\.[^./]+$/, '.jpg') : base;
 }

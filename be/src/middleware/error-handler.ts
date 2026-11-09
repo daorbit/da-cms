@@ -1,7 +1,14 @@
 import type { ErrorRequestHandler } from 'express';
 import type { ApiError } from '../types/index.js';
+import { ServiceError } from '../lib/service-error.js';
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (err instanceof ServiceError) {
+    const body: ApiError = { error: err.code, message: err.message };
+    res.status(err.status).json(body);
+    return;
+  }
+
   console.error(err);
 
   // Mongo's duplicate-key error leaks the raw driver message (collection

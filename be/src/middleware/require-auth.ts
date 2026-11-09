@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import { verifyToken } from '../lib/jwt.js';
+import { bearerToken } from '../lib/bearer.js';
 import type { ApiError } from '../types/index.js';
 import type { WorkspaceRole } from '../models/membership.model.js';
 
@@ -19,9 +20,7 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   // The browser sends the session in an httpOnly cookie; a script or another
   // server sends the same token as a bearer header. One credential, two
   // transports — so API callers get exactly the access the user has.
-  const header = req.get('authorization');
-  const bearer = header ? /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1] : null;
-  const token = bearer ?? req.cookies?.[env.cookieName];
+  const token = bearerToken(req.get('authorization')) ?? req.cookies?.[env.cookieName];
 
   if (!token) {
     const body: ApiError = {

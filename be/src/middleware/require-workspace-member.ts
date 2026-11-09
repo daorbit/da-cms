@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { MembershipModel } from '../models/membership.model.js';
+import { findActiveMembership } from '../services/workspace.service.js';
 import type { WorkspaceRole } from '../models/membership.model.js';
 import type { ApiError } from '../types/index.js';
 
@@ -14,11 +14,7 @@ import type { ApiError } from '../types/index.js';
  */
 export const requireWorkspaceMember: RequestHandler = async (req, res, next) => {
   const { workspaceId } = req.params;
-  const membership = await MembershipModel.findOne({
-    userId: req.userId,
-    workspaceId,
-    status: 'active',
-  });
+  const membership = await findActiveMembership(req.userId, workspaceId);
 
   if (!membership) {
     const body: ApiError = { error: 'forbidden', message: 'Not a member of this workspace' };

@@ -1,313 +1,34 @@
 import type { RequestHandler } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
-import { PageModel, SECTION_TYPES } from "../models/page.model.js";
+import { PageModel } from "../models/page.model.js";
 import { RevisionModel } from "../models/revision.model.js";
-import { WorkspaceModel } from "../models/workspace.model.js";
 import { slugify } from "../lib/slugify.js";
+import {
+  AUTHOR_FIELDS,
+  createPage as createPageRecord,
+  getPage as getPageRecord,
+  listPages as listPageRecords,
+  toAuthor,
+  toResponse,
+  updatePage as updatePageRecord,
+  type AuthorRef,
+  type PageDoc,
+} from "../services/page.service.js";
 import type { ApiError } from "../types/index.js";
 
-/** The group/tag names a workspace currently allows, from its settings blob. */
-async function allowedTaxonomy(workspaceId: string) {
-  const workspace =
-    await WorkspaceModel.findById(workspaceId).select("settings");
-  const cfg = workspace?.settings?.configuration;
-  return {
-    groups: (cfg?.groups ?? []).map((g) => g.name),
-    tags: (cfg?.tags ?? []).map((t) => t.name),
-  };
-}
-
-const sectionSchema = z.object({
-  key: z.string().min(1),
-  type: z.enum(SECTION_TYPES),
-  data: z.record(z.string(), z.unknown()).default({}),
-});
-
-const imageSchema = z.object({
-  url: z.string().default(""),
-  alt: z.string().default(""),
-});
-
-const pageSchema = z.object({
-  title: z.string().min(1, "A title is required").max(200),
-  slug: z.string().optional(),
-  description: z.string().max(500).default(""),
-  /** A group name from workspace settings, or '' when none is set. Validated
-   *  against the live list. */
-  group: z.string().max(60).default(""),
-  tags: z.array(z.string().min(1).max(60)).max(50).default([]),
-  heroImage: imageSchema.default({ url: "", alt: "" }),
-  thumbnailImage: imageSchema.default({ url: "", alt: "" }),
-  content: z.string().default(""),
-  sections: z.array(sectionSchema).default([]),
-  seo: z
-    .object({
-      title: z.string().max(200).default(""),
-      description: z.string().max(400).default(""),
-      ogImage: z.string().default(""),
-      noIndex: z.boolean().default(false),
-      canonicalUrl: z.string().max(500).default(""),
-      keywords: z.string().max(300).default(""),
-      ogTitle: z.string().max(200).default(""),
-      ogDescription: z.string().max(400).default(""),
-      ogType: z.string().max(40).default("article"),
-      twitterCard: z.string().max(40).default("summary_large_image"),
-      noFollow: z.boolean().default(false),
-    })
-    .default({
-      title: "",
-      description: "",
-      ogImage: "",
-      noIndex: false,
-      canonicalUrl: "",
-      keywords: "",
-      ogTitle: "",
-      ogDescription: "",
-      ogType: "article",
-      twitterCard: "summary_large_image",
-      noFollow: false,
-    }),
-  /** The byline a published article carries, separate from who saved it. */
-  author: z
-    .object({
-      name: z.string().max(120).default(""),
-      role: z.string().max(120).default(""),
-    })
-    .default({ name: "", role: "" }),
-  /** Estimated read time. 0 lets a consumer work it out from the content. */
-  readingMinutes: z.number().int().min(0).max(999).default(0),
-  status: z.enum(["draft", "published", "archived"]).default("draft"),
-  /** Set explicitly when importing existing content with its original date. */
-  publishedAt: z.coerce.date().optional(),
-});
-
-/** A populated author, or null once the user has been removed. */
-type AuthorRef =
-  | { _id: unknown; name?: string; email?: string }
-  | null
-  | undefined;
-
-function toAuthor(value: AuthorRef) {
-  if (!value) return null;
-  // Unpopulated it is still a bare ObjectId — return just the id rather than an
-  // object with undefined name/email that the UI would render as blank.
-  if (typeof value !== "object" || !("name" in value))
-    return { id: String(value), name: null };
-  return {
-    id: String(value._id),
-    name: value.name ?? null,
-    email: value.email ?? null,
-  };
-}
-
-interface PageDoc {
-  _id: unknown;
-  title: string;
-  slug: string;
-  description?: string;
-  group?: string;
-  tags?: string[];
-  heroImage?: unknown;
-  thumbnailImage?: unknown;
-  content?: string;
-  sections: unknown;
-  seo: unknown;
-  author?: { name?: string; role?: string };
-  readingMinutes?: number;
-  status: string;
-  publishedAt?: Date | null;
-  createdBy?: AuthorRef;
-  updatedBy?: AuthorRef;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-function toResponse(page: PageDoc) {
-  return {
-    id: String(page._id),
-    title: page.title,
-    slug: page.slug,
-    description: page.description ?? "",
-    group: page.group ?? "",
-    tags: page.tags ?? [],
-    heroImage: page.heroImage ?? { url: "", alt: "" },
-    thumbnailImage: page.thumbnailImage ?? { url: "", alt: "" },
-    content: page.content ?? "",
-    sections: page.sections,
-    seo: page.seo,
-    author: page.author ?? { name: "", role: "" },
-    readingMinutes: page.readingMinutes ?? 0,
-    status: page.status,
-    publishedAt: page.publishedAt ?? null,
-    createdBy: toAuthor(page.createdBy),
-    updatedBy: toAuthor(page.updatedBy),
-    createdAt: page.createdAt,
-    updatedAt: page.updatedAt,
-  };
-}
-
-const AUTHOR_FIELDS = "name email";
-
-/** Returns an error message if `group`/`tags` are not in the workspace's
- *  configured taxonomy, or null if they check out. */
-async function checkTaxonomy(
-  workspaceId: string,
-  group?: string,
-  tags?: string[],
-) {
-  if (group === undefined && tags === undefined) return null;
-  const allowed = await allowedTaxonomy(workspaceId);
-  // '' means "no group" — always allowed, e.g. before any group is defined.
-  if (group !== undefined && group !== "" && !allowed.groups.includes(group)) {
-    return `"${group}" is not a group in this workspace`;
-  }
-  if (tags?.length) {
-    const unknown = tags.find((t) => !allowed.tags.includes(t));
-    if (unknown) return `"${unknown}" is not a tag in this workspace`;
-  }
-  return null;
-}
-
-type PageSeo = z.infer<typeof pageSchema>["seo"];
-
-/** Seeds empty search and social text from the page's title and description. */
-function withSeoDefaults(
-  seo: PageSeo,
-  title: string,
-  description: string,
-): PageSeo {
-  const seoTitle = seo.title || title.slice(0, 200);
-  const seoDescription = seo.description || description.slice(0, 400);
-  return {
-    ...seo,
-    title: seoTitle,
-    description: seoDescription,
-    ogTitle: seo.ogTitle || seoTitle,
-    ogDescription: seo.ogDescription || seoDescription,
-  };
-}
-
-const duplicateSlug = (err: unknown) =>
-  typeof err === "object" &&
-  err !== null &&
-  (err as { code?: number }).code === 11000;
-
 export const createPage: RequestHandler = async (req, res) => {
-  const parsed = pageSchema.safeParse(req.body);
-  if (!parsed.success) {
-    const body: ApiError = {
-      error: "invalid_input",
-      message: parsed.error.issues[0].message,
-    };
-    res.status(400).json(body);
-    return;
-  }
-
-  const { title, status, ...rest } = parsed.data;
-  const { workspaceId } = req.params;
-  const slug = slugify(parsed.data.slug || title);
-  rest.seo = withSeoDefaults(rest.seo, title, rest.description);
-
-  const taxonomyError = await checkTaxonomy(workspaceId, rest.group, rest.tags);
-  if (taxonomyError) {
-    const body: ApiError = { error: "invalid_input", message: taxonomyError };
-    res.status(400).json(body);
-    return;
-  }
-
-  try {
-    const page = await PageModel.create({
-      ...rest,
-      workspaceId,
-      title,
-      slug,
-      status,
-
-      publishedAt:
-        status === "published" ? (parsed.data.publishedAt ?? new Date()) : null,
-      createdBy: req.userId,
-      updatedBy: req.userId,
-    });
-
-    await page.populate([
-      { path: "createdBy", select: AUTHOR_FIELDS },
-      { path: "updatedBy", select: AUTHOR_FIELDS },
-    ]);
-    res.status(201).json(toResponse(page));
-  } catch (err) {
-    if (!duplicateSlug(err)) throw err;
-    const body: ApiError = {
-      error: "slug_taken",
-      message: `A page with slug "${slug}" already exists`,
-    };
-    res.status(409).json(body);
-  }
+  const page = await createPageRecord(req.params.workspaceId, req.userId, req.body);
+  res.status(201).json(page);
 };
 
 export const listPages: RequestHandler = async (req, res) => {
-  const { workspaceId } = req.params;
-  const { status, q } = req.query;
-
-  const { group, tag } = req.query;
-
-  const filter: Record<string, unknown> = { workspaceId };
-  if (status === "draft" || status === "published" || status === "archived")
-    filter.status = status;
-  if (typeof group === "string" && group.trim()) filter.group = group.trim();
-  if (typeof tag === "string" && tag.trim()) filter.tags = tag.trim();
-  if (typeof q === "string" && q.trim()) {
-    // Escaped so a stray "(" in the search box cannot throw an invalid-regex error.
-    const safe = q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    filter.$or = [
-      { title: { $regex: safe, $options: "i" } },
-      { slug: { $regex: safe, $options: "i" } },
-    ];
-  }
-
-  // Page is 1-based; perPage is clamped so a caller cannot ask for the lot.
-  const page = Math.max(
-    1,
-    Number.parseInt(String(req.query.page ?? "1"), 10) || 1,
-  );
-  const perPageRaw =
-    Number.parseInt(String(req.query.perPage ?? "20"), 10) || 20;
-  const perPage = Math.min(100, Math.max(1, perPageRaw));
-
-  const [items, total] = await Promise.all([
-    PageModel.find(filter)
-      // The list shows neither the content nor the blocks, and a page full of
-      // rich text is by far the heaviest field — excluded so the table stays cheap.
-      .select("-content -sections")
-      .populate("createdBy", AUTHOR_FIELDS)
-      .populate("updatedBy", AUTHOR_FIELDS)
-      .sort({ updatedAt: -1 })
-      .skip((page - 1) * perPage)
-      .limit(perPage),
-    PageModel.countDocuments(filter),
-  ]);
-
-  res.json({
-    items: items.map((doc) => toResponse(doc as unknown as PageDoc)),
-    page,
-    perPage,
-    total,
-    totalPages: Math.max(1, Math.ceil(total / perPage)),
-  });
+  res.json(await listPageRecords(req.params.workspaceId, req.query));
 };
 
 export const getPage: RequestHandler = async (req, res) => {
   const { workspaceId, id } = req.params;
-  const page = await PageModel.findOne({ _id: id, workspaceId })
-    .populate("createdBy", AUTHOR_FIELDS)
-    .populate("updatedBy", AUTHOR_FIELDS);
-
-  if (!page) {
-    const body: ApiError = { error: "not_found", message: "Page not found" };
-    res.status(404).json(body);
-    return;
-  }
-  res.json(toResponse(page as unknown as PageDoc));
+  res.json(await getPageRecord(workspaceId, id));
 };
 
 const escapeHtml = (value: string) =>
@@ -693,68 +414,8 @@ export const duplicatePage: RequestHandler = async (req, res) => {
 };
 
 export const updatePage: RequestHandler = async (req, res) => {
-  const parsed = pageSchema.partial().safeParse(req.body);
-  if (!parsed.success) {
-    const body: ApiError = {
-      error: "invalid_input",
-      message: parsed.error.issues[0].message,
-    };
-    res.status(400).json(body);
-    return;
-  }
-
   const { workspaceId, id } = req.params;
-  const existing = await PageModel.findOne({ _id: id, workspaceId });
-  if (!existing) {
-    const body: ApiError = { error: "not_found", message: "Page not found" };
-    res.status(404).json(body);
-    return;
-  }
-
-  // Version history is switched off for now — nothing is snapshotted, so no
-  // revisions accumulate. Re-enable by restoring this call and the routes.
-  // await snapshotRevision(existing as unknown as PageDoc, workspaceId, req.userId);
-
-  const taxonomyError = await checkTaxonomy(
-    workspaceId,
-    parsed.data.group,
-    parsed.data.tags,
-  );
-  if (taxonomyError) {
-    const body: ApiError = { error: "invalid_input", message: taxonomyError };
-    res.status(400).json(body);
-    return;
-  }
-
-  const update: Record<string, unknown> = {
-    ...parsed.data,
-    updatedBy: req.userId,
-  };
-  // Only re-slug on an explicit slug edit. Deriving it from the title again
-  // would silently break the URL of a live page whose title got a typo fix.
-  if (parsed.data.slug) update.slug = slugify(parsed.data.slug);
-  // Stamp the first publish only; re-saving a published page keeps its date.
-  if (parsed.data.status === "published" && existing.status !== "published") {
-    update.publishedAt = parsed.data.publishedAt ?? new Date();
-  }
-
-  try {
-    const page = await PageModel.findOneAndUpdate(
-      { _id: id, workspaceId },
-      update,
-      { new: true },
-    )
-      .populate("createdBy", AUTHOR_FIELDS)
-      .populate("updatedBy", AUTHOR_FIELDS);
-    res.json(toResponse(page as unknown as PageDoc));
-  } catch (err) {
-    if (!duplicateSlug(err)) throw err;
-    const body: ApiError = {
-      error: "slug_taken",
-      message: "A page with that slug already exists",
-    };
-    res.status(409).json(body);
-  }
+  res.json(await updatePageRecord(workspaceId, id, req.userId, req.body));
 };
 
 export const deletePage: RequestHandler = async (req, res) => {

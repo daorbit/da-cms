@@ -4,6 +4,8 @@ import { authRoutes } from './auth.route.js';
 import { workspaceRoutes } from './workspace.route.js';
 import { invitationRoutes } from './invitation.route.js';
 import { aiRoutes } from './ai.route.js';
+import { oauthRoutes } from './oauth.route.js';
+import { mcpRoutes } from './mcp.route.js';
 
 export const routes = Router();
 
@@ -12,3 +14,5 @@ routes.use('/auth', authRoutes);
 routes.use('/workspaces', workspaceRoutes);
 routes.use('/invitation', invitationRoutes);
 routes.use('/ai', aiRoutes);
+routes.use('/oauth', oauthRoutes);
+routes.use('/mcp', mcpRoutes);

@@ -5,6 +5,7 @@ import { MembershipModel } from '../models/membership.model.js';
 import { UserModel } from '../models/user.model.js';
 import { slugify } from '../lib/slugify.js';
 import { mailConfigured, sendWelcomeEmail } from '../lib/mailer.js';
+import { settingsResponse, toResponse, workspacesForUser } from '../services/workspace.service.js';
 import type { ApiError } from '../types/index.js';
 
 const createWorkspaceSchema = z.object({
@@ -48,12 +49,7 @@ export const createWorkspace: RequestHandler = async (req, res) => {
 };
 
 export const listWorkspaces: RequestHandler = async (req, res) => {
-  const memberships = await MembershipModel.find({ userId: req.userId, status: 'active' });
-  const workspaces = await WorkspaceModel.find({ _id: { $in: memberships.map((m) => m.workspaceId) } });
-  // The caller's role travels with each workspace so the UI can hide admin-only
-  // controls without a follow-up request.
-  const roleByWorkspace = new Map(memberships.map((m) => [String(m.workspaceId), m.role]));
-  res.json(workspaces.map((w) => toResponse(w, roleByWorkspace.get(String(w._id)))));
+  res.json(await workspacesForUser(req.userId));
 };
 
 export const getWorkspace: RequestHandler = async (req, res) => {
@@ -175,40 +171,3 @@ export const updateSettings: RequestHandler = async (req, res) => {
   await workspace.save();
   res.json(settingsResponse(workspace));
 };
-
-interface Term {
-  name: string;
-  color?: string;
-}
-
-/* Loose shapes — the callers pass Mongoose documents, whose subdocument types
- * don't line up with plain interfaces. */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-function settingsResponse(w: any) {
-  const cfg = w?.settings?.configuration ?? {};
-  const term = (t: Term) => ({
-    name: t.name,
-    color: t.color ?? '',
-  });
-  return {
-    configuration: {
-      groups: ((cfg.groups ?? []) as Term[]).map(term),
-      tags: ((cfg.tags ?? []) as Term[]).map(term),
-    },
-    siteLinks: ((w?.settings?.siteLinks ?? []) as { label: string; url: string; order: number }[])
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .map(({ label, url, order }) => ({ label, url, order })),
-  };
-}
-
-function toResponse(workspace: any, role?: string) {
-  return {
-    id: String(workspace._id),
-    name: workspace.name,
-    slug: workspace.slug,
-    websiteUrl: workspace.websiteUrl ?? '',
-    role: role ?? null,
-  };
-}
