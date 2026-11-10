@@ -2,8 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 880px;
-  margin: 0 auto;
 }
 
 .header {
@@ -12,7 +10,6 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
 }
 
 .date {
@@ -24,53 +21,96 @@
 
 .greeting {
   margin: 0;
-  font-size: clamp(26px, 3vw, 32px);
+  font-size: clamp(24px, 2.6vw, 30px);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.028em;
   color: var(--text);
 }
 
+/* ---------------------------------------------------------------- tiles */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.tileLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.tileValue {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.tileHint {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------- columns */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .card {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px;
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--surface);
 }
 
 .cardHead {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.headline {
-  margin: 4px 0 0;
-  font-size: 22px;
-  font-weight: 650;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.sectionHead {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: -8px;
 }
 
-.sectionTitle {
+.cardTitle {
   margin: 0;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--text);
 }
 
-.sectionLink {
+.cardLink {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -80,21 +120,118 @@
   text-decoration: none;
 }
 
-.sectionLink:hover {
+.cardLink:hover {
   text-decoration: underline;
 }
 
-.sectionLink:focus-visible {
+.cardLink:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
+/* --------------------------------------------------------------- recent */
+
 .recent {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 0 -10px;
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+}
+
+.recentRow {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 110px 110px 110px 16px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.recentRow:hover {
+  background: var(--nav-hover);
+}
+
+.recentRow:focus-visible,
+.action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.recentThumb {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 9px;
+  color: var(--faint);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.recentThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recentMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.recentTitle,
+.recentSlug,
+.recentGroup {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentTitle {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--text);
+}
+
+.recentSlug {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.recentGroup,
+.recentTime {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.recentTime {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.recentChevron {
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.recentRow:hover .recentChevron,
+.action:hover .recentChevron {
+  opacity: 1;
 }
 
 .empty {
@@ -105,8 +242,96 @@
   text-align: center;
 }
 
-@media (max-width: 30em) {
-  .card {
-    padding: 18px;
+/* -------------------------------------------------------------- actions */
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.action:hover {
+  background: var(--nav-hover);
+}
+
+.actionIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.actionText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.actionLabel {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--text);
+}
+
+.actionHint {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 75em) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 62em) {
+  .recentRow {
+    grid-template-columns: 40px minmax(0, 1fr) auto 16px;
+  }
+
+  .recentGroup,
+  .recentTime {
+    display: none;
+  }
+}
+
+@media (max-width: 48em) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .side {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

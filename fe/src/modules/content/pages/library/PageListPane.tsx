@@ -146,7 +146,7 @@ export function PageListPane({ library, onOpenIntegration }: Props) {
             {Array.from({ length: 8 }).map((_, i) => (
               // eslint-disable-next-line react/no-array-index-key
               <div key={i} className={classes.skeletonRow}>
-                <Skeleton width={44} height={44} radius={10} />
+                <Skeleton width={56} height={42} radius={8} />
                 <div className={classes.skeletonText}>
                   <Skeleton height={12} width="70%" radius="sm" />
                   <Skeleton height={10} width="45%" radius="sm" />

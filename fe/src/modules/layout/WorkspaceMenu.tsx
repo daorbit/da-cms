@@ -1,5 +1,5 @@
 import { Menu, Tooltip, UnstyledButton } from '@mantine/core';
-import { IconCheck, IconSettings2 } from '@tabler/icons-react';
+import { IconCheck, IconSelector, IconSettings2 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import type { Workspace } from '@/types';
 import classes from './Shell.module.css';
@@ -7,6 +7,7 @@ import classes from './Shell.module.css';
 interface Props {
   workspace: Workspace | undefined;
   workspaces: Workspace[];
+  collapsed?: boolean;
 }
 
 const monogram = (name: string) =>
@@ -17,17 +18,22 @@ const monogram = (name: string) =>
     .map((word) => word[0]?.toUpperCase())
     .join('') || 'D';
 
-/** The workspace's monogram, which is also how you switch between workspaces. */
-export function WorkspaceMenu({ workspace, workspaces }: Props) {
+/** The current workspace, named, which is also how you switch between workspaces. */
+export function WorkspaceMenu({ workspace, workspaces, collapsed }: Props) {
   const navigate = useNavigate();
   const name = workspace?.name ?? 'da-cms';
 
   return (
-    <Menu position="right-start" offset={12} width={240} withinPortal>
+    <Menu position="bottom-start" offset={6} width={240} withinPortal>
       <Menu.Target>
-        <Tooltip label={name} position="right" withArrow openDelay={250}>
-          <UnstyledButton className={classes.monogram} aria-label={`Workspace: ${name}. Switch workspace`}>
-            {monogram(name)}
+        <Tooltip label={name} position="right" withArrow openDelay={250} disabled={!collapsed}>
+          <UnstyledButton className={classes.workspace} aria-label={`Workspace: ${name}. Switch workspace`}>
+            <span className={classes.monogram}>{monogram(name)}</span>
+            <span className={classes.workspaceText}>
+              <span className={classes.workspaceName}>{name}</span>
+              <span className={classes.workspaceHint}>Workspace</span>
+            </span>
+            <IconSelector size={15} stroke={1.7} className={classes.workspaceChevron} />
           </UnstyledButton>
         </Tooltip>
       </Menu.Target>
