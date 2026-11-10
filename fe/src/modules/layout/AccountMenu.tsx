@@ -9,10 +9,11 @@ import classes from './Shell.module.css';
 
 interface Props {
   onConnectClaude: () => void;
+  collapsed?: boolean;
 }
 
 /** The signed-in person: who they are, appearance, and signing out. */
-export function AccountMenu({ onConnectClaude }: Props) {
+export function AccountMenu({ onConnectClaude, collapsed }: Props) {
   const navigate = useNavigate();
   const { user, clearSession } = useAuth();
 
@@ -23,12 +24,16 @@ export function AccountMenu({ onConnectClaude }: Props) {
   };
 
   return (
-    <Menu position="right-end" offset={12} width={240} withinPortal>
+    <Menu position={collapsed ? 'right-end' : 'top-start'} offset={8} width={240} withinPortal>
       <Menu.Target>
         <UnstyledButton className={classes.account} aria-label="Account">
-          <Avatar size={32} radius="xl" color="gray">
+          <Avatar size={28} radius="xl" color="brand" variant="filled">
             {user?.name?.[0]?.toUpperCase()}
           </Avatar>
+          <span className={classes.accountText}>
+            <span className={classes.accountName}>{user?.name}</span>
+            <span className={classes.accountEmail}>{user?.email}</span>
+          </span>
         </UnstyledButton>
       </Menu.Target>
 
