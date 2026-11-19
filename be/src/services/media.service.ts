@@ -3,6 +3,7 @@ import { MediaModel } from '../models/media.model.js';
 import {
   checkDataUrl,
   cloudinaryConfigured,
+  normalizeThumbnail,
   resourceKind,
   uploadAsset,
   type ResourceKind,
@@ -44,7 +45,7 @@ export function toResponse(doc: MediaDoc) {
     height: doc.height ?? null,
     // Falls back to the asset itself: a picker needs something to show, and for
     // an image the original is a valid preview.
-    thumbnailUrl: doc.thumbnailUrl || (doc.kind === 'image' ? doc.url : ''),
+    thumbnailUrl: normalizeThumbnail(doc.thumbnailUrl || '') || (doc.kind === 'image' ? doc.url : ''),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

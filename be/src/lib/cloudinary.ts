@@ -109,10 +109,20 @@ export function withTransform(url: string, transform: string): string | undefine
   return `${url.slice(0, at + marker.length)}${transform}/${url.slice(at + marker.length)}`;
 }
 
+export const THUMBNAIL_TRANSFORM = 'c_limit,w_640,q_auto,f_auto';
+const LEGACY_THUMBNAIL_TRANSFORM = 'c_fill,w_640,h_480,q_auto,f_auto';
+
+/** Thumbnails saved before the transform changed still carry the crop; read them as the new one. */
+export function normalizeThumbnail(url: string): string {
+  return url ? url.replace(LEGACY_THUMBNAIL_TRANSFORM, THUMBNAIL_TRANSFORM) : url;
+}
+
 export function thumbnailFor(url: string, kind: ResourceKind): string | undefined {
   if (kind === 'raw') return undefined;
 
-  const base = withTransform(url, 'c_fill,w_640,h_480,q_auto,f_auto');
+  // c_limit shrinks to fit and keeps the aspect ratio. The old c_fill 640×480
+  // cropped every preview to 4:3, cutting the sides off wide banners.
+  const base = withTransform(url, THUMBNAIL_TRANSFORM);
   if (!base) return undefined;
 
   return kind === 'video' ? base.replace(/\.[^./]+$/, '.jpg') : base;
