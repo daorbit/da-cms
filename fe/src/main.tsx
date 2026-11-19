@@ -8,6 +8,7 @@ import tsLang from 'highlight.js/lib/languages/typescript';
 import jsLang from 'highlight.js/lib/languages/javascript';
 import bashLang from 'highlight.js/lib/languages/bash';
 import { App } from '@/app/App';
+import { Toaster } from '@/lib/toast';
 import { theme } from '@/app/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -26,6 +27,7 @@ import '@/styles/fonts.css';
 import '@/styles/tokens.css';
 import '@/styles/global.css';
 import '@/styles/auth.css';
+import '@/styles/tailwind.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -36,6 +38,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <CodeHighlightAdapterProvider adapter={codeHighlightAdapter}>
         <Notifications position="top-right" />
         <App />
+        {/* Toasts for the Tailwind screens. Mantine's Notifications stays for the rest. */}
+        <Toaster />
       </CodeHighlightAdapterProvider>
     </MantineProvider>
   </React.StrictMode>

@@ -1,345 +1,327 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionIcon,
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Card,
-  CopyButton,
-  Divider,
-  Group,
-  MultiSelect,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-  Textarea,
-  Title,
-  Tooltip,
-} from '@mantine/core';
-import {
-  IconArrowLeft,
-  IconEye,
-  IconCheck,
-  IconCopy,
-  IconExternalLink,
-  IconPencil,
+  IconArchive, IconArrowBackUp, IconArrowLeft, IconCheck, IconCopy, IconExternalLink, IconEye,
+  IconPencil, IconPhoto, IconTrash, IconWorld,
 } from '@tabler/icons-react';
+import { DaEditor } from 'da-text-editor';
+import 'da-text-editor/styles.css';
 import { usePageEditor } from '@/modules/content/pages/editor/usePageEditor';
 import { ContentPreviewModal } from '@/modules/content/pages/editor/preview/ContentPreviewModal';
-import { ImageField } from '@/modules/content/components/ImageField';
-import { workspaceService } from '@/modules/workspace/workspaceService';
 import { pageService } from '@/modules/content/pageService';
-import type { Term } from '@/types';
-import { FormSkeleton, HeaderSkeleton } from '@/components/Skeletons';
-import { StatusLabel } from '@/components/StatusLabel';
+import { ApiError } from '@/lib/api';
+import { relativeTime } from '@/lib/format';
+import { toast } from '@/lib/toast';
+import type { PageStatus } from '@/types';
+import { Button, Card, ChecklistView, ConfirmDialog, Menu, StatusBadge, type ConfirmState } from '../ui';
+import { GooglePreview, SocialPreview, inSentence, pageChecks, sectionCount, wordCount } from '../pageBits';
+
+const siteHost = (url: string | undefined, fallback: string) => {
+  try {
+    return url ? new URL(url).host : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 /**
- * Page metadata on its own screen — title, slug, description, taxonomy, media
- * and SEO. The body is edited in the editor; this route holds the fields that
- * describe the page rather than fill it.
+ * One page at a glance, and where it is published from.
  *
- * Two columns rather than one long card: the fields a writer edits most sit in
- * the wide column, while status, taxonomy and artwork — set once and rarely
- * revisited — sit in a rail beside them. A single stack gave a slug the same
- * visual weight as a hero image, so nothing read as more important than
- * anything else.
+ * Read-only on purpose: the fields themselves are edited in the editor's side
+ * panel, so this screen answers "is it ready, and is it live?" — status, a
+ * pre-publish checklist, how it will look in search and social — and holds the
+ * publish, unpublish, archive and delete actions.
  */
 export function PageDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const editor = usePageEditor(id);
-
-  const [groups, setGroups] = useState<Term[]>([]);
-  const [tagOptions, setTagOptions] = useState<Term[]>([]);
+  const page = usePageEditor(id);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!editor.workspace) return;
-    workspaceService
-      .settings(editor.workspace.id)
-      .then((s) => {
-        setGroups(s.configuration.groups);
-        setTagOptions(s.configuration.tags);
-      })
-      .catch(() => {});
-  }, [editor.workspace]);
+  const ws = page.workspace;
+  const listHref = `/${ws?.slug}/content/pages`;
+  const editHref = `/${ws?.slug}/content/pages/${id}/edit`;
 
-  if (editor.loading) {
+  if (page.loading) {
     return (
-      <Stack gap="lg">
-        <HeaderSkeleton />
-        <FormSkeleton />
-      </Stack>
+      <div className="tw mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-8">
+        <div className="h-4 w-24 animate-pulse rounded bg-surface-2" />
+        <div className="h-8 w-2/3 animate-pulse rounded bg-surface-2" />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="aspect-[1200/630] animate-pulse rounded-lg bg-surface-2" />
+          <div className="h-64 animate-pulse rounded-lg bg-surface-2" />
+        </div>
+      </div>
     );
   }
 
-  const backToPages = () => navigate(`/${editor.workspace?.slug}/content/pages`);
-  const publicUrl = editor.workspace
-    ? pageService.publicUrl(editor.workspace.id, editor.slug)
-    : '';
+  const site = siteHost(ws?.websiteUrl, ws?.slug ?? '');
+  const path = `${page.group ? page.group + '/' : ''}${page.slug}`;
+  const apiUrl = ws ? pageService.publicUrl(ws.id, page.slug) : '';
+  const checks = pageChecks(page);
+  const words = wordCount(page.content);
+
+  /** Writes the new status and reports it. `undo` is offered for reversible moves. */
+  const moveTo = async (next: PageStatus, opts: { undo?: boolean } = {}) => {
+    const before = page.status;
+    const saved = await page.save(next, 'publish');
+    if (!saved) {
+      toast.error('Could not update the page', { message: page.lastError() ?? 'Please try again.' });
+      return;
+    }
+    const undo = opts.undo
+      ? { label: 'Undo', onClick: () => void page.save(before, 'publish').then((p) => p && toast.info('Change undone')) }
+      : undefined;
+    if (next === 'published') {
+      toast.success('Page published', { message: `${site}/${path} is live.`, action: undo });
+    } else if (next === 'archived') {
+      toast.success('Page archived', { message: 'It is hidden from the content API.', action: undo });
+    } else {
+      toast.success(before === 'published' ? 'Page unpublished' : 'Moved to drafts', {
+        message: 'Visitors can no longer see it.',
+        action: undo,
+      });
+    }
+  };
+
+  const publish = () => {
+    if (checks.missingRequired.length) {
+      toast.error("Can't publish yet", {
+        message: `Add: ${inSentence(checks.missingRequired)}.`,
+        action: { label: 'Open editor', onClick: () => navigate(editHref) },
+      });
+      return;
+    }
+    const missing = checks.missingRecommended;
+    setConfirm({
+      title: missing.length ? 'Publish with missing details?' : 'Publish this page?',
+      message: missing.length ? (
+        <>
+          This page has no {inSentence(missing)}. It will still go live at{' '}
+          <span className="font-medium text-fg">{site}/{path}</span>, but it may look bare in listings and search results.
+        </>
+      ) : (
+        <>
+          “{page.title}” will go live at <span className="font-medium text-fg">{site}/{path}</span>.
+        </>
+      ),
+      confirmLabel: missing.length ? 'Publish anyway' : 'Publish',
+      onConfirm: () => moveTo('published', { undo: true }),
+    });
+  };
+
+  const unpublish = () =>
+    setConfirm({
+      title: 'Unpublish this page?',
+      message: 'Visitors and the content API will no longer see it. It moves back to drafts and you can publish it again any time.',
+      confirmLabel: 'Unpublish',
+      danger: true,
+      onConfirm: () => moveTo('draft'),
+    });
+
+  const duplicate = async () => {
+    if (!ws || !id) return;
+    try {
+      const copy = await pageService.duplicate(ws.id, id);
+      toast.success('Page duplicated', {
+        message: `"${copy.title}" is saved as a draft.`,
+        action: { label: 'Edit copy', onClick: () => navigate(`/${ws.slug}/content/pages/${copy.id}/edit`) },
+      });
+    } catch (err) {
+      toast.error('Could not duplicate the page', { message: err instanceof ApiError ? err.message : 'Please try again.' });
+    }
+  };
+
+  const remove = () =>
+    setConfirm({
+      title: 'Delete this page?',
+      message: <>“{page.title || 'Untitled'}” will be deleted permanently. This cannot be undone. Archive it instead if you might need it later.</>,
+      confirmLabel: 'Delete permanently',
+      danger: true,
+      onConfirm: async () => {
+        if (!ws || !id) return;
+        try {
+          await pageService.destroy(ws.id, id);
+          toast.success('Page deleted');
+          navigate(listHref);
+        } catch (err) {
+          toast.error('Could not delete the page', { message: err instanceof ApiError ? err.message : 'Please try again.' });
+        }
+      },
+    });
+
+  const copyApiUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(apiUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+      toast.success('Link copied', { message: apiUrl });
+    } catch {
+      toast.error('Could not copy', { message: 'Your browser blocked clipboard access.' });
+    }
+  };
+
+  const busy = page.savingAction !== null;
 
   return (
-    <Stack gap="lg">
-  
-      <Box className="page-details-header">
-        <Group justify="space-between" wrap="nowrap" align="flex-start">
-          <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="lg"
-              aria-label="Back to pages"
-              onClick={backToPages}
-            >
-              <IconArrowLeft size={18} />
-            </ActionIcon>
-            <div style={{ minWidth: 0 }}>
-              <Group gap="xs" wrap="nowrap">
-                <Title order={3} lineClamp={1}>
-                  {editor.title || 'Untitled'}
-                </Title>
-                <StatusLabel status={editor.status} />
-              </Group>
-              <Text size="xs" c="dimmed">
-                Page details
-              </Text>
-            </div>
-          </Group>
+    <div className="tw mx-auto max-w-6xl px-4 py-6 font-sans text-fg sm:px-8">
+      <button type="button" onClick={() => navigate(listHref)} className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+        <IconArrowLeft size={15} /> All pages
+      </button>
 
-          <Group gap="xs" wrap="nowrap">
-            <Tooltip label="Preview content" withArrow>
-              <ActionIcon
-                variant="default"
-                size="lg"
-                aria-label="Preview content"
-                onClick={() => setPreviewOpen(true)}
+      {/* ------------------------------------------------------ header --- */}
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={page.status} />
+            {page.savedAt && <span className="text-xs text-muted">Updated {relativeTime(page.savedAt)}</span>}
+          </div>
+          <h1 className="mt-2 text-[22px] leading-tight font-semibold tracking-tight">{page.title || 'Untitled page'}</h1>
+          <p className="mt-1 text-sm text-muted">/{path}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button icon={<IconEye size={15} />} onClick={() => setPreviewOpen(true)}>Preview</Button>
+          <Button icon={<IconPencil size={15} />} onClick={() => navigate(editHref)}>Edit</Button>
+          {page.status === 'published' ? (
+            <Button loading={busy} onClick={unpublish}>Unpublish</Button>
+          ) : (
+            <Button variant="primary" loading={busy} icon={<IconWorld size={15} />} onClick={publish}>Publish</Button>
+          )}
+          <Menu
+            items={[
+              { label: 'Duplicate', icon: <IconCopy size={15} />, onClick: duplicate },
+              page.status === 'archived'
+                ? { label: 'Restore to drafts', icon: <IconArrowBackUp size={15} />, onClick: () => moveTo('draft') }
+                : { label: 'Archive', icon: <IconArchive size={15} />, onClick: () => moveTo('archived', { undo: true }) },
+              { label: 'Delete', icon: <IconTrash size={15} />, danger: true, onClick: remove },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* -------------------------------------------------------- body --- */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-6">
+          <div className="overflow-hidden rounded-lg border border-line bg-surface">
+            {page.heroImage.url ? (
+              <img src={page.heroImage.url} alt={page.heroImage.alt} className="aspect-[1200/630] w-full object-cover" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate(`${editHref}?tab=images`)}
+                className="grid aspect-[1200/630] w-full place-items-center bg-surface-2 text-sm text-muted hover:text-accent-text"
               >
-                <IconEye size={17} />
-              </ActionIcon>
-            </Tooltip>
-            <Button
-              variant="default"
-              leftSection={<IconPencil size={15} />}
-              onClick={() =>
-                navigate(`/${editor.workspace?.slug}/content/pages/${id}/edit`)
-              }
-            >
-              Open editor
-            </Button>
-            <Button
-              loading={editor.saving}
-              onClick={() =>
-                editor.save(editor.status === 'published' ? 'published' : 'draft')
-              }
-            >
-              Save
-            </Button>
-          </Group>
-        </Group>
-      </Box>
-
-      {editor.error && (
-        <Alert color="red" variant="light">
-          {editor.error}
-        </Alert>
-      )}
-
-      <Box
-        style={{
-          display: 'grid',
-          gap: 'var(--mantine-spacing-md)',
-          gridTemplateColumns: 'minmax(0, 1fr) 22rem',
-          alignItems: 'start',
-        }}
-        className="page-details-grid"
-      >
-        {/* ------------------------------------------------ main column -- */}
-        <Stack gap="md">
-          <Section title="Content" description="What the page is called and says.">
-            <TextInput
-              label="Title"
-              withAsterisk
-              size="md"
-              value={editor.title}
-              onChange={(e) => editor.setTitle(e.currentTarget.value)}
-            />
-
-            <TextInput
-              label="Slug"
-              description="The path this page is served at"
-              leftSection={
-                <Text size="sm" c="dimmed">
-                  /
-                </Text>
-              }
-              rightSection={
-                editor.slug && (
-                  <CopyButton value={publicUrl}>
-                    {({ copied, copy }) => (
-                      <Tooltip label={copied ? 'Copied' : 'Copy API URL'} withArrow>
-                        <ActionIcon variant="subtle" color="gray" onClick={copy}>
-                          {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </CopyButton>
-                )
-              }
-              value={editor.slug}
-              onChange={(e) => editor.setSlug(e.currentTarget.value)}
-            />
-
-            {/* Sits under the slug because it is that slug's URL — as its own
-                card in the rail it read as an unrelated stray. */}
-            {editor.status === 'published' && publicUrl && (
-              <Anchor
-                href={publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="xs"
-                mt={-6}
-              >
-                <Group gap={4} wrap="nowrap">
-                  <IconExternalLink size={13} />
-                  View live API response
-                </Group>
-              </Anchor>
+                <span className="flex flex-col items-center gap-2">
+                  <IconPhoto size={22} stroke={1.6} /> Add a hero image
+                </span>
+              </button>
             )}
+            {page.description && <p className="p-5 text-[15px] leading-7 text-fg-2">{page.description}</p>}
+          </div>
 
-            <Textarea
-              label="Description"
-              description="A short summary shown in listings and to API consumers"
-              autosize
-              minRows={3}
-              maxLength={500}
-              value={editor.description}
-              onChange={(e) => editor.setDescription(e.currentTarget.value)}
-            />
-            {/* Counted because the field is capped and a truncated summary is
-                not obvious until it is already saved. */}
-            <Text size="xs" c="dimmed" ta="right" mt={-8}>
-              {editor.description.length}/500
-            </Text>
-          </Section>
+          <Card title="Content" action={<Button size="sm" variant="ghost" icon={<IconPencil size={14} />} onClick={() => navigate(editHref)}>Edit</Button>}>
+            {words > 0 ? (
+              <div className="-mx-2 overflow-hidden rounded-md">
+                <DaEditor key={page.savedAt?.toString()} defaultHtml={page.content} readOnly theme="light" minHeight="0px" />
+              </div>
+            ) : (
+              <p className="text-sm text-muted">This page has no content yet.</p>
+            )}
+          </Card>
+        </div>
 
-          <Section
-            title="Search engines"
-            description="Overrides the title and description above when this page is listed in search results."
-          >
-            <TextInput
-              label="Meta title"
-              placeholder={editor.title || 'Page title'}
-              value={editor.seo.title}
-              onChange={(e) => editor.setSeo({ ...editor.seo, title: e.currentTarget.value })}
-            />
-            <Textarea
-              label="Meta description"
-              placeholder={editor.description || 'A short summary for search results.'}
-              autosize
-              minRows={2}
-              value={editor.seo.description}
-              onChange={(e) =>
-                editor.setSeo({ ...editor.seo, description: e.currentTarget.value })
-              }
-            />
+        <aside className="space-y-6">
+          <Card title="Publishing">
+            <dl className="space-y-2.5 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">Status</dt>
+                <dd><StatusBadge status={page.status} /></dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">Published</dt>
+                <dd>{page.publishedAt ? new Date(page.publishedAt).toLocaleString() : 'Not yet'}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">Group</dt>
+                <dd>{page.group || '—'}</dd>
+              </div>
+            </dl>
+            {page.status === 'published' && apiUrl && (
+              <div className="mt-4 flex items-center gap-1 rounded-md bg-surface-2 py-1.5 pr-1.5 pl-3">
+                <a href={apiUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-xs text-accent-text hover:underline" title="Content API URL">
+                  {apiUrl}
+                </a>
+                <a href={apiUrl} target="_blank" rel="noreferrer" aria-label="Open content API response" className="rounded p-1.5 text-muted hover:bg-surface hover:text-fg">
+                  <IconExternalLink size={14} />
+                </a>
+                <button type="button" onClick={copyApiUrl} aria-label="Copy content API URL" className="rounded p-1.5 text-muted hover:bg-surface hover:text-fg">
+                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                </button>
+              </div>
+            )}
+          </Card>
 
-            <Divider my={4} />
+          <Card title="Ready to publish">
+            <ChecklistView items={checks.all} />
+            {(checks.missingRequired.length > 0 || checks.missingRecommended.length > 0) && (
+              <Button size="sm" className="mt-4 w-full" onClick={() => navigate(editHref)}>
+                Fix in editor
+              </Button>
+            )}
+          </Card>
 
-            <Switch
-              label="Hide from search engines"
-              description="Adds noindex, so this page is not listed in results."
-              checked={editor.seo.noIndex}
-              onChange={(e) =>
-                editor.setSeo({ ...editor.seo, noIndex: e.currentTarget.checked })
-              }
-            />
-          </Section>
-        </Stack>
+          <Card title="Content stats">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ['Words', words],
+                ['Sections', sectionCount(page.content)],
+                ['Read', `${Math.max(1, Math.round(words / 220))} min`],
+              ].map(([k, v]) => (
+                <div key={k} className="rounded-md bg-surface-2 p-2.5 text-center">
+                  <p className="text-lg font-semibold tabular-nums">{v}</p>
+                  <p className="text-xs text-muted">{k}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
 
-        {/* ------------------------------------------------------- rail -- */}
-        <Stack gap="md">
-          <Section title="Organisation">
-            <Select
-              label="Group"
-              description="Managed in workspace settings"
-              placeholder={groups.length ? 'No group' : 'Add groups in Settings'}
-              data={groups.map((g) => ({ value: g.name, label: g.name }))}
-              value={editor.group || null}
-              clearable
-              disabled={groups.length === 0}
-              onChange={(v) => editor.setGroup(v ?? '')}
-            />
-            <MultiSelect
-              label="Tags"
-              placeholder={tagOptions.length ? 'Pick tags' : 'No tags defined yet'}
-              data={tagOptions.map((t) => ({ value: t.name, label: t.name }))}
-              value={editor.tags}
-              onChange={editor.setTags}
-              searchable
-              disabled={tagOptions.length === 0}
-            />
-          </Section>
+          <Card title="Google preview">
+            <GooglePreview site={site} path={path} title={page.seo.title || page.title} description={page.seo.description || page.description} />
+          </Card>
 
-          <Section title="Media" description="Artwork used in listings and social previews.">
-            <ImageField
-              label="Hero image"
-              value={editor.heroImage}
-              onChange={editor.setHeroImage}
-              ratio={16 / 9}
+          <Card title="Social card">
+            <SocialPreview
+              site={site}
+              title={page.seo.ogTitle || page.seo.title || page.title}
+              image={page.seo.ogImage || page.thumbnailImage.url || page.heroImage.url}
             />
-            <ImageField
-              label="Thumbnail"
-              value={editor.thumbnailImage}
-              onChange={editor.setThumbnailImage}
-              ratio={4 / 3}
-            />
-          </Section>
+          </Card>
 
-        </Stack>
-      </Box>
+          <Card title="Tags">
+            <div className="flex flex-wrap gap-1.5">
+              {page.tags.length ? (
+                page.tags.map((t) => <span key={t} className="rounded bg-surface-2 px-2 py-1 text-xs text-fg-2">{t}</span>)
+              ) : (
+                <span className="text-sm text-faint">No tags</span>
+              )}
+            </div>
+          </Card>
+        </aside>
+      </div>
 
-      {editor.workspace && id && (
+      {ws && id && (
         <ContentPreviewModal
           opened={previewOpen}
           onClose={() => setPreviewOpen(false)}
-          title={editor.title}
-          content={editor.content}
-          src={pageService.previewUrl(editor.workspace.id, editor.slug)}
+          title={page.title}
+          content={page.content}
+          src={pageService.previewUrl(ws.id, page.slug)}
         />
       )}
-    </Stack>
-  );
-}
 
-/** A titled group of fields, so the form reads as sections rather than a list. */
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card withBorder radius="md" padding="lg">
-      <Stack gap="sm">
-        <div>
-          <Text fw={600} size="sm">
-            {title}
-          </Text>
-          {description && (
-            <Text size="xs" c="dimmed" mt={2}>
-              {description}
-            </Text>
-          )}
-        </div>
-        {children}
-      </Stack>
-    </Card>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import { pageService } from '@/modules/content/pageService';
 import { workspaceService } from '@/modules/workspace/workspaceService';
 import { ApiError } from '@/lib/api';
 import type { Page } from '@/types';
+import { toast } from '@/lib/toast';
 
 const slugify = (input: string) =>
   input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -87,6 +88,7 @@ export function CreatePageModal({ opened, onClose, onCreated }: Props) {
         status: 'draft',
       });
       reset();
+      toast.success('Page created', { message: 'Saved as a draft. Start writing below.' });
       onCreated(page);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create the page');

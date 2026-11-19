@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
+import { toast } from '@/lib/toast';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
 import { plural } from '@/lib/format';
@@ -16,9 +16,9 @@ export const PER_PAGE = 20;
 const failure = (err: unknown, fallback: string) => (err instanceof ApiError ? err.message : fallback);
 
 /**
- * Everything the pages workspace does, apart from how it looks: the filtered,
- * paged list, the page selected for preview (kept in `?page=` so it can be
- * linked to), multi-select with bulk actions, and the per-page actions.
+ * Everything the pages list does, apart from how it looks: the filtered, paged
+ * list, multi-select with bulk actions, and the per-page actions. Every action
+ * reports its outcome as a toast.
  */
 export function usePageLibrary() {
   const workspace = useWorkspace();
@@ -40,9 +40,7 @@ export function usePageLibrary() {
 
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const [revision, setRevision] = useState(0);
 
-  const selectedId = params.get('page');
   const creating = params.get('new') === '1';
 
   const setParam = useCallback(
@@ -60,7 +58,6 @@ export function usePageLibrary() {
     [setParams]
   );
 
-  const select = useCallback((id: string | null) => setParam('page', id), [setParam]);
   const setCreating = useCallback((open: boolean) => setParam('new', open ? '1' : null), [setParam]);
 
   useEffect(() => {
@@ -107,9 +104,7 @@ export function usePageLibrary() {
     load();
   }, [load]);
 
-  /** Reloads the list and tells the preview its page may have changed. */
   const refresh = useCallback(async () => {
-    setRevision((r) => r + 1);
     await load();
   }, [load]);
 
@@ -134,15 +129,42 @@ export function usePageLibrary() {
 
   const clearChecked = () => setChecked(new Set());
 
-  const setStatusFor = async (ids: string[], next: PageStatus) => {
+  /**
+   * Moves pages to a status. `undo` is what each page was before, so the toast
+   * can put them back with one click — pages can be in different states, so
+   * undo restores each to its own previous status rather than to one value.
+   */
+  const setStatusFor = async (ids: string[], next: PageStatus, undo?: Map<string, PageStatus>) => {
     if (!workspace || ids.length === 0) return;
     setBusy(true);
     try {
       const { updated } = await pageService.bulkStatus(workspace.id, ids, next);
-      notifications.show({ message: `${plural(updated, 'page')} moved to ${STATUS_LABEL[next]}` });
+      const verb = next === 'published' ? 'published' : next === 'archived' ? 'archived' : 'moved to drafts';
+      const title = updated === 1 && ids.length === 1
+        ? `Page ${verb}`
+        : `${plural(updated, 'page')} ${verb}`;
+      const action = undo && undo.size
+        ? {
+            label: 'Undo',
+            onClick: async () => {
+              const byStatus = new Map<PageStatus, string[]>();
+              undo.forEach((s, id) => byStatus.set(s, [...(byStatus.get(s) ?? []), id]));
+              try {
+                for (const [s, list] of byStatus) await pageService.bulkStatus(workspace.id, list, s);
+                toast.info('Change undone');
+                await refresh();
+              } catch (err) {
+                toast.error('Could not undo', { message: failure(err, 'Try changing the status again.') });
+              }
+            },
+          }
+        : undefined;
+      toast.success(title, { action });
       await refresh();
     } catch (err) {
-      notifications.show({ color: 'red', message: failure(err, 'Could not change the status') });
+      toast.error(`Could not change the status to ${STATUS_LABEL[next].toLowerCase()}`, {
+        message: failure(err, 'Please try again.'),
+      });
     } finally {
       setBusy(false);
     }
@@ -153,13 +175,12 @@ export function usePageLibrary() {
     setBusy(true);
     try {
       const { deleted } = await pageService.bulkDelete(workspace.id, ids);
-      notifications.show({ message: `${plural(deleted, 'page')} deleted` });
-      if (selectedId && ids.includes(selectedId)) select(null);
+      toast.success(deleted === 1 ? 'Page deleted' : `${plural(deleted, 'page')} deleted`);
       setChecked((prev) => new Set([...prev].filter((id) => !ids.includes(id))));
       await refresh();
       return true;
     } catch (err) {
-      notifications.show({ color: 'red', message: failure(err, 'Could not delete') });
+      toast.error('Could not delete', { message: failure(err, 'Please try again.') });
       return false;
     } finally {
       setBusy(false);
@@ -172,10 +193,13 @@ export function usePageLibrary() {
     setBusy(true);
     try {
       const copy = await pageService.duplicate(workspace.id, p.id);
-      notifications.show({ message: `Duplicated "${p.title}"` });
-      navigate(`/${workspace.slug}/content/pages/${copy.id}/edit`);
+      toast.success('Page duplicated', {
+        message: `"${copy.title}" is saved as a draft.`,
+        action: { label: 'Edit copy', onClick: () => navigate(`/${workspace.slug}/content/pages/${copy.id}/edit`) },
+      });
+      await refresh();
     } catch (err) {
-      notifications.show({ color: 'red', message: failure(err, 'Could not duplicate the page') });
+      toast.error('Could not duplicate the page', { message: failure(err, 'Please try again.') });
     } finally {
       setBusy(false);
     }
@@ -193,13 +217,10 @@ export function usePageLibrary() {
     setPage,
     loading,
     error,
-    revision,
     refresh,
 
     filters: { status, setStatus, group, setGroup, groups, search, setSearch, filtered: Boolean(query || group || status !== 'all') },
 
-    selectedId,
-    select,
     creating,
     setCreating,
 

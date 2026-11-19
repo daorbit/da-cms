@@ -1,5 +1,9 @@
 module.exports = {
   plugins: {
+    // Tailwind first, so its output goes through the Mantine plugins like any
+    // other stylesheet. Only theme + utilities are imported (see tailwind.css):
+    // Tailwind's reset would restyle every Mantine component.
+    '@tailwindcss/postcss': {},
     'postcss-preset-mantine': {},
     'postcss-simple-vars': {
       variables: {

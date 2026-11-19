@@ -1,0 +1,110 @@
+/*
+ * Tailwind for the content screens (pages list, page details, page editor).
+ *
+ * No preflight: Tailwind's reset would restyle every Mantine component in the
+ * rest of the app. Only the theme and the utilities are imported, and the few
+ * element defaults the Tailwind screens need are reset under `.tw` below.
+ *
+ * Colours map to the app's own tokens (styles/tokens.css), which already switch
+ * with the Mantine colour scheme, so these screens follow light and dark mode
+ * without any `dark:` classes.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source '../modules/content';
+@source '../lib';
+
+@custom-variant dark (&:where([data-mantine-color-scheme='dark'], [data-mantine-color-scheme='dark'] *));
+
+@theme inline {
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+
+  --color-canvas: var(--bg);
+  --color-panel: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-fg-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-cta-fg: var(--cta-fg);
+  --color-ok: var(--green);
+  --color-warn: var(--amber);
+  --color-danger: var(--red);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --shadow-pop: var(--shadow);
+  --shadow-pop-lg: var(--shadow-lg);
+}
+
+@layer base {
+  .tw,
+  .tw *,
+  .tw *::before,
+  .tw *::after {
+    box-sizing: border-box;
+    border: 0 solid var(--border);
+  }
+  .tw :where(h1, h2, h3, h4, p, ul, ol, dl, dd, figure) {
+    margin: 0;
+  }
+  .tw :where(ul, ol) {
+    list-style: none;
+    padding: 0;
+  }
+  .tw :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    background: transparent;
+    margin: 0;
+  }
+  .tw :where(button) {
+    padding: 0;
+    cursor: pointer;
+  }
+  .tw :where(button:disabled) {
+    cursor: not-allowed;
+  }
+  .tw :where(img) {
+    display: block;
+    max-width: 100%;
+  }
+  .tw :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  .tw :where(:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes tw-toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tw-pop-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tw-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility animate-toast-in { animation: tw-toast-in 0.18s ease-out; }
+@utility animate-pop-in { animation: tw-pop-in 0.14s ease-out; }
+@utility animate-fade-in { animation: tw-fade-in 0.14s ease-out; }

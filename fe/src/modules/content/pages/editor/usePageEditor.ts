@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { pageService } from '@/modules/content/pageService';
 import { ApiError } from '@/lib/api';
-import type { PageSeo, PageImage, PageStatus, PageSection } from '@/types';
+import { toast } from '@/lib/toast';
+import type { Page, PageSeo, PageImage, PageStatus, PageSection } from '@/types';
 
 export const slugify = (input: string) =>
   input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -43,6 +44,7 @@ export function usePageEditor(id: string | undefined) {
   const [legacySections, setLegacySections] = useState<PageSection[]>([]);
   const [seo, setSeo] = useState<PageSeo>(EMPTY_SEO);
   const [status, setStatus] = useState<PageStatus>('draft');
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -72,6 +74,9 @@ export function usePageEditor(id: string | undefined) {
   // Which button is in flight, so each shows its own spinner instead of both.
   const [savingAction, setSavingAction] = useState<'save' | 'publish' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The latest failure, readable straight after `await save()` — the `error`
+  // state is only visible on the next render, too late for a toast.
+  const lastError = useRef<string | null>(null);
 
   useEffect(() => {
     if (!workspace || !id) return;
@@ -92,6 +97,7 @@ export function usePageEditor(id: string | undefined) {
         setLegacySections(page.sections ?? []);
         setSeo({ ...EMPTY_SEO, ...(page.seo ?? {}) });
         setStatus(page.status);
+        setPublishedAt(page.publishedAt);
         // The loaded page is by definition unmodified, so it becomes the
         // baseline everything after is compared against.
         saved.current = JSON.stringify({
@@ -118,15 +124,22 @@ export function usePageEditor(id: string | undefined) {
     };
   }, [workspace, id]);
 
-  const save = useCallback(async (nextStatus: PageStatus, action: 'save' | 'publish' = 'save') => {
-    if (!workspace || !id) return;
+  /**
+   * Writes every field and the given status. Resolves to the saved page, or to
+   * null when nothing was written — the caller decides which toast to show, so
+   * "Saved", "Published" and "Archived" can each read as what happened.
+   */
+  const save = useCallback(async (nextStatus: PageStatus, action: 'save' | 'publish' = 'save'): Promise<Page | null> => {
+    if (!workspace || !id) return null;
     if (!title.trim()) {
-      setError('A title is required');
-      return;
+      lastError.current = 'A title is required';
+      setError(lastError.current);
+      return null;
     }
 
     setSavingAction(action);
     setError(null);
+    lastError.current = null;
     try {
       const page = await pageService.update(workspace.id, id, {
         title: title.trim(),
@@ -156,9 +169,13 @@ export function usePageEditor(id: string | undefined) {
         seo: page.seo ?? EMPTY_SEO,
       });
       setSlug(page.slug);
+      setPublishedAt(page.publishedAt);
       setSavedAt(new Date());
+      return page;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not save the page');
+      lastError.current = err instanceof ApiError ? err.message : 'Could not save the page';
+      setError(lastError.current);
+      return null;
     } finally {
       setSavingAction(null);
     }
@@ -181,7 +198,11 @@ export function usePageEditor(id: string | undefined) {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.key === 's' && (e.metaKey || e.ctrlKey))) return;
       e.preventDefault();
-      if (dirty) void save(status === 'published' ? 'published' : 'draft');
+      if (!dirty) return;
+      void save(status === 'published' ? 'published' : 'draft').then((page) => {
+        if (page) toast.success(page.status === 'published' ? 'Live page updated' : 'Draft saved');
+        else toast.error('Could not save', { message: lastError.current ?? 'Please try again.' });
+      });
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -200,10 +221,13 @@ export function usePageEditor(id: string | undefined) {
     legacySections,
     seo, setSeo,
     status,
+    publishedAt,
     loading,
     savingAction,
     saving: savingAction !== null,
     error,
+    /** Message of the last failed save, readable right after it resolves. */
+    lastError: () => lastError.current,
     save,
     dirty,
     savedAt,
