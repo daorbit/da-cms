@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { IconDots, IconX, IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconChevronDown, IconDots, IconMinus, IconX } from '@tabler/icons-react';
 import type { PageStatus } from '@/types';
 import { STATUS_LABEL } from '@/components/StatusLabel';
 
@@ -320,5 +320,162 @@ export function ChecklistView({ items }: { items: CheckItem[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/* --------------------------------------------------------------- select --- */
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SelectProps {
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  label?: string;
+  className?: string;
+}
+
+/**
+ * A dropdown in place of the native <select>, which cannot be styled to match.
+ * Keyboard: Enter/Space/↓ open, ↑/↓ move, Enter picks, Esc closes.
+ */
+export function Select({ value, options, onChange, placeholder = 'Select…', disabled, label, className }: SelectProps) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const current = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    setActive(Math.max(0, options.findIndex((o) => o.value === value)));
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open, options, value]);
+
+  const pick = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+
+  const onKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (!open && ['Enter', ' ', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      setOpen(true);
+      return;
+    }
+    if (!open) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive((i) => Math.min(options.length - 1, i + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive((i) => Math.max(0, i - 1));
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (options[active]) pick(options[active].value);
+    }
+  };
+
+  return (
+    <div ref={ref} className={cx('relative', className)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={label}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={onKey}
+        className={cx(
+          'flex h-9 w-full items-center gap-2 rounded-sm border bg-surface px-3 text-left text-sm',
+          open ? 'border-accent ring-2 ring-accent-soft' : 'border-line-strong hover:border-[var(--border-hover)]',
+          disabled && 'opacity-50',
+        )}
+      >
+        <span className={cx('min-w-0 flex-1 truncate', !current && 'text-faint')}>{current?.label ?? placeholder}</span>
+        <IconChevronDown size={15} className={cx('shrink-0 text-muted transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          className="animate-pop-in absolute inset-x-0 z-40 mt-1 max-h-64 min-w-40 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-pop"
+        >
+          {options.map((o, i) => {
+            const selected = o.value === value;
+            return (
+              <li
+                key={o.value}
+                role="option"
+                aria-selected={selected}
+                onMouseEnter={() => setActive(i)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(o.value)}
+                className={cx(
+                  'flex cursor-pointer items-center gap-2 rounded-[6px] px-2.5 py-2 text-sm',
+                  i === active ? 'bg-surface-hover text-fg' : 'text-fg-2',
+                  selected && 'font-medium text-fg',
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                {selected && <IconCheck size={14} className="shrink-0 text-accent" />}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- checkbox --- */
+
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  indeterminate?: boolean;
+  label: string;
+  /** Visible text beside the box; without it `label` is for screen readers only. */
+  children?: ReactNode;
+  className?: string;
+}
+
+/** A styled checkbox. Clicks stop here, so a checkbox inside a clickable row only toggles. */
+export function Checkbox({ checked, onChange, indeterminate, label, children, className }: CheckboxProps) {
+  const on = checked || indeterminate;
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={indeterminate ? 'mixed' : checked}
+      aria-label={children ? undefined : label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!checked);
+      }}
+      className={cx('group inline-flex items-start gap-3 text-left', className)}
+    >
+      <span
+        className={cx(
+          'mt-px grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition-colors',
+          on ? 'border-accent bg-accent text-white' : 'border-line-strong bg-surface group-hover:border-[var(--border-hover)]',
+        )}
+      >
+        {indeterminate ? <IconMinus size={12} stroke={3} /> : checked && <IconCheck size={12} stroke={3} />}
+      </span>
+      {children}
+    </button>
   );
 }

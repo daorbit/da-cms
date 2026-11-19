@@ -11,7 +11,7 @@ import { PageIntegrationModal } from '@/modules/content/pages/PageIntegrationMod
 import { relativeTime } from '@/lib/format';
 import type { DashboardStats, PageStatus, PageSummary } from '@/types';
 import { PER_PAGE, usePageLibrary, type StatusFilter } from './library/usePageLibrary';
-import { Button, ConfirmDialog, Menu, StatusBadge, cx, inputCls, type ConfirmState } from '../ui';
+import { Button, Checkbox, ConfirmDialog, Menu, Select, StatusBadge, cx, inputCls, type ConfirmState } from '../ui';
 
 const TABS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -74,7 +74,7 @@ export function PageListPage() {
 
   return (
     <div className="tw h-full overflow-y-auto font-sans text-fg">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+      <div className="p-3">
         {/* ---------------------------------------------------- header --- */}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -135,17 +135,13 @@ export function PageListPage() {
           </div>
 
           {filters.groups.length > 0 && (
-            <select
+            <Select
+              className="w-44"
+              label="Filter by group"
               value={filters.group ?? ''}
-              onChange={(e) => filters.setGroup(e.target.value || null)}
-              className={cx(inputCls.replace('w-full ', ''), 'w-auto min-w-36')}
-              aria-label="Filter by group"
-            >
-              <option value="">All groups</option>
-              {filters.groups.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+              onChange={(v) => filters.setGroup(v || null)}
+              options={[{ value: '', label: 'All groups' }, ...filters.groups.map((g) => ({ value: g, label: g }))]}
+            />
           )}
         </div>
 
@@ -185,11 +181,10 @@ export function PageListPage() {
         {/* ---------------------------------------------------- table --- */}
         <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface">
           <div className={cx('hidden items-center gap-4 border-b border-line bg-surface-2/60 px-4 py-2.5 text-[11px] font-semibold tracking-wide text-muted uppercase md:grid', GRID)}>
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--accent)]"
-              aria-label="Select all on this page"
+            <Checkbox
+              label="Select all on this page"
               checked={library.allChecked}
+              indeterminate={!library.allChecked && pages.some((p) => checked.has(p.id))}
               onChange={library.toggleAll}
             />
             <span>Page</span>
@@ -262,12 +257,9 @@ export function PageListPage() {
                     isChecked && 'bg-accent-soft',
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-[var(--accent)]"
-                    aria-label={`Select ${p.title || 'Untitled'}`}
+                  <Checkbox
+                    label={`Select ${p.title || 'Untitled'}`}
                     checked={isChecked}
-                    onClick={(e) => e.stopPropagation()}
                     onChange={() => library.toggleChecked(p.id)}
                   />
                   <div className="flex min-w-0 items-center gap-3">

@@ -57,19 +57,27 @@
 
 /* ------------------------------------------------------- workspace switch */
 
-.workspace {
+/* `.sidebar` is there for specificity: Mantine's UnstyledButton reset
+   (padding: 0) otherwise wins, and the highlight hugs the text. */
+.workspace,
+.sidebar .workspace {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 6px;
+  padding: 8px 10px;
   border-radius: 10px;
   transition: background-color 140ms ease;
 }
 
 .workspace:hover {
   background: var(--nav-hover);
+}
+
+/* While its menu is open the button stays lit, so it reads as the menu's owner. */
+.workspace[data-expanded] {
+  background: var(--nav-active);
 }
 
 .monogram {
@@ -189,19 +197,25 @@
 
 /* -------------------------------------------------------------- account */
 
-.account {
+.account,
+.sidebar .account {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 6px;
+  padding: 8px 10px;
   border-radius: 10px;
   transition: background-color 140ms ease;
 }
 
 .account:hover {
   background: var(--nav-hover);
+}
+
+/* While its menu is open the button stays lit, so it reads as the menu's owner. */
+.account[data-expanded] {
+  background: var(--nav-active);
 }
 
 .accountText {
@@ -248,7 +262,6 @@
 
 .shell[data-collapsed] .itemLabel,
 .shell[data-collapsed] .workspaceText,
-.shell[data-collapsed] .workspaceChevron,
 .shell[data-collapsed] .accountText {
   display: none;
 }

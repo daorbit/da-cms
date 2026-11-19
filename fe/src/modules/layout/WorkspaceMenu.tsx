@@ -10,14 +10,6 @@ interface Props {
   collapsed?: boolean;
 }
 
-const monogram = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase())
-    .join('') || 'D';
-
 /** The current workspace, named, which is also how you switch between workspaces. */
 export function WorkspaceMenu({ workspace, workspaces, collapsed }: Props) {
   const navigate = useNavigate();
@@ -28,7 +20,6 @@ export function WorkspaceMenu({ workspace, workspaces, collapsed }: Props) {
       <Menu.Target>
         <Tooltip label={name} position="right" withArrow openDelay={250} disabled={!collapsed}>
           <UnstyledButton className={classes.workspace} aria-label={`Workspace: ${name}. Switch workspace`}>
-            <span className={classes.monogram}>{monogram(name)}</span>
             <span className={classes.workspaceText}>
               <span className={classes.workspaceName}>{name}</span>
               <span className={classes.workspaceHint}>Workspace</span>
@@ -43,7 +34,6 @@ export function WorkspaceMenu({ workspace, workspaces, collapsed }: Props) {
         {workspaces.map((item) => (
           <Menu.Item
             key={item.id}
-            leftSection={<span className={classes.menuMonogram}>{monogram(item.name)}</span>}
             rightSection={item.slug === workspace?.slug ? <IconCheck size={14} /> : null}
             onClick={() => navigate(`/${item.slug}/dashboard`)}
           >

@@ -22,7 +22,7 @@ const NAV = [
 ];
 
 /** Routes that are working surfaces: they fill the panel edge to edge and scroll themselves. */
-const FLUSH_ROUTES = [/\/content\/pages\/?$/, /\/content\/pages\/[^/]+\/edit$/];
+const FLUSH_ROUTES = [/\/content\/pages\/?$/, /\/content\/pages\/[^/]+\/(edit|details)$/];
 
 const COLLAPSED_KEY = 'da-cms:sidebar-collapsed';
 

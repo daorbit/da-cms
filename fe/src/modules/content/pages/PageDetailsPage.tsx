@@ -46,7 +46,7 @@ export function PageDetailsPage() {
 
   if (page.loading) {
     return (
-      <div className="tw mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-8">
+      <div className="tw h-full space-y-4 overflow-y-auto p-3">
         <div className="h-4 w-24 animate-pulse rounded bg-surface-2" />
         <div className="h-8 w-2/3 animate-pulse rounded bg-surface-2" />
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -166,7 +166,7 @@ export function PageDetailsPage() {
   const busy = page.savingAction !== null;
 
   return (
-    <div className="tw mx-auto max-w-6xl px-4 py-6 font-sans text-fg sm:px-8">
+    <div className="tw h-full overflow-y-auto p-3 font-sans text-fg">
       <button type="button" onClick={() => navigate(listHref)} className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
         <IconArrowLeft size={15} /> All pages
       </button>
@@ -221,9 +221,10 @@ export function PageDetailsPage() {
             {page.description && <p className="p-5 text-[15px] leading-7 text-fg-2">{page.description}</p>}
           </div>
 
-          <Card title="Content" action={<Button size="sm" variant="ghost" icon={<IconPencil size={14} />} onClick={() => navigate(editHref)}>Edit</Button>}>
+          <Card title="Content" className="bg-panel" action={<Button size="sm" variant="ghost" icon={<IconPencil size={14} />} onClick={() => navigate(editHref)}>Edit</Button>}>
             {words > 0 ? (
-              <div className="-mx-2 overflow-hidden rounded-md">
+              // One container only: the card. The editor's own frame is removed (see .da-plain).
+              <div className="da-plain">
                 <DaEditor key={page.savedAt?.toString()} defaultHtml={page.content} readOnly theme="light" minHeight="0px" />
               </div>
             ) : (

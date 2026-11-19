@@ -108,3 +108,15 @@
 @utility animate-toast-in { animation: tw-toast-in 0.18s ease-out; }
 @utility animate-pop-in { animation: tw-pop-in 0.14s ease-out; }
 @utility animate-fade-in { animation: tw-fade-in 0.14s ease-out; }
+
+/* Read-only content shown inside a card: drop the editor's own frame, so the
+   card is the only container around it. */
+.da-plain .da-editor {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.da-plain .da-editor__container {
+  padding: 0 !important;
+}

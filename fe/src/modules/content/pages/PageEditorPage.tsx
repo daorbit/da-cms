@@ -10,7 +10,7 @@ import { relativeTime } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import type { Term } from '@/types';
 import {
-  Button, ChecklistView, ConfirmDialog, Counter, Dialog, Field, IconButton, Menu, StatusBadge, cx, inputCls,
+  Button, ChecklistView, Checkbox, ConfirmDialog, Counter, Dialog, Field, IconButton, Menu, Select, StatusBadge, cx, inputCls,
   type ConfirmState,
 } from '../ui';
 import { GooglePreview, ImageSlot, SocialPreview, inSentence, pageChecks } from '../pageBits';
@@ -265,12 +265,13 @@ export function PageEditorPage() {
                     <input value={editor.slug} onChange={(e) => editor.setSlug(slugify(e.target.value) || e.target.value.toLowerCase())} className={inputCls} />
                   </Field>
                   <Field label="Group" hint={groups.length ? undefined : 'Add groups in workspace settings.'}>
-                    <select value={editor.group} onChange={(e) => editor.setGroup(e.target.value)} className={inputCls} disabled={!groups.length}>
-                      <option value="">No group</option>
-                      {groups.map((g) => (
-                        <option key={g.name} value={g.name}>{g.name}</option>
-                      ))}
-                    </select>
+                    <Select
+                      label="Group"
+                      value={editor.group}
+                      onChange={editor.setGroup}
+                      disabled={!groups.length}
+                      options={[{ value: '', label: 'No group' }, ...groups.map((g) => ({ value: g.name, label: g.name }))]}
+                    />
                   </Field>
                   <TagPicker value={editor.tags} options={tagOptions.map((t) => t.name)} onChange={editor.setTags} />
                 </>
@@ -316,18 +317,17 @@ export function PageEditorPage() {
                   <Field label="Keywords" hint="Comma separated, 5–8 phrases.">
                     <input value={editor.seo.keywords} onChange={(e) => editor.setSeo({ ...editor.seo, keywords: e.target.value })} className={inputCls} />
                   </Field>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 size-4 accent-[var(--accent)]"
-                      checked={editor.seo.noIndex}
-                      onChange={(e) => editor.setSeo({ ...editor.seo, noIndex: e.target.checked })}
-                    />
+                  <Checkbox
+                    label="Hide from search engines"
+                    className="w-full rounded-md border border-line p-3"
+                    checked={editor.seo.noIndex}
+                    onChange={(v) => editor.setSeo({ ...editor.seo, noIndex: v })}
+                  >
                     <span>
                       <span className="block text-[13px] font-medium">Hide from search engines</span>
                       <span className="block text-xs text-muted">Adds noindex, so this page is not listed in results.</span>
                     </span>
-                  </label>
+                  </Checkbox>
                   <div>
                     <p className="mb-1.5 text-[13px] font-medium">Google preview</p>
                     <GooglePreview site={site} path={path} title={editor.seo.title || editor.title} description={editor.seo.description || editor.description} />
