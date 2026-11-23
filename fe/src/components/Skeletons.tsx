@@ -21,30 +21,6 @@ export function HeaderSkeleton({ withAction = true }: { withAction?: boolean }) 
   );
 }
 
-/**
- * Tiles for the media wall.
- *
- * Heights vary because the wall is masonry — uniform tiles would set an
- * expectation the real content immediately breaks.
- */
-export function MediaGridSkeleton({ count = 12 }: { count?: number }) {
-  const heights = [180, 140, 220, 160, 200, 150];
-
-  return (
-    <div style={{ columnCount: 3, columnGap: 12 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          style={{ breakInside: 'avoid', marginBottom: 12 }}
-        >
-          <Skeleton height={heights[i % heights.length]} radius="md" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** A stack of cards, for form-shaped screens. */
 export function FormSkeleton({ sections = 3 }: { sections?: number }) {
   return (

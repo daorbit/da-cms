@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActionIcon,
   Alert,
-  Box,
   Button,
   Center,
   Group,
   Modal,
-  Pagination,
   SegmentedControl,
   Stack,
   Text,
@@ -26,31 +24,19 @@ import {
   IconEye,
   IconChecklist,
 } from '@tabler/icons-react';
-import { useWorkspace } from '@/hooks/useWorkspace';
 import { ApiError } from '@/lib/api';
-import { mediaService, type MediaAsset, type MediaKind } from './mediaService';
+import { mediaService, type MediaAsset } from './mediaService';
 import { MediaGrid, TileAction } from './MediaGrid';
-import { UploadTray, type UploadItem } from './UploadTray';
+import { MediaGridSkeleton } from './MediaGridSkeleton';
+import { MediaPager } from './MediaPager';
 import { MediaPreviewModal } from './MediaPreviewModal';
-import { MediaGridSkeleton } from '@/components/Skeletons';
+import { UploadTray } from './UploadTray';
+import { useMediaLibrary, type MediaFilter } from './useMediaLibrary';
 
-type Filter = 'all' | MediaKind;
-
-const PER_PAGE = 12;
-
- 
 export function MediaPage() {
-  const workspace = useWorkspace();
-  const workspaceId = workspace?.id;
+  const library = useMediaLibrary();
+  const { workspaceId, items, loading, query, uploads } = library;
 
-  const [items, setItems] = useState<MediaAsset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const uploading = uploads.some((u) => u.state === 'queued' || u.state === 'uploading');
-  const [error, setError] = useState<string | null>(null);
-
-  const [filter, setFilter] = useState<Filter>('all');
-  const [query, setQuery] = useState('');
   const [renaming, setRenaming] = useState<MediaAsset | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MediaAsset | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -61,59 +47,10 @@ export function MediaPage() {
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
-    if (!workspaceId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await mediaService.list(workspaceId, {
-        kind: filter === 'all' ? undefined : filter,
-        q: query,
-        page,
-        perPage: PER_PAGE,
-      });
-      setItems(res.items);
-      setTotal(res.total);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not load the library');
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId, filter, query, page]);
-
-  // Debounced so typing in the search box is not a request per keystroke.
-  useEffect(() => {
-    const timer = setTimeout(load, query ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [load, query]);
-
-  // A narrowed result set is shorter, so the page a user was on may no longer
-  // exist — start again from the first rather than showing an empty wall.
-  useEffect(() => {
-    setPage(1);
-  }, [filter, query]);
-
   const upload = async (fileList: FileList | null) => {
-    if (!fileList?.length || !workspaceId) return;
-
-    const files = Array.from(fileList);
-    setError(null);
-    setUploads(files.map((file) => ({ file, state: 'queued' })));
-
-    const { assets, failed } = await mediaService.uploadMany(
-      workspaceId,
-      files,
-      (index, state, _asset, err) => {
-        setUploads((prev) =>
-          prev.map((u, i) => (i === index ? { ...u, state, error: err } : u))
-        );
-      }
-    );
+    const { assets, failed } = await library.upload(fileList);
 
     if (assets.length > 0) {
       notifications.show({
@@ -127,10 +64,6 @@ export function MediaPage() {
         message: `${failed} file${failed === 1 ? '' : 's'} failed to upload`,
       });
     }
-
-    // Leave the tray up briefly so a failed row is readable, then clear.
-    setTimeout(() => setUploads([]), 2500);
-    await load();
   };
 
   const confirmDelete = async () => {
@@ -139,10 +72,7 @@ export function MediaPage() {
     try {
       await mediaService.remove(workspaceId, pendingDelete.id);
       notifications.show({ color: 'teal', message: `Deleted ${pendingDelete.name}` });
-      // Reloaded rather than spliced: the page is a window onto a longer list,
-      // so removing one row should pull the next one up into it.
-      if (items.length === 1 && page > 1) setPage(page - 1);
-      else await load();
+      library.reload();
       setPendingDelete(null);
     } catch (err) {
       notifications.show({
@@ -187,9 +117,7 @@ export function MediaPage() {
       });
       setBulkConfirm(false);
       exitSelect();
-      // Removing a chunk can empty the current page.
-      if (deleted.length >= items.length && page > 1) setPage(page - 1);
-      else await load();
+      library.reload();
     } catch (err) {
       notifications.show({
         color: 'red',
@@ -199,8 +127,6 @@ export function MediaPage() {
       setBulkDeleting(false);
     }
   };
-
-  const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <Stack gap="lg">
@@ -218,7 +144,7 @@ export function MediaPage() {
               size="lg"
               aria-label="Refresh library"
               loading={loading}
-              onClick={() => load()}
+              onClick={library.reload}
             >
               <IconRefresh size={18} />
             </ActionIcon>
@@ -234,7 +160,7 @@ export function MediaPage() {
           )}
           <Button
             leftSection={<IconUpload size={16} />}
-            loading={uploading}
+            loading={library.uploading}
             onClick={() => fileInput.current?.click()}
           >
             Upload
@@ -293,9 +219,9 @@ export function MediaPage() {
         }}
       />
 
-      {error && (
+      {library.error && (
         <Alert color="red" variant="light">
-          {error}
+          {library.error}
         </Alert>
       )}
 
@@ -306,12 +232,12 @@ export function MediaPage() {
           placeholder="Search by name"
           leftSection={<IconSearch size={16} />}
           value={query}
-          onChange={(e) => setQuery(e.currentTarget.value)}
+          onChange={(e) => library.setQuery(e.currentTarget.value)}
           style={{ flex: 1, maxWidth: 320 }}
         />
         <SegmentedControl
-          value={filter}
-          onChange={(v) => setFilter(v as Filter)}
+          value={library.filter}
+          onChange={(v) => library.setFilter(v as MediaFilter)}
           data={[
             { label: 'All', value: 'all' },
             { label: 'Images', value: 'image' },
@@ -322,7 +248,7 @@ export function MediaPage() {
       </Group>
 
       {loading ? (
-        <MediaGridSkeleton count={PER_PAGE} />
+        <MediaGridSkeleton />
       ) : items.length === 0 ? (
         <Center py={60}>
           <Stack align="center" gap="xs">
@@ -346,42 +272,27 @@ export function MediaPage() {
           </Stack>
         </Center>
       ) : (
-        <Box>
-          <MediaGrid
-            items={items}
-            selectedIds={selectMode ? selectedIds : undefined}
-            onToggleSelect={toggleSelect}
-            renderActions={(asset) => (
-              <>
-                <TileAction label="Preview" onClick={() => setPreviewing(asset)}>
-                  <IconEye size={14} />
-                </TileAction>
-                <TileAction label="Rename" onClick={() => setRenaming(asset)}>
-                  <IconPencil size={14} />
-                </TileAction>
-                <TileAction label="Delete" color="red" onClick={() => setPendingDelete(asset)}>
-                  <IconTrash size={14} />
-                </TileAction>
-              </>
-            )}
-          />
-        </Box>
+        <MediaGrid
+          items={items}
+          selectedIds={selectMode ? selectedIds : undefined}
+          onToggleSelect={toggleSelect}
+          renderActions={(asset) => (
+            <>
+              <TileAction label="Preview" onClick={() => setPreviewing(asset)}>
+                <IconEye size={14} />
+              </TileAction>
+              <TileAction label="Rename" onClick={() => setRenaming(asset)}>
+                <IconPencil size={14} />
+              </TileAction>
+              <TileAction label="Delete" color="red" onClick={() => setPendingDelete(asset)}>
+                <IconTrash size={14} />
+              </TileAction>
+            </>
+          )}
+        />
       )}
 
-      {pageCount > 1 && (
-        <Group justify="space-between" mt="xs">
-          <Text size="xs" c="dimmed">
-            {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}
-          </Text>
-          <Pagination
-            size="sm"
-            value={page}
-            onChange={setPage}
-            total={pageCount}
-            withEdges={pageCount > 5}
-          />
-        </Group>
-      )}
+      <MediaPager page={library.page} total={library.total} onChange={library.setPage} />
 
       <MediaPreviewModal asset={previewing} onClose={() => setPreviewing(null)} />
 
@@ -392,7 +303,7 @@ export function MediaPage() {
         workspaceId={workspaceId}
         onClose={() => setRenaming(null)}
         onSaved={(updated) => {
-          setItems((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          library.setItems((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
           setRenaming(null);
         }}
       />

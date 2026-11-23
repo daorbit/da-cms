@@ -41,8 +41,8 @@ const mediaSchema = new Schema(
 );
 
 // The library is browsed newest-first within a workspace, which is exactly
-// what this index serves.
-mediaSchema.index({ workspaceId: 1, createdAt: -1 });
+// what this index serves. `_id` breaks ties so paging never repeats or skips a file.
+mediaSchema.index({ workspaceId: 1, createdAt: -1, _id: -1 });
 
 export type Media = InferSchemaType<typeof mediaSchema> & { _id: Schema.Types.ObjectId };
 export const MediaModel = model('Media', mediaSchema);

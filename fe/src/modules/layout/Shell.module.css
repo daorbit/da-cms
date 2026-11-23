@@ -286,10 +286,9 @@
 }
 
 .outlet {
-  flex: 1;
+  flex: 1 0 auto;
   width: 100%;
   min-width: 0;
-  min-height: 0;
   padding-bottom: 32px;
 }
 
@@ -299,6 +298,8 @@
 }
 
 .main[data-flush] .outlet {
+  flex: 1;
+  min-height: 0;
   padding-bottom: 0;
   height: 100%;
 }

@@ -1,6 +1,7 @@
 import { Box, Checkbox, Text, ActionIcon, Group, Tooltip } from '@mantine/core';
 import { IconCheck, IconFile, IconFileTypePdf, IconMovie, IconMusic } from '@tabler/icons-react';
 import { formatBytes, type MediaAsset } from './mediaService';
+import { gridClass, type GridColumns } from './mediaGridClass';
 import classes from './MediaGrid.module.css';
 
 interface Props {
@@ -8,8 +9,7 @@ interface Props {
   selectedId?: string | null;
   onSelect?: (asset: MediaAsset) => void;
   renderActions?: (asset: MediaAsset) => React.ReactNode;
-  /** Widest column count. Fewer columns = bigger tiles (the picker wants this). */
-  maxColumns?: 3 | 4;
+  maxColumns?: GridColumns;
   /** IDs ticked for a bulk action. When passed, a tile click toggles the tick. */
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
@@ -28,9 +28,7 @@ export function MediaGrid({
   const multiSelect = !!selectedIds;
 
   return (
-    <Box
-      className={`${classes.masonry} ${maxColumns === 3 ? classes.threeUp : ''}`}
-    >
+    <Box className={gridClass(maxColumns)}>
       {items.map((asset) => {
         const ticked = selectedIds?.has(asset.id) ?? false;
         const activate = multiSelect
@@ -107,13 +105,13 @@ function Preview({ asset }: { asset: MediaAsset }) {
         src={asset.thumbnailUrl || asset.url}
         alt={asset.alt || asset.name}
         loading="lazy"
-        className={classes.image}
+        className={`${classes.preview} ${classes.image}`}
       />
     );
   }
 
   return (
-    <Box className={classes.fileTile}>
+    <Box className={`${classes.preview} ${classes.fileTile}`}>
       <FileIcon mime={asset.mime} />
       <Text size="10px" c="dimmed" tt="uppercase" mt={6}>
         {asset.format || asset.mime?.split('/')[1] || 'file'}
