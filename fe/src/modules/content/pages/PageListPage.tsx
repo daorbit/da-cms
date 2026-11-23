@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   IconArchive, IconArrowBackUp, IconChevronLeft, IconChevronRight, IconCode, IconCopy, IconEye,
-  IconPencil, IconPhoto, IconPlus, IconSearch, IconTrash, IconWorld, IconX,
+  IconPencil, IconPhoto, IconPlus, IconRefresh, IconSearch, IconTrash, IconWorld, IconX,
 } from '@tabler/icons-react';
 import { absoluteApiBase } from '@/modules/content/pageService';
 import { dashboardService } from '@/modules/dashboard/dashboardService';
@@ -11,7 +11,7 @@ import { PageIntegrationModal } from '@/modules/content/pages/PageIntegrationMod
 import { relativeTime } from '@/lib/format';
 import type { DashboardStats, PageStatus, PageSummary } from '@/types';
 import { PER_PAGE, usePageLibrary, type StatusFilter } from './library/usePageLibrary';
-import { Button, Checkbox, ConfirmDialog, Menu, Select, StatusBadge, cx, inputCls, type ConfirmState } from '../ui';
+import { Button, Checkbox, ConfirmDialog, IconButton, Menu, Select, Spinner, StatusBadge, cx, inputCls, type ConfirmState } from '../ui';
 
 const TABS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -86,6 +86,14 @@ export function PageListPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <IconButton
+              label="Refresh pages"
+              className="size-9 border border-line-strong bg-surface disabled:opacity-50"
+              disabled={library.loading}
+              onClick={library.refresh}
+            >
+              {library.loading ? <Spinner /> : <IconRefresh size={16} />}
+            </IconButton>
             <Button icon={<IconCode size={15} />} onClick={() => setIntegrationOpen(true)}>
               API
             </Button>
